@@ -1,0 +1,21 @@
+.git
+.ua
+.understand-anything
+.tmp-cytoscape
+.vercel
+.venv
+.venv-stage3
+__pycache__
+.ipynb_checkpoints
+node_modules
+**/node_modules
+**/.npm-cache
+artifacts
+artifacts_notebook
+dist
+delete
+file delete
+models/smpl/*.pkl
+*.joblib
+*.pyc
+notebook_execution.*.log

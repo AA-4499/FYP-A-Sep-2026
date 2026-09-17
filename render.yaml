@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: diabetes-digital-twin-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python train_model.py
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: FLASK_HOST
+        value: 0.0.0.0
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: ANALYSIS_CACHE_SIZE
+        value: "128"
+      - key: MODEL_METRICS_PATH
+        value: artifacts_notebook/metrics.json

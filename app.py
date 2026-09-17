@@ -17,11 +17,18 @@ from ollama_recommendations import (
     generate_local_guidance,
     guidance_error_message,
 )
-from stage3 import DiabetesDigitalTwin, RISK_LABELS, smpl_twin_descriptor
+from stage3 import DiabetesDigitalTwin, MODEL_CANDIDATES, RISK_LABELS, smpl_twin_descriptor
 from twin_assets import TwinAssetResult, TwinAssetService
+
+try:
+    from flask_cors import CORS
+except ImportError:
+    CORS = None
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+if CORS is not None:
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 TWIN: DiabetesDigitalTwin | None = None
 KNOWLEDGE_GRAPH = PatientKnowledgeGraph(
     metrics_path=os.environ.get("MODEL_METRICS_PATH", "artifacts_notebook/metrics.json")
@@ -399,6 +406,253 @@ def index():
         dataset_name=dataset.source_name, patient_count=len(dataset.frame), patient_number=patient_number,
         patient_rows=dataset.patient_window(patient_number), actual_label=dataset.actual_label(patient_number),
     )
+
+
+# ============================================================================
+# REST API Endpoints for React Frontend
+# ============================================================================
+
+@app.get("/api/health")
+def api_health():
+    model_exists = any(candidate.exists() for candidate in MODEL_CANDIDATES)
+    return {
+        "status": "healthy",
+        "model_available": model_exists,
+        "model_loaded": TWIN is not None,
+        "model_name": TWIN.model_path.name if TWIN else "diabetes_risk_random_forest.joblib",
+    }
+
+
+@app.get("/api/config")
+def api_config():
+    dataset = get_patient_dataset()
+    return {
+        "fields": [
+            {
+                "name": name,
+                "label": label,
+                "kind": kind,
+                "default": default,
+                "attrs": attrs,
+            }
+            for name, label, kind, default, attrs in FIELDS
+        ],
+        "scenario_features": SCENARIO_FEATURES,
+        "dataset_name": dataset.source_name,
+        "patient_count": len(dataset.frame),
+        "risk_labels": RISK_LABELS,
+        "ollama_model": configured_model(),
+    }
+
+
+@app.get("/api/patients")
+def api_patients():
+    dataset = get_patient_dataset()
+    try:
+        patient_number = int(request.args.get("number", 1))
+        window_size = int(request.args.get("size", 9))
+    except (ValueError, TypeError):
+        patient_number = 1
+        window_size = 9
+
+    patient_number = max(1, min(patient_number, len(dataset.frame)))
+    return {
+        "patient_number": patient_number,
+        "patient_count": len(dataset.frame),
+        "dataset_name": dataset.source_name,
+        "actual_label": dataset.actual_label(patient_number),
+        "values": dataset.patient(patient_number),
+        "window": dataset.patient_window(patient_number, size=window_size),
+    }
+
+
+@app.get("/api/patients/<int:patient_number>")
+def api_patient_detail(patient_number: int):
+    dataset = get_patient_dataset()
+    if patient_number < 1 or patient_number > len(dataset.frame):
+        return {"error": f"Patient number must be between 1 and {len(dataset.frame)}"}, 400
+    return {
+        "patient_number": patient_number,
+        "values": dataset.patient(patient_number),
+        "actual_label": dataset.actual_label(patient_number),
+    }
+
+
+@app.post("/api/predict")
+def api_predict():
+    data = request.get_json(silent=True) or {}
+    dataset = get_patient_dataset()
+    try:
+        patient_number = int(data.get("patient_number", 1))
+        custom_values = data.get("values")
+        if custom_values:
+            values = {k: validate_feature_value(k, v) for k, v in custom_values.items()}
+        else:
+            values = dataset.patient(patient_number)
+
+        twin = get_twin()
+        current = twin.predict(values)
+        explanation = twin.explain(values, max_factors=5)
+        smpl = smpl_twin_descriptor(values["BMI"], current["high_risk_probability"])
+        asset_result = refresh_smpl_twin(values, current)
+        asset_meta = request_asset_metadata(asset_result)
+
+        return {
+            "patient_number": patient_number,
+            "values": values,
+            "actual_label": dataset.actual_label(patient_number) if not custom_values else None,
+            "current": current,
+            "explanation": explanation,
+            "smpl": smpl,
+            "smpl_status": asset_result.status,
+            "twin_metadata": asset_meta,
+        }
+    except Exception as exc:
+        return {"error": str(exc)}, 400
+
+
+@app.post("/api/simulate")
+def api_simulate():
+    data = request.get_json(silent=True) or {}
+    dataset = get_patient_dataset()
+    try:
+        patient_number = int(data.get("patient_number", 1))
+        baseline_raw = data.get("baseline")
+        scenario_raw = data.get("scenario")
+
+        if not baseline_raw:
+            baseline_raw = dataset.patient(patient_number)
+        baseline = {k: validate_feature_value(k, v) for k, v in baseline_raw.items()}
+
+        scenario = baseline.copy()
+        if scenario_raw:
+            for feat in SCENARIO_FEATURES:
+                if feat in scenario_raw:
+                    scenario[feat] = validate_feature_value(feat, scenario_raw[feat])
+
+        twin = get_twin()
+        sim_result = twin.simulate(baseline, scenario)
+        current = sim_result["baseline"]
+        scenario_pred = sim_result["scenario"]
+
+        smpl = smpl_twin_descriptor(baseline["BMI"], current["high_risk_probability"])
+        scenario_smpl = smpl_twin_descriptor(scenario["BMI"], scenario_pred["high_risk_probability"])
+
+        curr_asset = refresh_smpl_twin(baseline, current)
+        scen_asset = refresh_smpl_twin(
+            scenario, scenario_pred, SCENARIO_TWIN_GLB_PATH, "Scenario 3D twin"
+        )
+
+        return {
+            "baseline": current,
+            "scenario": scenario_pred,
+            "changes": sim_result["changes"],
+            "high_risk_change": sim_result["high_risk_change"],
+            "smpl": smpl,
+            "scenario_smpl": scenario_smpl,
+            "twin_metadata": request_asset_metadata(curr_asset),
+            "scenario_twin_metadata": request_asset_metadata(scen_asset),
+        }
+    except Exception as exc:
+        return {"error": str(exc)}, 400
+
+
+@app.post("/api/knowledge-graph")
+def api_knowledge_graph():
+    data = request.get_json(silent=True) or {}
+    dataset = get_patient_dataset()
+    try:
+        patient_number = int(data.get("patient_number", 1))
+        values_raw = data.get("values")
+        if values_raw:
+            values = {k: validate_feature_value(k, v) for k, v in values_raw.items()}
+        else:
+            values = dataset.patient(patient_number)
+
+        twin = get_twin()
+        prediction = twin.predict(values)
+        high_risk_contributions = twin.explain(values, max_factors=None, class_id=2)
+        kg_result = KNOWLEDGE_GRAPH.explain(
+            values, prediction, high_risk_contributions, twin.model_path.name
+        )
+        return kg_result
+    except Exception as exc:
+        return {"error": str(exc)}, 400
+
+
+@app.post("/api/guidance")
+def api_guidance():
+    data = request.get_json(silent=True) or {}
+    dataset = get_patient_dataset()
+    try:
+        patient_number = int(data.get("patient_number", 1))
+        values_raw = data.get("values")
+        if values_raw:
+            values = {k: validate_feature_value(k, v) for k, v in values_raw.items()}
+        else:
+            values = dataset.patient(patient_number)
+
+        twin = get_twin()
+        prediction = twin.predict(values)
+        high_risk_contributions = twin.explain(values, max_factors=None, class_id=2)
+        kg_result = KNOWLEDGE_GRAPH.explain(
+            values, prediction, high_risk_contributions, twin.model_path.name
+        )
+        smpl = smpl_twin_descriptor(values["BMI"], prediction["high_risk_probability"])
+
+        guidance_text = None
+        guidance_error = None
+        source = "deterministic"
+        try:
+            guidance_text = generate_local_guidance(patient_number, prediction, kg_result, smpl)
+            source = "local_model"
+        except Exception as exc:
+            from ollama_recommendations import deterministic_evidence_summary
+            guidance_text = deterministic_evidence_summary(patient_number, prediction, kg_result)
+            guidance_error = guidance_error_message(exc)
+            source = "deterministic_fallback"
+
+        return {
+            "guidance": guidance_text,
+            "source": source,
+            "error": guidance_error,
+            "patient_number": patient_number,
+        }
+    except Exception as exc:
+        return {"error": str(exc)}, 400
+
+
+@app.post("/api/upload-dataset")
+def api_upload_dataset():
+    global PATIENT_DATASET
+    upload = request.files.get("dataset_file")
+    if upload is None or not upload.filename:
+        return {"error": "Choose a CSV file to import."}, 400
+    try:
+        PATIENT_DATASET = PatientDataset.from_upload(upload)
+        dataset = PATIENT_DATASET
+        return {
+            "source_name": dataset.source_name,
+            "patient_count": len(dataset.frame),
+            "notice": f"Imported {dataset.source_name}: {len(dataset.frame):,} valid patient rows.",
+        }
+    except Exception as exc:
+        return {"error": str(exc)}, 400
+
+
+@app.get("/api/digital-twin.glb")
+def api_digital_twin_asset():
+    return digital_twin_asset()
+
+
+@app.get("/api/digital-twin-scenario.glb")
+def api_scenario_digital_twin_asset():
+    return scenario_digital_twin_asset()
+
+
+@app.get("/api/digital-twin/<asset_key>.glb")
+def api_cached_digital_twin_asset(asset_key: str):
+    return cached_digital_twin_asset(asset_key)
 
 
 if __name__ == "__main__":

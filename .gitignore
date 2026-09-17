@@ -17,3 +17,5 @@ patient.csv
 artifacts_notebook/twin_cache/
 artifacts_notebook/knowledge_graph.json
 artifacts_notebook/stage3_case_study.json
+frontend/node_modules/
+frontend/dist/

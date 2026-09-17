@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+}
+
+/* Custom styles for knowledge graph canvas */
+#cytoscape-canvas {
+  width: 100%;
+  height: 520px;
+  background-color: #f8fafc;
+  border-radius: 0.5rem;
+}
+
+/* Model viewer styles */
+model-viewer {
+  width: 100%;
+  height: 380px;
+  background-color: #f1f5f9;
+  border-radius: 0.5rem;
+  --poster-color: transparent;
+}

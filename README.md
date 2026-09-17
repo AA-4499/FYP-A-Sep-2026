@@ -26,6 +26,56 @@ Stage 2 and Stage 4 intentionally use different SHAP targets: Stage 2 explains t
 
 The examples below use Windows Command Prompt. Run them from the repository directory.
 
+## Modern Web App: React (Vercel) + Python API (Render)
+
+The project includes a decoupled, cloud-deployable architecture:
+- **Frontend (`frontend/`):** React 18, TypeScript, Tailwind CSS, Cytoscape.js, and `@google/model-viewer` hosted on **Vercel**.
+- **Backend (`app.py`):** Flask REST API with Flask-CORS serving predictions, SHAP explanations, what-if simulations, and knowledge graphs hosted on **Render**.
+- **Model Privacy:** The proprietary Random Forest model (`.joblib`) is generated privately on Render during the build phase via `python train_model.py`. It is **never** committed to Git and **never** exposed publicly to browser clients.
+
+### 1. Deploy the Backend on Render
+
+1. Create a new account or log in to [Render](https://render.com).
+2. Choose **New** → **Web Service** and connect this repository.
+3. Configure the service settings:
+   - **Root Directory:** leave blank (repository root `./`)
+   - **Environment:** `Python 3`
+   - **Build Command:** `pip install -r requirements.txt && python train_model.py`
+   - **Start Command:** `gunicorn -w 2 -b 0.0.0.0:$PORT app:app`
+4. Alternatively, use Render Blueprints to automatically deploy using the included [`render.yaml`](render.yaml).
+5. Copy your live Render service URL (e.g., `https://diabetes-digital-twin-api.onrender.com`).
+
+### 2. Deploy the Frontend on Vercel
+
+1. Create a new account or log in to [Vercel](https://vercel.com).
+2. Choose **Add New...** → **Project** and import this repository.
+3. Configure project settings:
+   - **Root Directory:** click Edit and select `frontend`
+   - **Framework Preset:** `Vite`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+4. Under **Environment Variables**, add:
+   - **Name:** `VITE_API_BASE_URL`
+   - **Value:** `https://your-render-service-name.onrender.com` (your Render URL from Step 1)
+5. Click **Deploy**. Vercel will build and launch your global React application with SPA routing.
+
+### 3. Local Full-Stack Development
+
+To run both the React frontend and Python API locally:
+
+```bat
+:: Terminal 1: Start Python API backend (port 5000)
+python train_model.py
+python app.py
+
+:: Terminal 2: Start Vite React frontend (port 3000)
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:3000> in your browser. Requests to `/api/*` are automatically proxied to the Flask server at `http://127.0.0.1:5000`.
+
 ## Quick start
 
 ### 1. Clone the repository

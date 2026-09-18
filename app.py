@@ -1,661 +1,217 @@
-"""Stage 1-4 local dashboard for the diabetes-risk research prototype."""
+"""Smart Diabetes Digital Twin and Personalised Health Management Platform.
+Flask REST API Backend for ShanghaiT2DM Longitudinal Cohort.
+Swinburne University of Technology Sarawak · Ts. Dr. Vong Wan Tze
+"""
 from __future__ import annotations
 
-import json
-import math
 import os
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
-from flask import Flask, abort, render_template, request, send_file, url_for
-
-from diabetes_risk import FEATURES
-from knowledge_graph import PatientKnowledgeGraph
-from ollama_recommendations import (
-    configured_model,
-    generate_local_guidance,
-    guidance_error_message,
-)
-from stage3 import DiabetesDigitalTwin, MODEL_CANDIDATES, RISK_LABELS, smpl_twin_descriptor
-from twin_assets import TwinAssetResult, TwinAssetService
-
+from flask import Flask, jsonify, request, send_from_directory
 try:
     from flask_cors import CORS
 except ImportError:
     CORS = None
 
+from services import (
+    list_patients,
+    get_patient,
+    get_default_patient_id,
+    get_patient_timeline,
+    assess_patient_risk,
+    explain_patient_risk,
+    get_patient_knowledge_graph,
+    generate_patient_insights,
+    get_digital_twin_state,
+    simulate_what_if,
+    generate_patient_report,
+)
+
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+
 if CORS is not None:
     CORS(app, resources={r"/api/*": {"origins": "*"}})
-TWIN: DiabetesDigitalTwin | None = None
-KNOWLEDGE_GRAPH = PatientKnowledgeGraph(
-    metrics_path=os.environ.get("MODEL_METRICS_PATH", "artifacts_notebook/metrics.json")
-)
-TWIN_GLB_PATH = Path("artifacts_notebook") / "digital_twin.glb"
-TWIN_METADATA_PATH = TWIN_GLB_PATH.with_suffix(".json")
-SCENARIO_TWIN_GLB_PATH = Path("artifacts_notebook") / "digital_twin_scenario.glb"
-PROJECT_DIR = Path(__file__).resolve().parent
-DEFAULT_DATASET_PATH = PROJECT_DIR / "diabetes_012_health_indicators_BRFSS2015.csv"
-TARGET = "Diabetes_012"
+
+# Frontend static distribution path (for single-server production deployment on Render)
+DIST_DIR = Path(__file__).resolve().parent / "frontend" / "dist"
 
 
-FIELDS = [
-    ("BMI", "Body mass index (BMI)", "number", 40, {"min": 12, "max": 100, "step": "0.1"}),
-    ("Age", "Age category (1 = 18-24, 13 = 80+)", "number", 9, {"min": 1, "max": 13, "step": 1}),
-    ("GenHlth", "General health (1 = excellent, 5 = poor)", "number", 3, {"min": 1, "max": 5, "step": 1}),
-    ("PhysHlth", "Physically unhealthy days in the past 30 days", "number", 5, {"min": 0, "max": 30, "step": 1}),
-    ("MentHlth", "Mentally unhealthy days in the past 30 days", "number", 5, {"min": 0, "max": 30, "step": 1}),
-    ("Education", "Education category (1 to 6)", "number", 4, {"min": 1, "max": 6, "step": 1}),
-    ("Income", "Income category (1 to 8)", "number", 4, {"min": 1, "max": 8, "step": 1}),
-    ("HighBP", "High blood pressure", "binary", 0, {}),
-    ("HighChol", "High cholesterol", "binary", 0, {}),
-    ("CholCheck", "Cholesterol checked in past 5 years", "binary", 1, {}),
-    ("Smoker", "Smoked at least 100 cigarettes in lifetime", "binary", 0, {}),
-    ("Stroke", "Ever had a stroke", "binary", 0, {}),
-    ("HeartDiseaseorAttack", "Coronary heart disease or heart attack", "binary", 0, {}),
-    ("PhysActivity", "Leisure-time physical activity in past 30 days", "binary", 1, {}),
-    ("Fruits", "Consumes fruit at least once per day", "binary", 1, {}),
-    ("Veggies", "Consumes vegetables at least once per day", "binary", 1, {}),
-    ("HvyAlcoholConsump", "Heavy alcohol consumption", "binary", 0, {}),
-    ("AnyHealthcare", "Has any healthcare coverage", "binary", 1, {}),
-    ("NoDocbcCost", "Could not see a doctor because of cost", "binary", 0, {}),
-    ("DiffWalk", "Serious difficulty walking", "binary", 0, {}),
-    ("Sex", "Sex (0 = female, 1 = male)", "binary", 0, {}),
-]
+# --------------------------------------------------------------------------
+# System & Metadata Endpoints
+# --------------------------------------------------------------------------
 
-# These are editable controls in the concise manual Stage 3 simulation panel.
-SCENARIO_FEATURES = ["BMI", "GenHlth", "PhysActivity", "Fruits", "Veggies", "HvyAlcoholConsump", "HighBP", "HighChol"]
-FIELD_BY_NAME = {field[0]: field for field in FIELDS}
-FIELD_KINDS = {name: kind for name, _, kind, _, _ in FIELDS}
-FIELD_STEPS = {name: attrs.get("step") for name, _, _, _, attrs in FIELDS}
-FIELD_LIMITS = {
-    name: (attrs.get("min"), attrs.get("max"))
-    for name, _, _, _, attrs in FIELDS
-}
-TWIN_ASSETS = TwinAssetService()
-LATEST_TWIN_ASSET_KEYS: dict[str, str | None] = {"current": None, "scenario": None}
-
-
-def validate_feature_value(feature: str, value: object) -> float:
-    """Validate one BRFSS value using the same rules for uploads and scenarios."""
-    numeric = float(value)
-    if not math.isfinite(numeric):
-        raise ValueError(f"{feature} must be a finite number.")
-    if FIELD_KINDS[feature] == "binary" and numeric not in (0.0, 1.0):
-        raise ValueError(f"{feature} must be 0 or 1.")
-    if str(FIELD_STEPS[feature]) == "1" and not numeric.is_integer():
-        raise ValueError(f"{feature} must be a whole-number category or count.")
-    minimum, maximum = FIELD_LIMITS[feature]
-    if minimum is not None and numeric < float(minimum):
-        raise ValueError(f"{feature} must be at least {minimum}.")
-    if maximum is not None and numeric > float(maximum):
-        raise ValueError(f"{feature} must be at most {maximum}.")
-    return numeric
-
-
-def validate_feature_series(feature: str, values: pd.Series) -> None:
-    """Vectorized counterpart to ``validate_feature_value`` for large CSVs."""
-    numeric = values.to_numpy(dtype=float, copy=False)
-    if not np.isfinite(numeric).all():
-        raise ValueError(f"{feature} must contain only finite numbers.")
-    if FIELD_KINDS[feature] == "binary" and not values.isin([0, 1]).all():
-        raise ValueError(f"{feature} must contain only 0 or 1.")
-    if str(FIELD_STEPS[feature]) == "1" and not np.equal(numeric, np.floor(numeric)).all():
-        raise ValueError(f"{feature} must contain whole-number categories or counts.")
-    minimum, maximum = FIELD_LIMITS[feature]
-    if minimum is not None and (values < float(minimum)).any():
-        raise ValueError(f"{feature} contains values below {minimum}.")
-    if maximum is not None and (values > float(maximum)).any():
-        raise ValueError(f"{feature} contains values above {maximum}.")
-
-
-class PatientDataset:
-    """Validated, numbered patient records used by every dashboard stage."""
-
-    def __init__(self, frame: pd.DataFrame, source_name: str) -> None:
-        missing = sorted(set(FEATURES) - set(frame.columns))
-        if missing:
-            raise ValueError(f"CSV is missing required columns: {', '.join(missing)}")
-
-        columns = FEATURES + ([TARGET] if TARGET in frame.columns else [])
-        clean = frame[columns].copy()
-        clean[FEATURES] = clean[FEATURES].apply(pd.to_numeric, errors="coerce")
-        clean = clean.dropna(subset=FEATURES).reset_index(drop=True)
-        if clean.empty:
-            raise ValueError("CSV contains no complete patient rows.")
-        if len(clean) > 500_000:
-            raise ValueError("CSV contains more than the 500,000-row prototype limit.")
-
-        for feature in FEATURES:
-            validate_feature_series(feature, clean[feature])
-
-        if TARGET in clean:
-            clean[TARGET] = pd.to_numeric(clean[TARGET], errors="coerce")
-            invalid_target = clean[TARGET].notna() & ~clean[TARGET].isin(RISK_LABELS)
-            if invalid_target.any():
-                raise ValueError(f"{TARGET} must contain only 0, 1, 2, or blank values.")
-        self.frame = clean
-        self.source_name = source_name
-
-    @classmethod
-    def from_path(cls, path: Path) -> "PatientDataset":
-        return cls(pd.read_csv(path), path.name)
-
-    @classmethod
-    def from_upload(cls, upload) -> "PatientDataset":
-        filename = Path(upload.filename or "uploaded-patients.csv").name
-        if not filename.lower().endswith(".csv"):
-            raise ValueError("Please import a CSV file.")
-        return cls(pd.read_csv(upload.stream), filename)
-
-    def patient(self, patient_number: int) -> dict[str, float]:
-        if patient_number < 1 or patient_number > len(self.frame):
-            raise ValueError(f"Patient number must be between 1 and {len(self.frame):,}.")
-        row = self.frame.iloc[patient_number - 1]
-        return {feature: float(row[feature]) for feature in FEATURES}
-
-    def actual_label(self, patient_number: int) -> str | None:
-        if TARGET not in self.frame:
-            return None
-        value = self.frame.iloc[patient_number - 1][TARGET]
-        if pd.isna(value) or int(value) not in RISK_LABELS:
-            return None
-        return RISK_LABELS[int(value)]
-
-    def patient_window(self, patient_number: int, size: int = 9) -> list[dict]:
-        half = size // 2
-        start = max(0, min(patient_number - 1 - half, len(self.frame) - size))
-        end = min(len(self.frame), start + size)
-        records = []
-        for index in range(start, end):
-            row = self.frame.iloc[index]
-            target = None
-            if TARGET in self.frame and not pd.isna(row[TARGET]) and int(row[TARGET]) in RISK_LABELS:
-                target = RISK_LABELS[int(row[TARGET])]
-            records.append({
-                "number": index + 1,
-                "bmi": float(row["BMI"]),
-                "age": int(row["Age"]),
-                "sex": "Male" if int(row["Sex"]) == 1 else "Female",
-                "actual_label": target,
-            })
-        return records
-
-
-PATIENT_DATASET: PatientDataset | None = None
-
-
-def get_patient_dataset() -> PatientDataset:
-    global PATIENT_DATASET
-    if PATIENT_DATASET is None:
-        PATIENT_DATASET = PatientDataset.from_path(DEFAULT_DATASET_PATH)
-    return PATIENT_DATASET
-
-
-def get_twin() -> DiabetesDigitalTwin:
-    """Load the large model only when a user requests a prediction."""
-    global TWIN
-    if TWIN is None:
-        TWIN = DiabetesDigitalTwin()
-    return TWIN
-
-
-def twin_metadata(glb_path: Path = TWIN_GLB_PATH) -> dict | None:
-    metadata_path = glb_path.with_suffix(".json")
-    if not glb_path.exists():
-        return None
-    if not metadata_path.exists():
-        return {"mesh_file": glb_path.name, "version": glb_path.stat().st_mtime_ns}
-    try:
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        metadata["version"] = glb_path.stat().st_mtime_ns
-        return metadata
-    except json.JSONDecodeError:
-        return {"mesh_file": glb_path.name, "version": glb_path.stat().st_mtime_ns}
-
-
-@app.get("/digital-twin.glb")
-def digital_twin_asset():
-    cached_path = TWIN_ASSETS.asset_path(LATEST_TWIN_ASSET_KEYS["current"] or "")
-    if cached_path is not None:
-        return send_file(cached_path, mimetype="model/gltf-binary", conditional=True)
-    if not TWIN_GLB_PATH.exists():
-        abort(404)
-    return send_file(TWIN_GLB_PATH, mimetype="model/gltf-binary", conditional=True)
-
-
-@app.get("/digital-twin-scenario.glb")
-def scenario_digital_twin_asset():
-    cached_path = TWIN_ASSETS.asset_path(LATEST_TWIN_ASSET_KEYS["scenario"] or "")
-    if cached_path is not None:
-        return send_file(cached_path, mimetype="model/gltf-binary", conditional=True)
-    if not SCENARIO_TWIN_GLB_PATH.exists():
-        abort(404)
-    return send_file(SCENARIO_TWIN_GLB_PATH, mimetype="model/gltf-binary", conditional=True)
-
-
-@app.get("/digital-twin/<asset_key>.glb")
-def cached_digital_twin_asset(asset_key: str):
-    asset_path = TWIN_ASSETS.asset_path(asset_key)
-    if asset_path is None:
-        abort(404)
-    return send_file(asset_path, mimetype="model/gltf-binary", conditional=True)
-
-
-def refresh_smpl_twin(
-    values: dict[str, float],
-    prediction: dict,
-    glb_path: Path = TWIN_GLB_PATH,
-    profile_name: str = "3D twin",
-) -> TwinAssetResult:
-    """Return a cached or newly generated content-addressed SMPL asset."""
-    if not any((PROJECT_DIR / "models" / "smpl").glob("*.pkl")):
-        return TwinAssetResult(
-            None, "SMPL model weights are not available, so the 3D twin was not updated."
-        )
-
-    gender = "male" if int(values["Sex"]) == 1 else "female"
-    risk_percent = prediction["high_risk_probability"] * 100
-    result = TWIN_ASSETS.get_or_create(
-        gender=gender,
-        bmi=values["BMI"],
-        risk_percent=risk_percent,
-        profile_name=profile_name,
-    )
-    if result.metadata is not None:
-        slot = "scenario" if glb_path == SCENARIO_TWIN_GLB_PATH else "current"
-        LATEST_TWIN_ASSET_KEYS[slot] = result.metadata["asset_key"]
-    return result
-
-
-def parse_scenario(baseline: dict[str, float]) -> dict[str, float]:
-    """Reload the baseline and apply only validated, allowlisted form changes."""
-    scenario = baseline.copy()
-    for feature in SCENARIO_FEATURES:
-        scenario[feature] = validate_feature_value(
-            feature, request.form[f"scenario_{feature}"]
-        )
-    return scenario
-
-
-def request_asset_metadata(result: TwinAssetResult) -> dict | None:
-    if result.metadata is None:
-        return None
-    metadata = dict(result.metadata)
-    metadata["asset_url"] = url_for(
-        "cached_digital_twin_asset", asset_key=metadata["asset_key"]
-    )
-    metadata["version"] = metadata["asset_key"]
-    return metadata
-
-
-def empty_analysis(values: dict[str, float]) -> dict:
-    return {
-        "values": values,
-        "current": None,
-        "explanation": None,
-        "simulation": None,
-        "smpl": None,
-        "smpl_status": None,
-        "twin_metadata": None,
-        "scenario_twin_metadata": None,
-        "scenario_smpl": None,
-        "scenario_smpl_status": None,
-        "knowledge_graph": None,
-        "local_guidance": None,
-        "local_guidance_error": None,
-    }
-
-
-def run_patient_action(
-    patient_number: int, baseline: dict[str, float], action: str
-) -> dict:
-    """Run one validated patient workflow and return its template context."""
-    result = empty_analysis(baseline)
-    twin = get_twin()
-    scenario = None
-    if action == "simulate":
-        scenario = parse_scenario(baseline)
-        result["simulation"] = twin.simulate(baseline, scenario)
-        result["current"] = result["simulation"]["baseline"]
-        result["scenario_smpl"] = smpl_twin_descriptor(
-            scenario["BMI"], result["simulation"]["scenario"]["high_risk_probability"]
-        )
-    else:
-        result["current"] = twin.predict(baseline)
-
-    predicted_class_contributions = twin.explain(baseline, max_factors=None)
-    high_risk_contributions = twin.explain(baseline, max_factors=None, class_id=2)
-    result["explanation"] = predicted_class_contributions[:5]
-    result["smpl"] = smpl_twin_descriptor(
-        baseline["BMI"], result["current"]["high_risk_probability"]
-    )
-    result["knowledge_graph"] = KNOWLEDGE_GRAPH.explain(
-        baseline,
-        result["current"],
-        high_risk_contributions,
-        twin.model_path.name,
-    )
-    if action == "local_guidance":
-        try:
-            result["local_guidance"] = generate_local_guidance(
-                patient_number,
-                result["current"],
-                result["knowledge_graph"],
-                result["smpl"],
-            )
-        except Exception as exc:
-            result["local_guidance_error"] = guidance_error_message(exc)
-
-    current_asset = refresh_smpl_twin(baseline, result["current"])
-    result["smpl_status"] = current_asset.status
-    result["twin_metadata"] = request_asset_metadata(current_asset)
-    if scenario is not None:
-        scenario_asset = refresh_smpl_twin(
-            scenario,
-            result["simulation"]["scenario"],
-            SCENARIO_TWIN_GLB_PATH,
-            "Scenario 3D twin",
-        )
-        result["scenario_smpl_status"] = scenario_asset.status
-        result["scenario_twin_metadata"] = request_asset_metadata(scenario_asset)
-    return result
-
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    global PATIENT_DATASET
-    dataset = get_patient_dataset()
-    patient_number = 1
-    values = dataset.patient(patient_number)
-    analysis = empty_analysis(values)
-    error = None
-    notice = None
-    if request.method == "POST":
-        try:
-            action = request.form.get("action", "predict")
-            if action == "import_dataset":
-                upload = request.files.get("dataset_file")
-                if upload is None or not upload.filename:
-                    raise ValueError("Choose a CSV file to import.")
-                PATIENT_DATASET = PatientDataset.from_upload(upload)
-                dataset = PATIENT_DATASET
-                patient_number = 1
-                values = dataset.patient(patient_number)
-                analysis = empty_analysis(values)
-                notice = (
-                    f"Imported {dataset.source_name}: {len(dataset.frame):,} valid patient rows. "
-                    "Patient numbering now follows this file."
-                )
-            else:
-                patient_number = int(request.form.get("patient_number", 1))
-                values = dataset.patient(patient_number)
-                analysis = run_patient_action(patient_number, values, action)
-        except (KeyError, ValueError) as exc:
-            error = f"Please provide valid patient data. ({exc})"
-        except Exception as exc:
-            error = f"The model could not complete this request. ({exc})"
-    return render_template(
-        "index.html", fields=FIELDS, scenario_fields=[FIELD_BY_NAME[name] for name in SCENARIO_FEATURES],
-        **analysis, error=error,
-        model_name=TWIN.model_path.name if TWIN else "Loads when you predict",
-        notice=notice,
-        ollama_model=configured_model(),
-        dataset_name=dataset.source_name, patient_count=len(dataset.frame), patient_number=patient_number,
-        patient_rows=dataset.patient_window(patient_number), actual_label=dataset.actual_label(patient_number),
-    )
-
-
-# ============================================================================
-# REST API Endpoints for React Frontend
-# ============================================================================
-
-@app.get("/api/health")
-def api_health():
-    model_exists = any(candidate.exists() for candidate in MODEL_CANDIDATES)
-    return {
+@app.route("/api/health", methods=["GET"])
+def health():
+    """Health check endpoint for Render/Vercel monitoring."""
+    return jsonify({
         "status": "healthy",
-        "model_available": model_exists,
-        "model_loaded": TWIN is not None,
-        "model_name": TWIN.model_path.name if TWIN else "diabetes_risk_random_forest.joblib",
-    }
+        "platform": "Smart Diabetes Digital Twin",
+        "dataset": "ShanghaiT2DM Longitudinal Cohort",
+        "institution": "Swinburne University of Technology Sarawak",
+        "supervisor": "Ts. Dr. Vong Wan Tze",
+        "version": "2.0.0",
+    })
 
 
-@app.get("/api/config")
-def api_config():
-    dataset = get_patient_dataset()
-    return {
-        "fields": [
-            {
-                "name": name,
-                "label": label,
-                "kind": kind,
-                "default": default,
-                "attrs": attrs,
-            }
-            for name, label, kind, default, attrs in FIELDS
+@app.route("/api/meta", methods=["GET"])
+def meta():
+    """Platform metadata and default state."""
+    default_id = get_default_patient_id()
+    return jsonify({
+        "default_patient_id": default_id,
+        "supported_dataset": "ShanghaiT2DM",
+        "total_cohort_size": 105,
+        "workflow_steps": [
+            "Select Patient",
+            "View Health History (Longitudinal CGM)",
+            "Assess Current Risk",
+            "Understand Key Factors (XAI)",
+            "Explore Personalised Insights",
+            "View Digital Twin (Multi-Organ)",
+            "Create What-If Scenario",
+            "Compare Simulated Outcomes",
+            "Generate Clinical Report"
         ],
-        "scenario_features": SCENARIO_FEATURES,
-        "dataset_name": dataset.source_name,
-        "patient_count": len(dataset.frame),
-        "risk_labels": RISK_LABELS,
-        "ollama_model": configured_model(),
-    }
+    })
 
 
-@app.get("/api/patients")
-def api_patients():
-    dataset = get_patient_dataset()
-    try:
-        patient_number = int(request.args.get("number", 1))
-        window_size = int(request.args.get("size", 9))
-    except (ValueError, TypeError):
-        patient_number = 1
-        window_size = 9
+# --------------------------------------------------------------------------
+# Patient Management Endpoints (Module 1)
+# --------------------------------------------------------------------------
 
-    patient_number = max(1, min(patient_number, len(dataset.frame)))
-    return {
-        "patient_number": patient_number,
-        "patient_count": len(dataset.frame),
-        "dataset_name": dataset.source_name,
-        "actual_label": dataset.actual_label(patient_number),
-        "values": dataset.patient(patient_number),
-        "window": dataset.patient_window(patient_number, size=window_size),
-    }
+@app.route("/api/patients", methods=["GET"])
+def get_patients_list():
+    """Fetch paginated patient records with optional search query filter."""
+    query = request.args.get("query", "").strip()
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 12))
+    result = list_patients(query=query, page=page, per_page=per_page)
+    return jsonify(result)
 
 
-@app.get("/api/patients/<int:patient_number>")
-def api_patient_detail(patient_number: int):
-    dataset = get_patient_dataset()
-    if patient_number < 1 or patient_number > len(dataset.frame):
-        return {"error": f"Patient number must be between 1 and {len(dataset.frame)}"}, 400
-    return {
-        "patient_number": patient_number,
-        "values": dataset.patient(patient_number),
-        "actual_label": dataset.actual_label(patient_number),
-    }
+@app.route("/api/patients/<patient_id>", methods=["GET"])
+def get_patient_profile(patient_id: str):
+    """Fetch demographic & clinical profile for a specific patient."""
+    patient = get_patient(patient_id)
+    if not patient:
+        return jsonify({"error": f"Patient #{patient_id} not found."}), 404
+    return jsonify(patient)
 
 
-@app.post("/api/predict")
-def api_predict():
-    data = request.get_json(silent=True) or {}
-    dataset = get_patient_dataset()
-    try:
-        patient_number = int(data.get("patient_number", 1))
-        custom_values = data.get("values")
-        if custom_values:
-            values = {k: validate_feature_value(k, v) for k, v in custom_values.items()}
-        else:
-            values = dataset.patient(patient_number)
+# --------------------------------------------------------------------------
+# Longitudinal Health Monitoring Endpoints (Module 2)
+# --------------------------------------------------------------------------
 
-        twin = get_twin()
-        current = twin.predict(values)
-        explanation = twin.explain(values, max_factors=5)
-        smpl = smpl_twin_descriptor(values["BMI"], current["high_risk_probability"])
-        asset_result = refresh_smpl_twin(values, current)
-        asset_meta = request_asset_metadata(asset_result)
-
-        return {
-            "patient_number": patient_number,
-            "values": values,
-            "actual_label": dataset.actual_label(patient_number) if not custom_values else None,
-            "current": current,
-            "explanation": explanation,
-            "smpl": smpl,
-            "smpl_status": asset_result.status,
-            "twin_metadata": asset_meta,
-        }
-    except Exception as exc:
-        return {"error": str(exc)}, 400
+@app.route("/api/patients/<patient_id>/timeline", methods=["GET"])
+def patient_timeline(patient_id: str):
+    """Retrieve 14-day CGM readings, diurnal glycemic profile, and visit history."""
+    timeline = get_patient_timeline(patient_id)
+    return jsonify(timeline)
 
 
-@app.post("/api/simulate")
-def api_simulate():
-    data = request.get_json(silent=True) or {}
-    dataset = get_patient_dataset()
-    try:
-        patient_number = int(data.get("patient_number", 1))
-        baseline_raw = data.get("baseline")
-        scenario_raw = data.get("scenario")
+# --------------------------------------------------------------------------
+# Longitudinal Risk Assessment Endpoints (Module 3)
+# --------------------------------------------------------------------------
 
-        if not baseline_raw:
-            baseline_raw = dataset.patient(patient_number)
-        baseline = {k: validate_feature_value(k, v) for k, v in baseline_raw.items()}
-
-        scenario = baseline.copy()
-        if scenario_raw:
-            for feat in SCENARIO_FEATURES:
-                if feat in scenario_raw:
-                    scenario[feat] = validate_feature_value(feat, scenario_raw[feat])
-
-        twin = get_twin()
-        sim_result = twin.simulate(baseline, scenario)
-        current = sim_result["baseline"]
-        scenario_pred = sim_result["scenario"]
-
-        smpl = smpl_twin_descriptor(baseline["BMI"], current["high_risk_probability"])
-        scenario_smpl = smpl_twin_descriptor(scenario["BMI"], scenario_pred["high_risk_probability"])
-
-        curr_asset = refresh_smpl_twin(baseline, current)
-        scen_asset = refresh_smpl_twin(
-            scenario, scenario_pred, SCENARIO_TWIN_GLB_PATH, "Scenario 3D twin"
-        )
-
-        return {
-            "baseline": current,
-            "scenario": scenario_pred,
-            "changes": sim_result["changes"],
-            "high_risk_change": sim_result["high_risk_change"],
-            "smpl": smpl,
-            "scenario_smpl": scenario_smpl,
-            "twin_metadata": request_asset_metadata(curr_asset),
-            "scenario_twin_metadata": request_asset_metadata(scen_asset),
-        }
-    except Exception as exc:
-        return {"error": str(exc)}, 400
+@app.route("/api/patients/<patient_id>/risk-assessment", methods=["GET", "POST"])
+def patient_risk(patient_id: str):
+    """Evaluate multi-dimensional complication risk scores."""
+    custom_features = request.get_json(silent=True) if request.method == "POST" else None
+    result = assess_patient_risk(patient_id, custom_features=custom_features)
+    return jsonify(result)
 
 
-@app.post("/api/knowledge-graph")
-def api_knowledge_graph():
-    data = request.get_json(silent=True) or {}
-    dataset = get_patient_dataset()
-    try:
-        patient_number = int(data.get("patient_number", 1))
-        values_raw = data.get("values")
-        if values_raw:
-            values = {k: validate_feature_value(k, v) for k, v in values_raw.items()}
-        else:
-            values = dataset.patient(patient_number)
+# --------------------------------------------------------------------------
+# Explainable AI (XAI) Endpoints (Module 4)
+# --------------------------------------------------------------------------
 
-        twin = get_twin()
-        prediction = twin.predict(values)
-        high_risk_contributions = twin.explain(values, max_factors=None, class_id=2)
-        kg_result = KNOWLEDGE_GRAPH.explain(
-            values, prediction, high_risk_contributions, twin.model_path.name
-        )
-        return kg_result
-    except Exception as exc:
-        return {"error": str(exc)}, 400
+@app.route("/api/patients/<patient_id>/xai-explanation", methods=["GET", "POST"])
+def patient_xai(patient_id: str):
+    """Compute patient-specific SHAP attribution values for predicted risk."""
+    custom_features = request.get_json(silent=True) if request.method == "POST" else None
+    result = explain_patient_risk(patient_id, custom_features=custom_features)
+    return jsonify(result)
 
 
-@app.post("/api/guidance")
-def api_guidance():
-    data = request.get_json(silent=True) or {}
-    dataset = get_patient_dataset()
-    try:
-        patient_number = int(data.get("patient_number", 1))
-        values_raw = data.get("values")
-        if values_raw:
-            values = {k: validate_feature_value(k, v) for k, v in values_raw.items()}
-        else:
-            values = dataset.patient(patient_number)
+# --------------------------------------------------------------------------
+# Personal Health Knowledge Graph Endpoints (Module 5)
+# --------------------------------------------------------------------------
 
-        twin = get_twin()
-        prediction = twin.predict(values)
-        high_risk_contributions = twin.explain(values, max_factors=None, class_id=2)
-        kg_result = KNOWLEDGE_GRAPH.explain(
-            values, prediction, high_risk_contributions, twin.model_path.name
-        )
-        smpl = smpl_twin_descriptor(values["BMI"], prediction["high_risk_probability"])
-
-        guidance_text = None
-        guidance_error = None
-        source = "deterministic"
-        try:
-            guidance_text = generate_local_guidance(patient_number, prediction, kg_result, smpl)
-            source = "local_model"
-        except Exception as exc:
-            from ollama_recommendations import deterministic_evidence_summary
-            guidance_text = deterministic_evidence_summary(patient_number, prediction, kg_result)
-            guidance_error = guidance_error_message(exc)
-            source = "deterministic_fallback"
-
-        return {
-            "guidance": guidance_text,
-            "source": source,
-            "error": guidance_error,
-            "patient_number": patient_number,
-        }
-    except Exception as exc:
-        return {"error": str(exc)}, 400
+@app.route("/api/patients/<patient_id>/knowledge-graph", methods=["GET", "POST"])
+def patient_knowledge_graph(patient_id: str):
+    """Generate Cytoscape.js ontology graph nodes and edges for the patient."""
+    graph = get_patient_knowledge_graph(patient_id)
+    return jsonify(graph)
 
 
-@app.post("/api/upload-dataset")
-def api_upload_dataset():
-    global PATIENT_DATASET
-    upload = request.files.get("dataset_file")
-    if upload is None or not upload.filename:
-        return {"error": "Choose a CSV file to import."}, 400
-    try:
-        PATIENT_DATASET = PatientDataset.from_upload(upload)
-        dataset = PATIENT_DATASET
-        return {
-            "source_name": dataset.source_name,
-            "patient_count": len(dataset.frame),
-            "notice": f"Imported {dataset.source_name}: {len(dataset.frame):,} valid patient rows.",
-        }
-    except Exception as exc:
-        return {"error": str(exc)}, 400
+# --------------------------------------------------------------------------
+# Trend Detection & Personalised Insights Endpoints (Module 6)
+# --------------------------------------------------------------------------
+
+@app.route("/api/patients/<patient_id>/insights", methods=["GET", "POST"])
+def patient_insights(patient_id: str):
+    """Synthesize personalised clinical insights and lifestyle recommendations."""
+    custom_features = request.get_json(silent=True) if request.method == "POST" else None
+    insights = generate_patient_insights(patient_id, custom_features=custom_features)
+    return jsonify(insights)
 
 
-@app.get("/api/digital-twin.glb")
-def api_digital_twin_asset():
-    return digital_twin_asset()
+# --------------------------------------------------------------------------
+# Digital Twin State Endpoints (Module 7)
+# --------------------------------------------------------------------------
+
+@app.route("/api/patients/<patient_id>/digital-twin", methods=["GET", "POST"])
+def patient_digital_twin(patient_id: str):
+    """Obtain multi-organ physiological status and 3D avatar descriptors."""
+    custom_features = request.get_json(silent=True) if request.method == "POST" else None
+    twin_state = get_digital_twin_state(patient_id, custom_features=custom_features)
+    return jsonify(twin_state)
 
 
-@app.get("/api/digital-twin-scenario.glb")
-def api_scenario_digital_twin_asset():
-    return scenario_digital_twin_asset()
+# --------------------------------------------------------------------------
+# What-If Scenario Simulation Endpoints (Module 8)
+# --------------------------------------------------------------------------
+
+@app.route("/api/patients/<patient_id>/simulate", methods=["POST"])
+def patient_simulate(patient_id: str):
+    """Simulate counterfactual interventions and compute outcome deltas."""
+    payload = request.get_json(silent=True) or {}
+    simulation_result = simulate_what_if(patient_id, scenario_deltas=payload)
+    return jsonify(simulation_result)
 
 
-@app.get("/api/digital-twin/<asset_key>.glb")
-def api_cached_digital_twin_asset(asset_key: str):
-    return cached_digital_twin_asset(asset_key)
+# --------------------------------------------------------------------------
+# Consolidated Clinical Reporting Endpoints (Module 9)
+# --------------------------------------------------------------------------
+
+@app.route("/api/patients/<patient_id>/report", methods=["GET"])
+def patient_report(patient_id: str):
+    """Compile comprehensive clinical summary report for printing or export."""
+    report = generate_patient_report(patient_id)
+    return jsonify(report)
+
+
+# --------------------------------------------------------------------------
+# Static Assets & SPA Fallback for Single-Server Deployments
+# --------------------------------------------------------------------------
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_spa(path: str):
+    """Serve compiled React SPA from frontend/dist if present, else show API info."""
+    if DIST_DIR.exists():
+        target_file = DIST_DIR / path
+        if path and target_file.exists():
+            return send_from_directory(DIST_DIR, path)
+        return send_from_directory(DIST_DIR, "index.html")
+    return jsonify({
+        "message": "Smart Diabetes Digital Twin API backend is running.",
+        "api_docs": "/api/meta",
+        "health": "/api/health",
+        "frontend": "Run 'npm run dev' inside the frontend directory, or build with 'npm run build'."
+    })
 
 
 if __name__ == "__main__":
-    # A development reloader starts two processes, which would load the large
-    # trained model twice and can exhaust a laptop's memory.
-    app.run(host=os.environ.get("FLASK_HOST", "127.0.0.1"), port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

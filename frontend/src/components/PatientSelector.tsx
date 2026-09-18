@@ -1,165 +1,149 @@
 import React, { useState } from 'react';
-import { Users, Upload, Search, ChevronDown, ChevronUp } from 'lucide-react';
-import type { PatientSummary } from '../types';
+import {
+  Users,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Activity,
+  Heart,
+  Pill,
+  Clock,
+} from 'lucide-react';
+import type { PatientProfile, PatientListResponse } from '../types';
 
 interface PatientSelectorProps {
-  currentNumber: number;
-  totalPatients: number;
-  datasetName: string;
-  actualLabel: string | null;
-  patientWindow: PatientSummary[];
-  currentValues: Record<string, number>;
-  onSelectPatient: (patientNumber: number) => void;
-  onUploadDataset: (file: File) => void;
+  currentPatient: PatientProfile | null;
+  patientList: PatientListResponse | null;
+  onSelectPatient: (patientId: string) => void;
+  onSearch: (query: string, page: number) => void;
   isLoading: boolean;
 }
 
 export const PatientSelector: React.FC<PatientSelectorProps> = ({
-  currentNumber,
-  totalPatients,
-  datasetName,
-  actualLabel,
-  patientWindow,
-  currentValues,
+  currentPatient,
+  patientList,
   onSelectPatient,
-  onUploadDataset,
+  onSearch,
   isLoading,
 }) => {
-  const [inputNumber, setInputNumber] = useState<number>(currentNumber);
-  const [showProfileGrid, setShowProfileGrid] = useState<boolean>(false);
-  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputNumber >= 1 && inputNumber <= totalPatients) {
-      onSelectPatient(inputNumber);
-    }
+    onSearch(searchQuery, 1);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setUploadNotice(`Uploading ${file.name}...`);
-      onUploadDataset(file);
+  const currentPage = patientList?.page || 1;
+  const totalPages = patientList?.total_pages || 1;
+
+  const getRiskBadge = (category: string) => {
+    if (category.toLowerCase().includes('high')) {
+      return 'bg-rose-100 text-rose-800 border-rose-200';
     }
+    if (category.toLowerCase().includes('moderate')) {
+      return 'bg-amber-100 text-amber-800 border-amber-200';
+    }
+    return 'bg-emerald-100 text-emerald-800 border-emerald-200';
   };
 
   return (
     <div className="space-y-6">
-      {/* Patient Selection & Import Bar */}
-      <div className="rounded-xl bg-white border border-slate-200 p-5 shadow-sm space-y-4">
+      {/* Search & Header Bar */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+              <Users className="w-5 h-5" />
+            </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Dataset-Backed Patient Explorer</h2>
+              <h2 className="text-base font-bold text-slate-900">
+                ShanghaiT2DM Longitudinal Cohort Explorer
+              </h2>
               <p className="text-xs text-slate-500">
-                Active dataset: <span className="font-semibold text-slate-700">{datasetName}</span> ({totalPatients.toLocaleString()} valid patients)
+                Tracking repeated physiological and continuous glucose monitoring data from 105 patients
               </p>
             </div>
           </div>
 
-          <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-            <Upload className="w-3.5 h-3.5 text-slate-600" />
-            <span>Import Patient CSV</span>
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={handleFileChange}
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search ID or risk (e.g. 1002)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-52 sm:w-64 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+              />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+            </div>
+            <button
+              type="submit"
               disabled={isLoading}
-            />
-          </label>
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+            >
+              Filter
+            </button>
+          </form>
         </div>
 
-        {uploadNotice && (
-          <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg">
-            {uploadNotice}
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label htmlFor="patient-jump" className="text-xs font-medium text-slate-600">
-              Select Patient #:
-            </label>
-            <input
-              id="patient-jump"
-              type="number"
-              min={1}
-              max={totalPatients}
-              value={inputNumber}
-              onChange={(e) => setInputNumber(Number(e.target.value))}
-              className="w-28 px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-800"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="inline-flex items-center gap-1 text-xs font-semibold px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-sm"
-          >
-            <Search className="w-3.5 h-3.5" />
-            {isLoading ? 'Processing Stages...' : 'Load Patient & Run Pipeline'}
-          </button>
-        </form>
-
-        {/* Patient Table Window */}
-        <div className="overflow-x-auto rounded-lg border border-slate-200 mt-3">
-          <table className="min-w-full divide-y divide-slate-200 text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold">
+        {/* Patient Table */}
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 text-xs text-left">
+            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider">
               <tr>
-                <th className="px-3 py-2 text-left">No.</th>
-                <th className="px-3 py-2 text-left">BMI</th>
-                <th className="px-3 py-2 text-left">Age Code</th>
-                <th className="px-3 py-2 text-left">Sex</th>
-                <th className="px-3 py-2 text-left">Recorded Dataset Class</th>
-                <th className="px-3 py-2 text-right">Action</th>
+                <th className="py-2.5 px-3">Patient ID</th>
+                <th className="py-2.5 px-3">Age / Sex</th>
+                <th className="py-2.5 px-3">BMI</th>
+                <th className="py-2.5 px-3">T2D Duration</th>
+                <th className="py-2.5 px-3">HbA1c</th>
+                <th className="py-2.5 px-3">Fasting Glucose</th>
+                <th className="py-2.5 px-3">Blood Pressure</th>
+                <th className="py-2.5 px-3">Risk Category</th>
+                <th className="py-2.5 px-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {patientWindow.map((p) => {
-                const isSelected = p.number === currentNumber;
+              {patientList?.patients.map((p) => {
+                const isSelected = currentPatient?.id === p.id;
                 return (
                   <tr
-                    key={p.number}
+                    key={p.id}
                     className={`transition ${
-                      isSelected ? 'bg-blue-50 font-semibold' : 'hover:bg-slate-50'
+                      isSelected ? 'bg-blue-50/80 font-semibold' : 'hover:bg-slate-50'
                     }`}
                   >
-                    <td className="px-3 py-2 text-slate-900">#{p.number}</td>
-                    <td className="px-3 py-2 text-slate-700">{p.bmi.toFixed(1)}</td>
-                    <td className="px-3 py-2 text-slate-700">{p.age}</td>
-                    <td className="px-3 py-2 text-slate-700">{p.sex}</td>
-                    <td className="px-3 py-2 text-slate-700">
-                      {p.actual_label ? (
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded text-[11px] ${
-                            p.actual_label.includes('High')
-                              ? 'bg-rose-100 text-rose-800'
-                              : p.actual_label.includes('Medium')
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-emerald-100 text-emerald-800'
-                          }`}
-                        >
-                          {p.actual_label}
-                        </span>
-                      ) : (
-                        'Not supplied'
-                      )}
+                    <td className="py-2.5 px-3 text-slate-900 font-bold">#{p.id}</td>
+                    <td className="py-2.5 px-3 text-slate-700">
+                      {p.age}y / {p.gender.charAt(0)}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="py-2.5 px-3 text-slate-700">{p.bmi} kg/m²</td>
+                    <td className="py-2.5 px-3 text-slate-700">{p.diabetes_duration_years} yrs</td>
+                    <td className="py-2.5 px-3 font-semibold text-blue-600">{p.hba1c}%</td>
+                    <td className="py-2.5 px-3 text-slate-700">{p.fasting_glucose} mmol/L</td>
+                    <td className="py-2.5 px-3 text-slate-700">
+                      {p.systolic_bp}/{p.diastolic_bp}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${getRiskBadge(
+                          p.risk_category
+                        )}`}
+                      >
+                        {p.risk_category}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
                       <button
-                        onClick={() => {
-                          setInputNumber(p.number);
-                          onSelectPatient(p.number);
-                        }}
-                        className={`text-xs px-2.5 py-1 rounded transition ${
+                        onClick={() => onSelectPatient(p.id)}
+                        disabled={isLoading}
+                        className={`text-xs px-2.5 py-1 rounded transition font-medium ${
                           isSelected
                             ? 'bg-blue-600 text-white cursor-default'
                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                         }`}
                       >
-                        {isSelected ? 'Active' : 'Use'}
+                        {isSelected ? 'Active' : 'Select'}
                       </button>
                     </td>
                   </tr>
@@ -168,48 +152,109 @@ export const PatientSelector: React.FC<PatientSelectorProps> = ({
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Patient Profile Card */}
-      <div className="rounded-xl bg-white border border-slate-200 p-5 shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        {/* Pagination Bar */}
+        <div className="flex items-center justify-between pt-2 text-xs text-slate-500">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Current Patient Profile · #{currentNumber}
-            </span>
-            <h3 className="text-base font-bold text-slate-900 mt-0.5">
-              21 Standardized BRFSS Clinical & Lifestyle Indicators
-            </h3>
-            {actualLabel && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                Dataset ground truth: <span className="font-semibold text-slate-700">{actualLabel}</span> (Evaluation benchmark only; not a model input).
-              </p>
-            )}
+            Showing page <span className="font-semibold text-slate-800">{currentPage}</span> of{' '}
+            <span className="font-semibold text-slate-800">{totalPages}</span> (Total{' '}
+            {patientList?.total || 0} cohort records)
           </div>
-          <button
-            onClick={() => setShowProfileGrid(!showProfileGrid)}
-            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            <span>{showProfileGrid ? 'Collapse Features' : 'Expand All 21 Features'}</span>
-            {showProfileGrid ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onSearch(searchQuery, Math.max(1, currentPage - 1))}
+              disabled={currentPage <= 1 || isLoading}
+              className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 disabled:opacity-40 transition"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onSearch(searchQuery, Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage >= totalPages || isLoading}
+              className="p-1.5 rounded border border-slate-200 hover:bg-slate-100 disabled:opacity-40 transition"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
-
-        {showProfileGrid && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 mt-4 text-xs animate-fadeIn">
-            {Object.entries(currentValues).map(([key, val]) => (
-              <div key={key} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 flex flex-col justify-between">
-                <span className="text-slate-500 text-[11px] font-medium truncate" title={key}>
-                  {key}
-                </span>
-                <strong className="text-slate-800 text-sm font-bold mt-1">
-                  {Number.isInteger(val) ? val : val.toFixed(1)}
-                </strong>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Selected Patient Detailed Summary Card */}
+      {currentPatient && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Selected Patient Health Record
+              </span>
+              <h3 className="text-lg font-bold text-slate-900 mt-0.5 flex items-center gap-2">
+                <span>{currentPatient.name}</span>
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${getRiskBadge(
+                    currentPatient.risk_category
+                  )}`}
+                >
+                  {currentPatient.risk_category}
+                </span>
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Clock className="w-4 h-4 text-blue-500" />
+              <span>{currentPatient.cgm_days_recorded} Days CGM Recorded</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-xs">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-slate-500 block">Age &amp; Gender</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">
+                {currentPatient.age}y / {currentPatient.gender}
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-slate-500 block">Body Mass Index</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">
+                {currentPatient.bmi} kg/m²
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-slate-500 block">T2D Duration</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">
+                {currentPatient.diabetes_duration_years} Years
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-slate-500 block">HbA1c / FBG</span>
+              <span className="text-sm font-bold text-blue-600 mt-0.5 block">
+                {currentPatient.hba1c}% / {currentPatient.fasting_glucose}
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-slate-500 block">Blood Pressure</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">
+                {currentPatient.systolic_bp}/{currentPatient.diastolic_bp} mmHg
+              </span>
+            </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span className="text-slate-500 block">eGFR / Lipids</span>
+              <span className="text-sm font-bold text-slate-800 mt-0.5 block">
+                {currentPatient.egfr} mL / LDL {currentPatient.ldl_cholesterol}
+              </span>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-1.5 text-slate-700">
+              <Pill className="w-4 h-4 text-indigo-500" />
+              <span className="font-semibold">Current Medications:</span>
+              <span>{currentPatient.medications.join(', ')}</span>
+            </div>
+            <div className="text-slate-500">
+              Physical Activity: <span className="font-semibold text-slate-700">{currentPatient.phys_activity_level}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

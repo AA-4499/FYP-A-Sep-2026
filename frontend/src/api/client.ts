@@ -1,125 +1,146 @@
+/**
+ * API Client for Smart Diabetes Digital Twin REST Backend.
+ * Swinburne University of Technology Sarawak · Ts. Dr. Vong Wan Tze
+ */
 import type {
-  AppConfig,
-  GuidanceResponse,
+  PatientProfile,
+  PatientListResponse,
+  TimelineResponse,
+  RiskAssessmentResponse,
+  XAIResponse,
   KnowledgeGraphResponse,
-  PatientWindowResponse,
-  PredictResponse,
+  InsightsResponse,
+  DigitalTwinResponse,
   SimulationResponse,
+  PatientReportResponse,
 } from '../types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '') + '/api';
 
-export async function fetchConfig(): Promise<AppConfig> {
-  const res = await fetch(`${API_BASE}/config`);
-  if (!res.ok) throw new Error('Failed to fetch application config');
+export async function fetchHealth(): Promise<{ status: string; dataset: string; version: string }> {
+  const res = await fetch(`${API_BASE}/health`);
+  if (!res.ok) throw new Error('Backend health check failed');
   return res.json();
 }
 
-export async function fetchPatients(number = 1, size = 9): Promise<PatientWindowResponse> {
-  const res = await fetch(`${API_BASE}/patients?number=${number}&size=${size}`);
-  if (!res.ok) throw new Error('Failed to fetch patients list');
+export async function fetchMeta(): Promise<{ default_patient_id: string; supported_dataset: string }> {
+  const res = await fetch(`${API_BASE}/meta`);
+  if (!res.ok) throw new Error('Failed to load system metadata');
   return res.json();
 }
 
-export async function fetchPatientDetail(patientNumber: number): Promise<{
-  patient_number: number;
-  values: Record<string, number>;
-  actual_label: string | null;
-}> {
-  const res = await fetch(`${API_BASE}/patients/${patientNumber}`);
-  if (!res.ok) throw new Error(`Failed to fetch patient #${patientNumber}`);
-  return res.json();
-}
-
-export async function runPrediction(
-  patientNumber: number,
-  values?: Record<string, number>
-): Promise<PredictResponse> {
-  const res = await fetch(`${API_BASE}/predict`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patient_number: patientNumber, values }),
+export async function fetchPatients(query = '', page = 1, perPage = 12): Promise<PatientListResponse> {
+  const params = new URLSearchParams({
+    query,
+    page: page.toString(),
+    per_page: perPage.toString(),
   });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Prediction calculation failed');
-  }
+  const res = await fetch(`${API_BASE}/patients?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch patient records');
+  return res.json();
+}
+
+export async function fetchPatient(patientId: string): Promise<PatientProfile> {
+  const res = await fetch(`${API_BASE}/patients/${patientId}`);
+  if (!res.ok) throw new Error(`Failed to fetch patient #${patientId}`);
+  return res.json();
+}
+
+export async function fetchTimeline(patientId: string): Promise<TimelineResponse> {
+  const res = await fetch(`${API_BASE}/patients/${patientId}/timeline`);
+  if (!res.ok) throw new Error(`Failed to fetch timeline for patient #${patientId}`);
+  return res.json();
+}
+
+export async function fetchRiskAssessment(
+  patientId: string,
+  customFeatures?: Record<string, any>
+): Promise<RiskAssessmentResponse> {
+  const options: RequestInit = customFeatures
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customFeatures),
+      }
+    : { method: 'GET' };
+
+  const res = await fetch(`${API_BASE}/patients/${patientId}/risk-assessment`, options);
+  if (!res.ok) throw new Error(`Failed to calculate risk for patient #${patientId}`);
+  return res.json();
+}
+
+export async function fetchXAI(
+  patientId: string,
+  customFeatures?: Record<string, any>
+): Promise<XAIResponse> {
+  const options: RequestInit = customFeatures
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customFeatures),
+      }
+    : { method: 'GET' };
+
+  const res = await fetch(`${API_BASE}/patients/${patientId}/xai-explanation`, options);
+  if (!res.ok) throw new Error(`Failed to generate XAI explanation for patient #${patientId}`);
+  return res.json();
+}
+
+export async function fetchKnowledgeGraph(patientId: string): Promise<KnowledgeGraphResponse> {
+  const res = await fetch(`${API_BASE}/patients/${patientId}/knowledge-graph`);
+  if (!res.ok) throw new Error(`Failed to load knowledge graph for patient #${patientId}`);
+  return res.json();
+}
+
+export async function fetchInsights(
+  patientId: string,
+  customFeatures?: Record<string, any>
+): Promise<InsightsResponse> {
+  const options: RequestInit = customFeatures
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customFeatures),
+      }
+    : { method: 'GET' };
+
+  const res = await fetch(`${API_BASE}/patients/${patientId}/insights`, options);
+  if (!res.ok) throw new Error(`Failed to load personalised insights for patient #${patientId}`);
+  return res.json();
+}
+
+export async function fetchDigitalTwin(
+  patientId: string,
+  customFeatures?: Record<string, any>
+): Promise<DigitalTwinResponse> {
+  const options: RequestInit = customFeatures
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customFeatures),
+      }
+    : { method: 'GET' };
+
+  const res = await fetch(`${API_BASE}/patients/${patientId}/digital-twin`, options);
+  if (!res.ok) throw new Error(`Failed to load digital twin state for patient #${patientId}`);
   return res.json();
 }
 
 export async function runSimulation(
-  patientNumber: number,
-  baseline: Record<string, number>,
-  scenario: Record<string, number>
+  patientId: string,
+  scenarioDeltas: Record<string, any>
 ): Promise<SimulationResponse> {
-  const res = await fetch(`${API_BASE}/simulate`, {
+  const res = await fetch(`${API_BASE}/patients/${patientId}/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patient_number: patientNumber, baseline, scenario }),
+    body: JSON.stringify(scenarioDeltas),
   });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Simulation calculation failed');
-  }
+  if (!res.ok) throw new Error(`Failed to run simulation for patient #${patientId}`);
   return res.json();
 }
 
-export async function fetchKnowledgeGraph(
-  patientNumber: number,
-  values?: Record<string, number>
-): Promise<KnowledgeGraphResponse> {
-  const res = await fetch(`${API_BASE}/knowledge-graph`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patient_number: patientNumber, values }),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to generate knowledge graph');
-  }
+export async function fetchPatientReport(patientId: string): Promise<PatientReportResponse> {
+  const res = await fetch(`${API_BASE}/patients/${patientId}/report`);
+  if (!res.ok) throw new Error(`Failed to compile report for patient #${patientId}`);
   return res.json();
-}
-
-export async function fetchGuidance(
-  patientNumber: number,
-  values?: Record<string, number>
-): Promise<GuidanceResponse> {
-  const res = await fetch(`${API_BASE}/guidance`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patient_number: patientNumber, values }),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to generate guidance');
-  }
-  return res.json();
-}
-
-export async function uploadDataset(file: File): Promise<{
-  source_name: string;
-  patient_count: number;
-  notice: string;
-}> {
-  const formData = new FormData();
-  formData.append('dataset_file', file);
-  const res = await fetch(`${API_BASE}/upload-dataset`, {
-    method: 'POST',
-    body: formData,
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Failed to import CSV dataset');
-  }
-  return res.json();
-}
-
-export function getTwinGlbUrl(assetKeyOrType: string): string {
-  if (assetKeyOrType === 'scenario') {
-    return `${API_BASE}/digital-twin-scenario.glb`;
-  }
-  if (assetKeyOrType && assetKeyOrType !== 'current') {
-    return `${API_BASE}/digital-twin/${assetKeyOrType}.glb`;
-  }
-  return `${API_BASE}/digital-twin.glb`;
 }

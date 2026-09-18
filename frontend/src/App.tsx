@@ -1,241 +1,262 @@
 import React, { useEffect, useState } from 'react';
 import { Header } from './components/Header';
+import { WorkflowTabs, ActiveTab } from './components/WorkflowTabs';
 import { PatientSelector } from './components/PatientSelector';
-import { Stage1Prediction } from './components/Stage1Prediction';
-import { Stage2Explanation } from './components/Stage2Explanation';
-import { Stage3Simulation } from './components/Stage3Simulation';
-import { TwinViewer } from './components/TwinViewer';
-import { Stage4KnowledgeGraph } from './components/Stage4KnowledgeGraph';
-import { ResearchGuidance } from './components/ResearchGuidance';
+import { LongitudinalTimeline } from './components/LongitudinalTimeline';
+import { RiskAndXaiView } from './components/RiskAndXaiView';
+import { PersonalisedInsights } from './components/PersonalisedInsights';
+import { DigitalTwinSimulationView } from './components/DigitalTwinSimulationView';
+import { PersonalHealthGraph } from './components/PersonalHealthGraph';
+import { PatientReportModal } from './components/PatientReportModal';
 import {
-  fetchConfig,
+  fetchHealth,
+  fetchMeta,
   fetchPatients,
-  runPrediction,
-  runSimulation,
+  fetchPatient,
+  fetchTimeline,
+  fetchRiskAssessment,
+  fetchXAI,
+  fetchInsights,
+  fetchDigitalTwin,
   fetchKnowledgeGraph,
-  fetchGuidance,
-  uploadDataset,
 } from './api/client';
 import type {
-  AppConfig,
-  GuidanceResponse,
+  PatientProfile,
+  PatientListResponse,
+  TimelineResponse,
+  RiskAssessmentResponse,
+  XAIResponse,
+  InsightsResponse,
+  DigitalTwinResponse,
   KnowledgeGraphResponse,
-  PatientSummary,
-  PredictResponse,
-  SimulationResponse,
 } from './types';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('patients');
+  const [patientId, setPatientId] = useState<string>('1001');
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean | null>(null);
-  const [patientNumber, setPatientNumber] = useState<number>(1);
-  const [patientCount, setPatientCount] = useState<number>(253680);
-  const [datasetName, setDatasetName] = useState<string>('BRFSS 2015');
-  const [actualLabel, setActualLabel] = useState<string | null>(null);
-  const [patientWindow, setPatientWindow] = useState<PatientSummary[]>([]);
-  const [currentValues, setCurrentValues] = useState<Record<string, number>>({});
+  const [datasetName, setDatasetName] = useState<string>('ShanghaiT2DM Cohort');
 
-  const [predictionData, setPredictionData] = useState<PredictResponse | null>(null);
-  const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
+  // Multi-module Data States
+  const [patientList, setPatientList] = useState<PatientListResponse | null>(null);
+  const [currentPatient, setCurrentPatient] = useState<PatientProfile | null>(null);
+  const [timelineData, setTimelineData] = useState<TimelineResponse | null>(null);
+  const [riskData, setRiskData] = useState<RiskAssessmentResponse | null>(null);
+  const [xaiData, setXaiData] = useState<XAIResponse | null>(null);
+  const [insightsData, setInsightsData] = useState<InsightsResponse | null>(null);
+  const [twinData, setTwinData] = useState<DigitalTwinResponse | null>(null);
   const [graphData, setGraphData] = useState<KnowledgeGraphResponse | null>(null);
-  const [guidanceData, setGuidanceData] = useState<GuidanceResponse | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGraphLoading, setIsGraphLoading] = useState<boolean>(false);
-  const [isGuidanceLoading, setIsGuidanceLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
 
-  // Initial App Setup
+  // Initialize application
   useEffect(() => {
     async function init() {
       try {
-        const cfg = await fetchConfig();
-        setConfig(cfg);
-        setDatasetName(cfg.dataset_name);
-        setPatientCount(cfg.patient_count);
-        setIsBackendHealthy(true);
+        const health = await fetchHealth();
+        setIsBackendHealthy(health.status === 'healthy');
+        setDatasetName(health.dataset);
 
-        // Load initial patient 1
-        await loadPatient(1);
+        const meta = await fetchMeta();
+        const initialId = meta.default_patient_id || '1001';
+        setPatientId(initialId);
+
+        const list = await fetchPatients('', 1, 12);
+        setPatientList(list);
+
+        await loadPatientData(initialId);
       } catch (err: any) {
         console.error('Initialization error:', err);
         setIsBackendHealthy(false);
-        setErrorMessage('Unable to connect to the backend API service. Please verify it is running.');
+        setErrorMessage('Unable to connect to Flask API backend. Please ensure the server is running on http://localhost:5000');
       }
     }
     init();
   }, []);
 
-  const loadPatient = async (num: number) => {
+  // Load all patient modules
+  const loadPatientData = async (id: string) => {
     setIsLoading(true);
     setErrorMessage(null);
-    setSimulationData(null);
-    setGuidanceData(null);
+    setPatientId(id);
 
     try {
-      // 1. Fetch patient window and current values
-      const windowRes = await fetchPatients(num, 9);
-      setPatientNumber(windowRes.patient_number);
-      setPatientCount(windowRes.patient_count);
-      setDatasetName(windowRes.dataset_name);
-      setActualLabel(windowRes.actual_label);
-      setPatientWindow(windowRes.window);
-      setCurrentValues(windowRes.values);
+      // 1. Fetch patient demographic & clinical profile
+      const patient = await fetchPatient(id);
+      setCurrentPatient(patient);
 
-      // 2. Run Stage 1 & 2 Prediction + SHAP
-      const predRes = await runPrediction(windowRes.patient_number, windowRes.values);
-      setPredictionData(predRes);
+      // 2. Fetch longitudinal timeline & CGM data
+      const timeline = await fetchTimeline(id);
+      setTimelineData(timeline);
+
+      // 3. Fetch risk evaluation and SHAP explanations in parallel
+      const [risk, xai, insights, twin] = await Promise.all([
+        fetchRiskAssessment(id),
+        fetchXAI(id),
+        fetchInsights(id),
+        fetchDigitalTwin(id),
+      ]);
+
+      setRiskData(risk);
+      setXaiData(xai);
+      setInsightsData(insights);
+      setTwinData(twin);
       setIsLoading(false);
 
-      // 3. Load Stage 4 Knowledge Graph asynchronously
+      // 4. Fetch Knowledge Graph
       setIsGraphLoading(true);
-      fetchKnowledgeGraph(windowRes.patient_number, windowRes.values)
+      fetchKnowledgeGraph(id)
         .then((kg) => setGraphData(kg))
         .catch((e) => console.warn('Knowledge graph load failed:', e))
         .finally(() => setIsGraphLoading(false));
     } catch (err: any) {
       setIsLoading(false);
-      setErrorMessage(err.message || 'Error running analysis for this patient.');
+      setErrorMessage(err.message || `Failed to load data for patient #${id}.`);
     }
   };
 
-  const handleRunSimulation = async (scenario: Record<string, number>) => {
-    if (!predictionData) return;
-    setIsLoading(true);
-    setErrorMessage(null);
-
+  const handleSearch = async (query: string, page: number) => {
     try {
-      const res = await runSimulation(patientNumber, currentValues, scenario);
-      setSimulationData(res);
+      const list = await fetchPatients(query, page, 12);
+      setPatientList(list);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to simulate what-if scenario.');
-    } finally {
-      setIsLoading(false);
+      setErrorMessage(err.message || 'Error searching patients');
     }
   };
 
-  const handleGenerateGuidance = async () => {
-    setIsGuidanceLoading(true);
-    try {
-      const res = await fetchGuidance(patientNumber, currentValues);
-      setGuidanceData(res);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to synthesize guidance.');
-    } finally {
-      setIsGuidanceLoading(false);
-    }
-  };
-
-  const handleUploadDataset = async (file: File) => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const res = await uploadDataset(file);
-      setDatasetName(res.source_name);
-      setPatientCount(res.patient_count);
-      await loadPatient(1);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to upload CSV dataset.');
-      setIsLoading(false);
-    }
+  const handleSelectPatient = (id: string) => {
+    loadPatientData(id);
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <Header isBackendHealthy={isBackendHealthy} datasetName={datasetName} />
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <Header
+          isBackendHealthy={isBackendHealthy}
+          datasetName={datasetName}
+          onOpenReport={() => setIsReportModalOpen(true)}
+        />
 
-      {errorMessage && (
-        <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-rose-800 text-xs flex items-center justify-between shadow-sm animate-shake">
-          <span>{errorMessage}</span>
-          <button
-            onClick={() => setErrorMessage(null)}
-            className="text-rose-600 hover:text-rose-800 font-bold ml-4"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+        {/* Global Error Banner */}
+        {errorMessage && (
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+            <button
+              onClick={() => loadPatientData(patientId)}
+              className="px-2.5 py-1 bg-rose-600 text-white rounded font-semibold hover:bg-rose-700 transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-      {/* Patient Browser & Selector */}
-      <PatientSelector
-        currentNumber={patientNumber}
-        totalPatients={patientCount}
-        datasetName={datasetName}
-        actualLabel={actualLabel}
-        patientWindow={patientWindow}
-        currentValues={currentValues}
-        onSelectPatient={loadPatient}
-        onUploadDataset={handleUploadDataset}
-        isLoading={isLoading}
-      />
-
-      {/* Main Analysis Workflow: 2-Column Responsive Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column (2 Cols): Stages 1, 2, 3 Simulation, Guidance */}
-        <div className="lg:col-span-2 space-y-8">
-          <Stage1Prediction
-            patientNumber={patientNumber}
-            prediction={predictionData?.current ?? null}
-            modelName="Random Forest (400 trees)"
-          />
-
-          <Stage2Explanation
-            patientNumber={patientNumber}
-            factors={predictionData?.explanation ?? []}
-            predictedLabel={predictionData?.current.label ?? 'Risk Class'}
-          />
-
-          <Stage3Simulation
-            patientNumber={patientNumber}
-            baselineValues={currentValues}
-            onRunSimulation={handleRunSimulation}
-            simulationResult={simulationData}
-            isLoading={isLoading}
-          />
-
-          <ResearchGuidance
-            patientNumber={patientNumber}
-            guidance={guidanceData}
-            onGenerateGuidance={handleGenerateGuidance}
-            isLoading={isGuidanceLoading}
-            modelName={config?.ollama_model || 'qwen2.5-coder:1.5b (or deterministic summary)'}
+        {/* 6-Tab Workflow Navigation */}
+        <div className="mb-6">
+          <WorkflowTabs
+            activeTab={activeTab}
+            onTabChange={(tab) => {
+              if (tab === 'report') {
+                setIsReportModalOpen(true);
+              } else {
+                setActiveTab(tab);
+              }
+            }}
+            patientId={patientId}
           />
         </div>
 
-        {/* Right Column (1 Col): 3D Digital Twins */}
-        <div className="space-y-8">
-          <TwinViewer
-            title={`Current Patient #${patientNumber}`}
-            twin={predictionData?.smpl ?? null}
-            metadata={predictionData?.twin_metadata ?? null}
-            patientNumber={patientNumber}
-          />
+        {/* Loading Overlay / Indicator */}
+        {isLoading && (
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-3.5 py-2 rounded-lg">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+            <span>Synchronizing multi-module ShanghaiT2DM data for Patient #{patientId}...</span>
+          </div>
+        )}
 
-          {simulationData && (
-            <TwinViewer
-              title={`Simulated Scenario Twin`}
-              twin={simulationData.scenario_smpl}
-              metadata={simulationData.scenario_twin_metadata}
-              patientNumber={patientNumber}
+        {/* TAB 1: Patient Selection & Profile */}
+        {activeTab === 'patients' && (
+          <div className="animate-fadeIn">
+            <PatientSelector
+              currentPatient={currentPatient}
+              patientList={patientList}
+              onSelectPatient={handleSelectPatient}
+              onSearch={handleSearch}
+              isLoading={isLoading}
             />
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* TAB 2: Longitudinal Timeline (CGM & HbA1c History) */}
+        {activeTab === 'timeline' && timelineData && (
+          <div className="animate-fadeIn">
+            <LongitudinalTimeline
+              timeline={timelineData}
+              patientName={currentPatient?.name || `Patient #${patientId}`}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: Risk Assessment & Explainable AI (SHAP) */}
+        {activeTab === 'risk_xai' && (
+          <div className="animate-fadeIn">
+            <RiskAndXaiView
+              riskData={riskData}
+              xaiData={xaiData}
+              patientName={currentPatient?.name || `Patient #${patientId}`}
+            />
+          </div>
+        )}
+
+        {/* TAB 4: Personalised Insights & Knowledge Graph */}
+        {activeTab === 'insights' && (
+          <div className="space-y-6 animate-fadeIn">
+            {insightsData && (
+              <PersonalisedInsights
+                insights={insightsData}
+                patientName={currentPatient?.name || `Patient #${patientId}`}
+                onApplyScenario={() => setActiveTab('twin_simulation')}
+              />
+            )}
+            <PersonalHealthGraph
+              patientId={patientId}
+              graphData={graphData}
+              isLoading={isGraphLoading}
+            />
+          </div>
+        )}
+
+        {/* TAB 5: Digital Twin & What-If Counterfactual Simulation */}
+        {activeTab === 'twin_simulation' && (
+          <div className="animate-fadeIn">
+            <DigitalTwinSimulationView
+              patientId={patientId}
+              patientName={currentPatient?.name || `Patient #${patientId}`}
+              twinData={twinData}
+            />
+          </div>
+        )}
+
+        {/* MODAL / TAB 6: Consolidated Patient Health Report */}
+        <PatientReportModal
+          patientId={patientId}
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+        />
       </div>
 
-      {/* Full Width: Stage 4 Knowledge Graph */}
-      <Stage4KnowledgeGraph
-        patientNumber={patientNumber}
-        graphData={graphData}
-        isLoading={isGraphLoading}
-      />
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 pt-6 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p>
-          Explainable Diabetes Risk Digital Twin · Powered by CDC BRFSS 2015, SHAP, and Neo4j.
+      <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-slate-200 mt-12 text-center text-xs text-slate-500">
+        <p className="font-semibold text-slate-700">
+          Smart Diabetes Digital Twin and Personalised Health Management Platform
         </p>
-        <p className="italic">
-          Non-causal research demonstrator · Not a clinical device.
+        <p className="mt-1">
+          Swinburne University of Technology Sarawak · Ts. Dr. Vong Wan Tze · ShanghaiT2DM Cohort
         </p>
       </footer>
     </div>

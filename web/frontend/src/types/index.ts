@@ -267,3 +267,40 @@ export interface PatientReportResponse {
     notes: string;
   };
 }
+
+export type UserRole = 'patient' | 'admin';
+
+export type PlatformPage = 'home' | 'workspace' | 'patient_portal' | 'admin_portal';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  patientId?: string;
+  title: string;
+  avatar: string;
+  department?: string;
+}
+
+export interface AuditLogItem {
+  id: string;
+  timestamp: string;
+  user: string;
+  role: string;
+  action: string;
+  details: string;
+  type: 'clinical' | 'system' | 'alert' | 'simulation';
+}
+
+export interface CohortStats {
+  totalPatients: number;
+  highRiskCount: number;
+  moderateRiskCount: number;
+  lowRiskCount: number;
+  averageHbA1c: number;
+  averageBMI: number;
+  activeSensors: number;
+  hypoAlertRate: number;
+}
+

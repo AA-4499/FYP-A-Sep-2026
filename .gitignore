@@ -6,16 +6,24 @@ __pycache__/
 .understand-anything/
 .tmp-cytoscape/
 dist/
-delete/
-file delete/
-*.joblib
-models/smpl/*.pkl
-patient.csv
-.env
+node_modules/
 
+# Environment files
+.env
 .env*
-artifacts_notebook/twin_cache/
-artifacts_notebook/knowledge_graph.json
-artifacts_notebook/stage3_case_study.json
+
+# Model weights & binaries (keep weights directory with .gitkeep)
+*.joblib
+*.pkl
+*.pt
+*.onnx
+!models/weights/.gitkeep
+
+# Web frontend build outputs
 frontend/node_modules/
 frontend/dist/
+web/frontend/node_modules/
+web/frontend/dist/
+
+# Artifact cache
+artifacts_notebook/twin_cache/

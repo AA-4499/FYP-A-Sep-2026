@@ -32,8 +32,13 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 if CORS is not None:
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+import sys
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 # Frontend static distribution path (for single-server production deployment on Render)
-DIST_DIR = Path(__file__).resolve().parent / "frontend" / "dist"
+DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 # --------------------------------------------------------------------------

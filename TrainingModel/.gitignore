@@ -1,0 +1,30 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Excel lock/temporary files
+~$*.xlsx
+~$*.xls
+~$*.xlsm
+
+# Streamlit & IDE
+.streamlit/
+.vscode/
+.idea/
+*.log
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Ensure pretrained weights are tracked
+!outputs/*.pt
+!FYP_A_new/outputs/*.pt

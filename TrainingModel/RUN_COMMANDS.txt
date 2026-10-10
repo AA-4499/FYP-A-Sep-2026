@@ -1,0 +1,90 @@
+TrainingModel - FYP_A_new Training and App Guide
+=================================================
+
+Overview
+--------
+This folder contains everything needed to train the T2DM CGM forecasting GRU
+model and run the interactive Streamlit dashboard.
+
+Directory Structure:
+  TrainingModel/
+    ├── app.py                 Streamlit dashboard application
+    ├── requirements.txt       Python dependencies
+    ├── README.md              Project documentation and overview
+    ├── RUN_COMMANDS.txt       This command guide
+    ├── data/
+    │   └── Shanghai_T2DM/     Raw patient CGM Excel workbooks (.xlsx, .xls)
+    └── FYP_A_new/
+        ├── t2dm_pipeline.py   Data loading, preprocessing, GRU model & training pipeline
+        ├── train_t2dm.py      CLI script to train the model
+        ├── test_t2dm_pipeline.py  Unit and regression tests
+        ├── t2dm_training.ipynb    Jupyter notebook for training & evaluation
+        └── outputs/           Trained model checkpoint (.pt) and metrics (.csv, .json)
+
+Data detection
+--------------
+The pipeline automatically reads Excel files from:
+
+  .\data\Shanghai_T2DM
+
+Paths are resolved relative to this folder, so it works on any computer.
+It reads .xlsx, .xls, and .xlsm files directly in that folder, skips temporary
+Excel lock files (names beginning with ~$), and treats each workbook as its
+own patient record timeline. Repeated patient IDs such as 2001_0 and 2001_1
+are trained and tested separately.
+
+
+1. First-time environment setup
+-------------------------------
+Open PowerShell or Terminal in the TrainingModel folder and run:
+
+  python -m venv .venv
+
+Activate the virtual environment:
+  - Windows PowerShell:
+      .\.venv\Scripts\Activate.ps1
+  - Windows CMD:
+      .\.venv\Scripts\activate.bat
+  - macOS / Linux:
+      source .venv/bin/activate
+
+Install the dependencies:
+  pip install --upgrade pip
+  pip install -r requirements.txt
+
+
+2. Run the unit tests
+---------------------
+Verify the environment and data pipeline:
+
+  python -m unittest discover -s .\FYP_A_new -p "test_*.py"
+
+
+3. Train the model (Optional if outputs/ already has the checkpoint)
+-------------------------------------------------------------------
+A trained model checkpoint (gru_t2dm_forecaster.pt) is already included in
+FYP_A_new\outputs. If you want to retrain from scratch:
+
+  python -m FYP_A_new.train_t2dm
+
+Optional faster smoke run for quick verification:
+
+  python -m FYP_A_new.train_t2dm --epochs 2 --batch-size 512 --training-stride 4
+
+Training output files are saved in .\FYP_A_new\outputs:
+  - gru_t2dm_forecaster.pt   Trained weights and scaler settings for app.py
+  - metrics.json             Training history and held-out test metrics
+  - timeline_splits.csv      Per-record time boundaries and sample counts
+  - test_predictions.csv     Held-out actual vs predicted values
+
+
+4. Run the Streamlit app
+------------------------
+From the TrainingModel folder, run:
+
+  streamlit run app.py --server.port 8502
+
+Then open:
+  http://localhost:8502
+
+Stop the app by pressing Ctrl+C in the terminal.

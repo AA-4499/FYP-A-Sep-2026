@@ -159,11 +159,25 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
                 <strong className="block font-semibold">
                   {testResult.success ? 'Connected Successfully' : 'Connection Failed'}
                 </strong>
-                <span className="text-[11px] block mt-0.5">{testResult.message}</span>
-                {testResult.count !== undefined && (
-                  <span className="text-[11px] font-semibold block mt-1">
-                    Found {testResult.count} records in public.patient_summary.
+                {testResult.count !== undefined && testResult.count > 0 && (
+                  <span className="text-[11px] font-semibold block mt-1 text-emerald-700">
+                    Found {testResult.count} records in public.patient_summary!
                   </span>
+                )}
+                {testResult.count === 0 && (
+                  <div className="mt-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] space-y-1.5 text-left">
+                    <strong className="block text-amber-950 font-bold">
+                      💡 Why does it show 0 rows when your table has data?
+                    </strong>
+                    <p className="text-[11px] leading-relaxed">
+                      In Supabase, Row Level Security (RLS) restricts public API access by default. Run this in your{' '}
+                      <strong className="underline">Supabase SQL Editor</strong> to enable public read access:
+                    </p>
+                    <pre className="bg-white/80 border border-amber-200 p-2 rounded-md font-mono text-[10px] text-slate-800 select-all overflow-x-auto">
+{`ALTER TABLE public.patient_summary DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patient_detail DISABLE ROW LEVEL SECURITY;`}
+                    </pre>
+                  </div>
                 )}
               </div>
             </div>

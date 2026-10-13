@@ -371,10 +371,20 @@ export async function testSupabaseConnection(): Promise<{
       };
     }
 
+    const totalCount = count ?? data?.length ?? 0;
+    if (totalCount === 0) {
+      return {
+        connected: true,
+        count: 0,
+        message:
+          'Connected to Supabase, but Row Level Security (RLS) is hiding rows from the public key. To allow the frontend to read the data, disable RLS or add a SELECT policy in your Supabase SQL Editor.',
+      };
+    }
+
     return {
       connected: true,
-      count: count ?? data?.length ?? 0,
-      message: 'Successfully connected to Supabase public.patient_summary!',
+      count: totalCount,
+      message: `Successfully connected! Found ${totalCount} records in public.patient_summary.`,
     };
   } catch (err: any) {
     return {

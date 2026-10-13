@@ -564,7 +564,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {patientList.map((p) => {
+              {patientList.slice(0, 6).map((p) => {
                 const isHigh = p.riskCategory === 'High';
                 return (
                   <tr

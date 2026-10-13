@@ -280,7 +280,7 @@ export async function fetchSupabasePatients(): Promise<Patient[]> {
       .from('patient_summary')
       .select('*')
       .order('Patient Number', { ascending: true })
-      .limit(50);
+      .limit(250);
 
     if (error) {
       console.warn('Supabase query error on patient_summary:', error.message);

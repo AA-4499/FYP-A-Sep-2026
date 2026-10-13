@@ -64,9 +64,19 @@ export const App: React.FC = () => {
         const remotePatients = await fetchSupabasePatients();
         if (remotePatients.length > 0) {
           setPatients(remotePatients);
-          // If current patient is not in list, pick first
-          if (!remotePatients.some((p) => p.id === currentPatientId)) {
-            setCurrentPatientId(remotePatients[0].id);
+          const targetId = remotePatients.some((p) => p.id === currentPatientId)
+            ? currentPatientId
+            : remotePatients[0].id;
+          setCurrentPatientId(targetId);
+
+          // Preload detail observations for this active patient
+          try {
+            const detailRes = await fetchSupabasePatientDetail(targetId);
+            if (detailRes?.patient) {
+              setActivePatientOverride(detailRes.patient);
+            }
+          } catch (detailErr) {
+            console.warn('Initial patient detail fetch notice:', detailErr);
           }
         }
       }
@@ -184,6 +194,7 @@ export const App: React.FC = () => {
               {clinicModule === 'patients' && (
                 <PatientsView
                   currentPatient={currentPatient}
+                  patients={patients}
                   onSelectPatient={handleSelectPatient}
                   onNavigate={(mod) => setClinicModule(mod)}
                 />
@@ -192,6 +203,7 @@ export const App: React.FC = () => {
               {clinicModule === 'glucose_review' && (
                 <PatientsView
                   currentPatient={currentPatient}
+                  patients={patients}
                   onSelectPatient={handleSelectPatient}
                   onNavigate={(mod) => setClinicModule(mod)}
                 />

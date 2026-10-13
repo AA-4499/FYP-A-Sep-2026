@@ -9,12 +9,14 @@ import { PATIENTS } from '../data/patientsData';
 
 interface PatientsViewProps {
   currentPatient: Patient;
+  patients?: Patient[];
   onSelectPatient: (patientId: string) => void;
   onNavigate: (module: NavigationModule) => void;
 }
 
 export const PatientsView: React.FC<PatientsViewProps> = ({
   currentPatient,
+  patients,
   onSelectPatient,
   onNavigate,
 }) => {
@@ -25,10 +27,13 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   const [loginPass, setLoginPass] = useState('password123');
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
-  const filtered = PATIENTS.filter((p) => {
+  const patientList = patients && patients.length > 0 ? patients : PATIENTS;
+
+  const filtered = patientList.filter((p) => {
     const matchesSearch =
       p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.displayId.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRisk =
       filterRisk === 'all' ||

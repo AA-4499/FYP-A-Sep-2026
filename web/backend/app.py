@@ -144,9 +144,17 @@ def patient_xai(patient_id: str):
 
 @app.route("/api/patients/<patient_id>/knowledge-graph", methods=["GET", "POST"])
 def patient_knowledge_graph(patient_id: str):
-    """Generate Cytoscape.js ontology graph nodes and edges for the patient."""
-    graph = get_patient_knowledge_graph(patient_id)
-    return jsonify(graph)
+    """Return the selected patient's diabetes/condition graph."""
+    payload = request.get_json(silent=True) or {} if request.method == "POST" else {}
+    patient_payload = payload.get("patient") if isinstance(payload, dict) else None
+    try:
+        graph = get_patient_knowledge_graph(patient_id, patient_payload=patient_payload)
+        return jsonify(graph)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except RuntimeError as exc:
+        app.logger.warning("Patient KG unavailable: %s", exc)
+        return jsonify({"error": str(exc)}), 503
 
 
 # --------------------------------------------------------------------------

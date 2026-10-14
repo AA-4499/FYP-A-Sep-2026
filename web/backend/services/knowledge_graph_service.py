@@ -1,168 +1,249 @@
-"""Module 5: Personal Health Knowledge Graph Service.
-Constructs ontological knowledge graph connecting patient data, clinical risks, and guidelines.
-Team Member Assignment: Personal Health Knowledge Graph & Medical Ontology.
+"""Patient-to-condition knowledge graph backed by a dedicated Neo4j container.
+
+Only the patient anchor and recorded diabetes/other conditions are represented.
+Patient data remains owned by the application's existing patient-data service
+(Supabase in the integrated deployment). A limited frontend payload is accepted
+as a development fallback when that service does not recognise the selected ID.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+import logging
+import os
+import re
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+
+from neo4j import GraphDatabase
 from .patient_service import get_patient
-from .longitudinal_service import get_patient_timeline
-from .risk_model_service import assess_patient_risk
 
-# Teammate Hook: To connect this service to a live Neo4j instance,
-# configure the official Neo4j Python Driver:
-# from neo4j import GraphDatabase
-# NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-# NEO4J_AUTH = (os.getenv("NEO4J_USER", "neo4j"), os.getenv("NEO4J_PASSWORD", "password"))
-# DRIVER = GraphDatabase.driver(NEO4J_URI, auth=NEO4J_AUTH)
+logger = logging.getLogger(__name__)
 
+class KnowledgeGraphUnavailableError(RuntimeError):
+    """The separate Patient Neo4j instance could not be reached or queried."""
 
-def get_patient_knowledge_graph(patient_id: str) -> Dict[str, Any]:
-    """Generate Cytoscape.js compatible graph elements for the patient's health ontology."""
-    patient = get_patient(patient_id) or {}
-    timeline = get_patient_timeline(patient_id)
-    risk_info = assess_patient_risk(patient_id)
+class PatientNotFoundError(ValueError):
+    """The selected patient is not available from the patient service or payload."""
 
-    nodes: List[Dict[str, Any]] = []
+_DRIVER = None
+_URI = os.getenv("PATIENT_NEO4J_URI", "bolt://127.0.0.1:7688")
+_USER = os.getenv("PATIENT_NEO4J_USER", "neo4j")
+_PASSWORD = os.getenv("PATIENT_NEO4J_PASSWORD", "patientkg2026")
+
+_EMPTY = {"", "/", "-", "--", "none", "null", "n/a", "na", "not available", "unknown"}
+_FIELDS = {
+    "diabetes_type": ("diabetes_type", "diabetesType", "type_of_diabetes", "typeOfDiabetes", "Type of Diabetes", "Diabetes Type", "condition"),
+    "comorbidity": ("comorbidities", "comorbidity", "co_morbidities", "other_conditions", "Comorbidities", "otherConditions"),
+    "acute_complication": ("acute_diabetic_complications", "acute_complications", "acute_complication", "Acute Diabetic Complications", "acuteComplications"),
+    "macrovascular_complication": ("macrovascular_complications", "diabetic_macrovascular_complications", "macrovascular_complication", "Diabetic Macrovascular Complications", "macrovascularComplications"),
+    "microvascular_complication": ("microvascular_complications", "diabetic_microvascular_complications", "microvascular_complication", "Diabetic Microvascular Complications", "microvascularComplications"),
+}
+_EDGE_LABELS = {
+    "diabetes_type": "has diabetes",
+    "comorbidity": "has comorbidity",
+    "acute_complication": "has acute complication",
+    "macrovascular_complication": "has macrovascular complication",
+    "microvascular_complication": "has microvascular complication",
+}
+_ALIASES = {
+    "t2dm": "Type 2 Diabetes",
+    "type 2 diabetes": "Type 2 Diabetes",
+    "type 2 diabetes mellitus": "Type 2 Diabetes",
+    "t1dm": "Type 1 Diabetes",
+    "type 1 diabetes": "Type 1 Diabetes",
+    "type 1 diabetes mellitus": "Type 1 Diabetes",
+    "pad": "Peripheral Arterial Disease",
+    "chd": "Coronary Heart Disease",
+    "peripheral arterial disease": "Peripheral Arterial Disease",
+    "coronary heart disease": "Coronary Heart Disease",
+    "diabetic nephropathy": "Diabetic Nephropathy",
+    "nephropathy": "Diabetic Nephropathy",
+    "diabetic neuropathy": "Diabetic Neuropathy",
+    "neuropathy": "Diabetic Neuropathy",
+    "diabetic retinopathy": "Diabetic Retinopathy",
+    "retinopathy": "Diabetic Retinopathy",
+    "dka": "Diabetic Ketoacidosis",
+    "hypertension": "Hypertension",
+    "hyperlipidemia": "Hyperlipidemia",
+    "hyperuricemia": "Hyperuricemia",
+    "cerebrovascular disease": "Cerebrovascular Disease",
+}
+
+def _empty(value: Any) -> bool:
+    return value is None or (isinstance(value, str) and value.strip().casefold() in _EMPTY)
+
+def _first(record: Mapping[str, Any], keys: Iterable[str]) -> Any:
+    for key in keys:
+        value = record.get(key)
+        if not _empty(value):
+            return value
+    return None
+
+def _names(value: Any) -> List[str]:
+    if _empty(value):
+        return []
+    if isinstance(value, Mapping):
+        return _names(value.get("name") or value.get("label") or value.get("condition"))
+    if isinstance(value, (list, tuple, set)):
+        return [name for part in value for name in _names(part)]
+    if not isinstance(value, str):
+        return []
+    return [part.strip() for part in re.split(r"[,;|\\n]+", value) if part.strip() and not _empty(part)]
+
+def _canonical(value: str) -> str:
+    name = re.sub(r"\\s+", " ", value.strip())
+    return _ALIASES.get(name.casefold(), name[:1].upper() + name[1:])
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "condition"
+
+def _true(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return isinstance(value, str) and value.strip().casefold() in {"yes", "y", "true", "1", "present"}
+
+def extract_patient_conditions(patient: Mapping[str, Any]) -> List[Dict[str, str]]:
+    """Extract only the patient's diabetes type, comorbidities, and complications."""
+    collected: List[Tuple[str, str]] = []
+    diabetes_value = _first(patient, _FIELDS["diabetes_type"])
+    for name in _names(diabetes_value):
+        canonical = _canonical(name)
+        if "diabetes" in canonical.casefold() or canonical.casefold() in {"t1dm", "t2dm"}:
+            collected.append((canonical, "diabetes_type"))
+
+    for category, keys in _FIELDS.items():
+        if category == "diabetes_type":
+            continue
+        for name in _names(_first(patient, keys)):
+            canonical = _canonical(name)
+            # Avoid re-adding a primary diabetes diagnosis as a comorbidity.
+            if canonical.casefold() in {"type 1 diabetes", "type 2 diabetes"}:
+                continue
+            collected.append((canonical, category))
+
+    if _true(patient.get("hypertension")):
+        collected.append(("Hypertension", "comorbidity"))
+    hypo = _first(patient, ("hypoglycemia_status", "hypoglycemia", "had_hypoglycemia", "Hypoglycemia (yes/no)", "hypoglycemiaStatus"))
+    if hypo is not None and _true(hypo):
+        collected.append(("Hypoglycemia", "acute_complication"))
+
+    unique = []
+    seen = set()
+    for raw_name, category in collected:
+        name = _canonical(raw_name)
+        key = (name.casefold(), category)
+        if _empty(name) or key in seen:
+            continue
+        seen.add(key)
+        unique.append({
+            "id": f"{category}::{_slug(name)}",
+            "name": name,
+            "category": category,
+            "edgeLabel": _EDGE_LABELS[category],
+        })
+    return unique
+
+def _driver():
+    global _DRIVER
+    if _DRIVER is None:
+        try:
+            candidate = GraphDatabase.driver(_URI, auth=(_USER, _PASSWORD))
+            candidate.verify_connectivity()
+            _DRIVER = candidate
+        except Exception as exc:
+            raise KnowledgeGraphUnavailableError(
+                "Could not connect to Patient Neo4j. Check PATIENT_NEO4J_URI, "
+                "PATIENT_NEO4J_USER, PATIENT_NEO4J_PASSWORD, and the patient-neo4j container."
+            ) from exc
+    return _DRIVER
+
+def _write_and_read(tx, patient_id: str, conditions: List[Dict[str, str]]) -> Dict[str, Any]:
+    tx.run(
+        "MERGE (p:Patient {patientId: $patientId}) "
+        "SET p.displayLabel = 'Patient', p.source = 'application patient record'",
+        patientId=patient_id,
+    ).consume()
+    tx.run(
+        "MATCH (p:Patient {patientId: $patientId}) "
+        "OPTIONAL MATCH (p)-[r:HAS_CONDITION]->(:Condition) "
+        "WITH collect(r) AS oldRels "
+        "FOREACH (rel IN oldRels | DELETE rel)",
+        patientId=patient_id,
+    ).consume()
+    if conditions:
+        tx.run(
+            "MATCH (p:Patient {patientId: $patientId}) "
+            "UNWIND $conditions AS item "
+            "MERGE (c:Condition {conditionId: item.id}) "
+            "SET c.name = item.name, c.category = item.category "
+            "MERGE (p)-[r:HAS_CONDITION {category: item.category}]->(c) "
+            "SET r.label = item.edgeLabel, r.source = 'application patient record'",
+            patientId=patient_id, conditions=conditions,
+        ).consume()
+    row = tx.run(
+        "MATCH (p:Patient {patientId: $patientId}) "
+        "OPTIONAL MATCH (p)-[r:HAS_CONDITION]->(c:Condition) "
+        "RETURN p.patientId AS patientId, collect(CASE WHEN c IS NULL THEN null ELSE "
+        "{id:c.conditionId,name:c.name,category:c.category,edgeLabel:r.label} END) AS conditions",
+        patientId=patient_id,
+    ).single()
+    return {"patientId": row["patientId"], "conditions": [x for x in row["conditions"] if x is not None]}
+
+def get_patient_knowledge_graph(
+    patient_id: str,
+    patient_payload: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Synchronise a selected patient's conditions and return Cytoscape elements.
+
+    The existing patient service is authoritative. The restricted payload is
+    used only as a fallback for the app's currently selected record when that
+    ID is not present in the backend service (for example, a Supabase-backed
+    record while local mock data is still installed).
+    """
+    patient_id = str(patient_id).strip()
+    if not patient_id:
+        raise PatientNotFoundError("A patient identifier is required.")
+    patient = get_patient(patient_id)
+    if not patient and patient_payload:
+        payload_id = patient_payload.get("id") or patient_payload.get("patientId") or patient_payload.get("patient_id")
+        if payload_id is not None and str(payload_id) != patient_id:
+            raise PatientNotFoundError("The patient payload does not match the requested patient identifier.")
+        patient = patient_payload
+    if not patient:
+        raise PatientNotFoundError(f"Patient '{patient_id}' was not found.")
+
+    conditions = extract_patient_conditions(patient)
+    try:
+        with _driver().session() as session:
+            data = session.execute_write(_write_and_read, patient_id, conditions)
+    except KnowledgeGraphUnavailableError:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to synchronise the Patient KG for %s", patient_id)
+        raise KnowledgeGraphUnavailableError("Patient data was found, but Neo4j could not update the Patient KG.") from exc
+
+    nodes: List[Dict[str, Any]] = [{
+        "data": {"id": "patient", "label": "Patient", "kind": "Patient", "category": "patient"}
+    }]
     edges: List[Dict[str, Any]] = []
-
-    # 1. Central Patient Node
-    p_id = f"patient_{patient_id}"
-    nodes.append({
-        "data": {
-            "id": p_id,
-            "label": f"Patient #{patient_id}\n({patient.get('age', 55)}yo {patient.get('gender', 'Unknown')})",
-            "type": "Patient",
-            "category": "patient",
-            "color": "#3b82f6",
-            "size": 65,
-        }
-    })
-
-    # 2. Longitudinal Biomarker Nodes
-    biomarkers = [
-        ("node_hba1c", f"HbA1c: {patient.get('hba1c', 7.0)}%", "Glycemic Marker", "#10b981" if patient.get('hba1c', 7.0) < 7.0 else "#ef4444"),
-        ("node_fbg", f"Fasting: {patient.get('fasting_glucose', 7.0)} mmol/L", "Glycemic Marker", "#f59e0b"),
-        ("node_tir", f"TIR: {timeline.get('summary', {}).get('time_in_range_pct', 70)}%", "CGM Metric", "#06b6d4"),
-        ("node_bp", f"BP: {patient.get('systolic_bp', 130)}/{patient.get('diastolic_bp', 80)} mmHg", "Hemodynamic Marker", "#8b5cf6"),
-        ("node_bmi", f"BMI: {patient.get('bmi', 25.0)} kg/m²", "Anthropometric", "#ec4899"),
-        ("node_egfr", f"eGFR: {patient.get('egfr', 80.0)} mL/min", "Renal Marker", "#14b8a6"),
-    ]
-
-    for node_id, label, cat, color in biomarkers:
-        nodes.append({
-            "data": {
-                "id": node_id,
-                "label": label,
-                "type": "Biomarker",
-                "category": cat,
-                "color": color,
-                "size": 45,
-            }
-        })
-        edges.append({
-            "data": {
-                "id": f"e_{p_id}_{node_id}",
-                "source": p_id,
-                "target": node_id,
-                "label": "has_reading",
-            }
-        })
-
-    # 3. Clinical Risk Nodes
-    sub_risks = risk_info.get("sub_risks", {})
-    for key, val in sub_risks.items():
-        r_node_id = f"risk_{key}"
-        nodes.append({
-            "data": {
-                "id": r_node_id,
-                "label": f"{val.get('name')}\n({val.get('level')})",
-                "type": "RiskFactor",
-                "category": "Clinical Risk",
-                "color": "#dc2626" if val.get('level') == "High" else "#d97706" if val.get('level') == "Moderate" else "#059669",
-                "size": 52,
-            }
-        })
-        edges.append({
-            "data": {
-                "id": f"e_{p_id}_{r_node_id}",
-                "source": p_id,
-                "target": r_node_id,
-                "label": "exhibits_risk",
-            }
-        })
-
-    # Connect biomarker causes to specific risk nodes
-    edges.append({"data": {"id": "e_hba1c_gv", "source": "node_hba1c", "target": "risk_glycemic_variability", "label": "drives"}})
-    edges.append({"data": {"id": "e_tir_gv", "source": "node_tir", "target": "risk_glycemic_variability", "label": "modulates"}})
-    edges.append({"data": {"id": "e_bp_cv", "source": "node_bp", "target": "risk_cardiovascular", "label": "aggravates"}})
-    edges.append({"data": {"id": "e_egfr_nephro", "source": "node_egfr", "target": "risk_nephropathy", "label": "indicates"}})
-
-    # 4. Medication & Treatment Nodes
-    medications = patient.get("medications", ["Metformin 1000mg BID"])
-    for i, med in enumerate(medications):
-        m_id = f"med_{i}"
-        nodes.append({
-            "data": {
-                "id": m_id,
-                "label": med,
-                "type": "Medication",
-                "category": "Pharmacotherapy",
-                "color": "#6366f1",
-                "size": 42,
-            }
-        })
-        edges.append({
-            "data": {
-                "id": f"e_{p_id}_{m_id}",
-                "source": p_id,
-                "target": m_id,
-                "label": "prescribed",
-            }
-        })
-        edges.append({
-            "data": {
-                "id": f"e_{m_id}_gv",
-                "source": m_id,
-                "target": "risk_glycemic_variability",
-                "label": "controls",
-            }
-        })
-
-    # 5. Clinical Guidelines / Recommendations
-    rec_nodes = [
-        ("rec_diet", "Low Glycemic Index Diet", "Intervention", "#84cc16"),
-        ("rec_exercise", "150 min/wk Aerobic Exercise", "Intervention", "#22c55e"),
-    ]
-    for r_id, r_label, r_cat, r_color in rec_nodes:
-        nodes.append({
-            "data": {
-                "id": r_id,
-                "label": r_label,
-                "type": "Intervention",
-                "category": r_cat,
-                "color": r_color,
-                "size": 40,
-            }
-        })
-        edges.append({
-            "data": {
-                "id": f"e_{r_id}_hba1c",
-                "source": r_id,
-                "target": "node_hba1c",
-                "label": "lowers",
-            }
-        })
+    for condition in data["conditions"]:
+        nodes.append({"data": {
+            "id": condition["id"], "label": condition["name"],
+            "kind": "Condition", "category": condition["category"],
+        }})
+        edges.append({"data": {
+            "id": f"edge-{_slug(condition['category'])}-{_slug(condition['name'])}",
+            "source": "patient", "target": condition["id"],
+            "label": condition.get("edgeLabel") or _EDGE_LABELS.get(condition["category"], "has condition"),
+        }})
 
     return {
-        "patient_id": str(patient_id),
-        "elements": {
-            "nodes": nodes,
-            "edges": edges,
-        },
+        "patient_id": patient_id,
+        "elements": {"nodes": nodes, "edges": edges},
         "stats": {
             "total_nodes": len(nodes),
             "total_edges": len(edges),
-            "ontology_standard": "SNOMED-CT / ShanghaiT2DM Clinical Graph Schema",
-        }
+            "condition_count": len(edges),
+            "graph_scope": "Patient and recorded diabetes/other conditions only",
+        },
     }

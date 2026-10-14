@@ -17,6 +17,7 @@ import { DigitalTwinView } from './components/DigitalTwinView';
 import { ReportView } from './components/ReportView';
 import { PatientsView } from './components/PatientsView';
 import { ModuleDraftView } from './components/ModuleDraftView';
+import { KnowledgeGraphView } from './components/KnowledgeGraphView';
 import type { NavigationModule, Patient } from './types';
 import { PATIENTS, getPatientById } from './data/patientsData';
 
@@ -88,10 +89,15 @@ export const App: React.FC = () => {
             />
           )}
 
+          {activeModule === 'knowledge_graph' && (
+            <KnowledgeGraphView patient={currentPatient} />
+          )}
+
           {/* Modular Drafts for other sidebar links */}
           {activeModule !== 'patients' &&
             activeModule !== 'digital_twin' &&
-            activeModule !== 'reports' && (
+            activeModule !== 'reports' &&
+            activeModule !== 'knowledge_graph' && (
               <ModuleDraftView
                 module={activeModule}
                 patient={currentPatient}

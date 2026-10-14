@@ -86,10 +86,10 @@ def _names(value: Any) -> List[str]:
         return [name for part in value for name in _names(part)]
     if not isinstance(value, str):
         return []
-    return [part.strip() for part in re.split(r"[,;|\\n]+", value) if part.strip() and not _empty(part)]
+    return [part.strip() for part in re.split(r"[,;|\n]+", value) if part.strip() and not _empty(part)]
 
 def _canonical(value: str) -> str:
-    name = re.sub(r"\\s+", " ", value.strip())
+    name = re.sub(r"\s+", " ", value.strip())
     return _ALIASES.get(name.casefold(), name[:1].upper() + name[1:])
 
 def _slug(value: str) -> str:

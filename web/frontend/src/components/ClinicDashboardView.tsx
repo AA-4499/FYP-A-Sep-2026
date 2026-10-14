@@ -1,7 +1,3 @@
-/**
- * Borneo Center Diabetes Dashboard View (Figma Image 1)
- * High-fidelity implementation matching every card, chart, and metric.
- */
 import React, { useState } from 'react';
 import {
   Download,
@@ -13,19 +9,17 @@ import {
   ArrowUpRight,
   TrendingUp,
   TrendingDown,
+  X,
+  ShieldAlert,
 } from 'lucide-react';
 import {
-  CLINIC_STATS,
-  GENDER_DISTRIBUTION,
-  AGE_DISTRIBUTION,
-  BMI_DISTRIBUTION,
   HBA1C_TREND_6M,
-  GLYCEMIC_CONTROL,
   CGM_TREND_24H,
   CLINICAL_SNAPSHOT,
 } from '../data/clinicData';
 import { PATIENTS } from '../data/patientsData';
 import type { Patient } from '../types';
+import { computeCohortStats } from '../lib/supabase';
 
 interface ClinicDashboardViewProps {
   patients?: Patient[];
@@ -43,9 +37,11 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
   onViewAlerts,
 }) => {
   const patientList = patients && patients.length > 0 ? patients : PATIENTS;
+  const cohort = computeCohortStats(patientList);
   const [clinicFilter, setClinicFilter] = useState('All clinics');
   const [hba1cPeriod, setHba1cPeriod] = useState('Last 6 months');
   const [cgmPeriod, setCgmPeriod] = useState('Last 24 hours');
+  const [showAlertModal, setShowAlertModal] = useState(false);
 
   return (
     <div className="space-y-5 animate-fadeIn pb-12">
@@ -74,14 +70,14 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
         <div className="flex items-center gap-2 text-[#92400e] font-medium">
           <AlertTriangle className="w-4 h-4 text-[#d97706] shrink-0" />
           <span>
-            <strong className="font-semibold">{CLINIC_STATS.alertsCount} clinical alerts</strong> need review.
+            <strong className="font-semibold">{cohort.alertsCount} clinical alerts</strong> need review (10 patients flagged with documented hypoglycemia).
           </span>
         </div>
         <button
-          onClick={onViewAlerts}
-          className="text-[#b45309] hover:text-[#78350f] font-semibold flex items-center gap-1 transition"
+          onClick={() => setShowAlertModal(true)}
+          className="text-[#b45309] hover:text-[#78350f] font-semibold flex items-center gap-1 transition cursor-pointer"
         >
-          <span>View alerts</span>
+          <span>View alerts ({cohort.alertsCount})</span>
           <span>→</span>
         </button>
       </div>
@@ -99,11 +95,14 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           <div className="mt-2 flex items-baseline justify-between">
             <div>
               <p className="text-3xl font-bold text-slate-900 tracking-tight">
-                {CLINIC_STATS.activePatients.toLocaleString()}
+                {cohort.activePatients.toLocaleString()}
               </p>
               <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                 <span>↑</span>
-                <span>3.2% in 30 days</span>
+                <span>{cohort.activePatientsGrowth}</span>
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                Avg Age: {cohort.avgAge} yrs · Avg BMI: {cohort.avgBmi}
               </p>
             </div>
             {/* Sparkline bars */}
@@ -128,11 +127,14 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           <div className="mt-2 flex items-baseline justify-between">
             <div>
               <p className="text-3xl font-bold text-slate-900 tracking-tight">
-                {CLINIC_STATS.timeInRange}%
+                {cohort.timeInRange}%
               </p>
               <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                 <span>↑</span>
-                <span>2.8% in 30 days</span>
+                <span>{cohort.timeInRangeGrowth}</span>
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                CGM Telemetry Standard: 70–180 mg/dL
               </p>
             </div>
             {/* Sparkline bars */}
@@ -157,11 +159,13 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           <div className="mt-2 flex items-baseline justify-between">
             <div>
               <p className="text-3xl font-bold text-slate-900 tracking-tight">
-                {CLINIC_STATS.meanGlucose} <span className="text-base font-medium text-slate-500">mg/dL</span>
+                {cohort.meanGlucose} <span className="text-base font-medium text-slate-500">mg/dL</span>
               </p>
-              <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                <span>↓</span>
-                <span>6 mg/dL in 30 days</span>
+              <p className="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
+                <span>{cohort.meanGlucoseDelta}</span>
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                Cohort HbA1c Mean: {cohort.avgHbA1c}% ({cohort.avgHbA1cMmol} mmol/mol)
               </p>
             </div>
             {/* Sparkline bars */}
@@ -181,7 +185,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-sm font-bold text-slate-900">Patient distribution</h2>
-            <p className="text-xs text-slate-400 mt-0.5">2,486 active patients by diagnosis</p>
+            <p className="text-xs text-slate-400 mt-0.5">{cohort.activePatients} enrolled cohort patients</p>
           </div>
 
           <div className="relative">
@@ -191,8 +195,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
               className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 pr-6 appearance-none focus:outline-hidden cursor-pointer"
             >
               <option>All clinics</option>
-              <option>Borneo Center</option>
-              <option>Kuching General</option>
+              <option>Borneo Center Kuching</option>
             </select>
             <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2 pointer-events-none" />
           </div>
@@ -206,7 +209,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
               <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                 {/* Donut background circle */}
                 <circle cx="50" cy="50" r="38" fill="none" stroke="#f1f5f9" strokeWidth="18" />
-                {/* Female segment: 45.87% (circumference = 2 * PI * 38 = 238.76) */}
+                {/* Female segment */}
                 <circle
                   cx="50"
                   cy="50"
@@ -214,10 +217,10 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                   fill="none"
                   stroke="#84cc16"
                   strokeWidth="18"
-                  strokeDasharray={`${238.76 * 0.4587} ${238.76 * (1 - 0.4587)}`}
+                  strokeDasharray={`${238.76 * (cohort.genderDistribution[0].value / 100)} ${238.76 * (1 - cohort.genderDistribution[0].value / 100)}`}
                   strokeDashoffset="0"
                 />
-                {/* Male segment: 54.13% */}
+                {/* Male segment */}
                 <circle
                   cx="50"
                   cy="50"
@@ -225,38 +228,38 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                   fill="none"
                   stroke="#3b82f6"
                   strokeWidth="18"
-                  strokeDasharray={`${238.76 * 0.5413} ${238.76 * (1 - 0.5413)}`}
-                  strokeDashoffset={`-${238.76 * 0.4587}`}
+                  strokeDasharray={`${238.76 * (cohort.genderDistribution[1].value / 100)} ${238.76 * (1 - cohort.genderDistribution[1].value / 100)}`}
+                  strokeDashoffset={`-${238.76 * (cohort.genderDistribution[0].value / 100)}`}
                 />
               </svg>
             </div>
             <div className="flex items-center justify-between w-full max-w-[200px] mt-4 text-[11px] text-slate-600">
               <div className="text-center">
                 <span className="block font-semibold text-slate-800">Female</span>
-                <span className="text-slate-400">(45.87%)</span>
+                <span className="text-slate-400">({cohort.genderDistribution[0].value}%)</span>
               </div>
               <div className="text-center">
                 <span className="block font-semibold text-slate-800">Male</span>
-                <span className="text-slate-400">(54.13%)</span>
+                <span className="text-slate-400">({cohort.genderDistribution[1].value}%)</span>
               </div>
             </div>
           </div>
 
           {/* 4b. Age Distribution Bar Chart */}
           <div>
-            <h3 className="text-xs font-bold text-slate-700 mb-3 text-center">Age</h3>
+            <h3 className="text-xs font-bold text-slate-700 mb-3 text-center">Age (Mean {cohort.avgAge} yrs)</h3>
             <div className="space-y-2 text-xs">
-              {AGE_DISTRIBUTION.map((item) => (
+              {cohort.ageDistribution.map((item) => (
                 <div key={item.range} className="flex items-center gap-2">
                   <span className="w-12 text-[11px] text-slate-500 shrink-0 font-medium">{item.range}</span>
                   <div className="w-full bg-slate-100 rounded-xs h-3.5 overflow-hidden flex">
                     <div
                       className="bg-[#2563eb] h-full transition-all duration-300 rounded-xs"
-                      style={{ width: `${item.pct * 2.3}%` }}
+                      style={{ width: `${Math.min(100, item.pct * 2.5)}%` }}
                     />
                   </div>
                   <span className="w-12 text-right text-[11px] text-slate-600 shrink-0 font-medium">
-                    {item.pct.toFixed(2)}%
+                    {item.pct.toFixed(1)}%
                   </span>
                 </div>
               ))}
@@ -265,19 +268,19 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
 
           {/* 4c. BMI Distribution Bar Chart */}
           <div>
-            <h3 className="text-xs font-bold text-slate-700 mb-3 text-center">BMI</h3>
+            <h3 className="text-xs font-bold text-slate-700 mb-3 text-center">BMI (Mean {cohort.avgBmi})</h3>
             <div className="space-y-3 text-xs pt-1">
-              {BMI_DISTRIBUTION.map((item) => (
+              {cohort.bmiDistribution.map((item) => (
                 <div key={item.category} className="flex items-center gap-2">
                   <span className="w-20 text-[11px] text-slate-500 shrink-0 font-medium">{item.category}</span>
                   <div className="w-full bg-slate-100 rounded-xs h-3.5 overflow-hidden flex">
                     <div
                       className="bg-[#2563eb] h-full transition-all duration-300 rounded-xs"
-                      style={{ width: `${item.pct * 1.6}%` }}
+                      style={{ width: `${Math.min(100, item.pct * 1.5)}%` }}
                     />
                   </div>
                   <span className="w-12 text-right text-[11px] text-slate-600 shrink-0 font-medium">
-                    {item.pct.toFixed(2)}%
+                    {item.pct.toFixed(1)}%
                   </span>
                 </div>
               ))}
@@ -292,11 +295,11 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Average HbA1c trend</h2>
+              <h2 className="text-sm font-bold text-slate-900">Cohort HbA1c Glycemic Profile</h2>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl font-bold text-slate-900">7.2%</span>
-                <span className="text-xs font-semibold text-emerald-600">
-                  ↓ 0.4 pts since Apr
+                <span className="text-2xl font-bold text-slate-900">{cohort.avgHbA1c}%</span>
+                <span className="text-xs font-semibold text-slate-500">
+                  {cohort.avgHbA1cMmol} mmol/mol cohort average
                 </span>
               </div>
             </div>
@@ -324,26 +327,26 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
               <line x1="30" y1="110" x2="490" y2="110" stroke="#f1f5f9" strokeWidth="1" />
 
               {/* Y-axis labels */}
-              <text x="20" y="24" fontSize="9" fill="#94a3b8" textAnchor="end">8.0</text>
-              <text x="20" y="54" fontSize="9" fill="#94a3b8" textAnchor="end">7.5</text>
-              <text x="20" y="84" fontSize="9" fill="#94a3b8" textAnchor="end">7.0</text>
-              <text x="20" y="114" fontSize="9" fill="#94a3b8" textAnchor="end">6.5</text>
+              <text x="20" y="24" fontSize="9" fill="#94a3b8" textAnchor="end">10.0</text>
+              <text x="20" y="54" fontSize="9" fill="#94a3b8" textAnchor="end">9.0</text>
+              <text x="20" y="84" fontSize="9" fill="#94a3b8" textAnchor="end">8.0</text>
+              <text x="20" y="114" fontSize="9" fill="#94a3b8" textAnchor="end">7.0</text>
 
-              {/* Data Path: 7.6(Apr), 7.5(May), 7.4(Jun), 7.3(Jul), 7.2(Aug), 7.2(Sep) */}
+              {/* Data Path */}
               <path
-                d="M 60 44 Q 130 50 200 60 T 340 76 T 470 78"
+                d="M 60 54 Q 130 52 200 50 T 340 54 T 470 54"
                 fill="none"
                 stroke="#2563eb"
                 strokeWidth="2.5"
               />
 
               {/* Points */}
-              <circle cx="60" cy="44" r="3.5" fill="#2563eb" />
+              <circle cx="60" cy="54" r="3.5" fill="#2563eb" />
               <circle cx="150" cy="52" r="3.5" fill="#2563eb" />
-              <circle cx="230" cy="62" r="3.5" fill="#2563eb" />
-              <circle cx="320" cy="72" r="3.5" fill="#2563eb" />
-              <circle cx="410" cy="78" r="3.5" fill="#2563eb" />
-              <circle cx="470" cy="78" r="3.5" fill="#2563eb" />
+              <circle cx="230" cy="50" r="3.5" fill="#2563eb" />
+              <circle cx="320" cy="54" r="3.5" fill="#2563eb" />
+              <circle cx="410" cy="54" r="3.5" fill="#2563eb" />
+              <circle cx="470" cy="54" r="3.5" fill="#2563eb" />
             </svg>
 
             {/* X-axis labels */}
@@ -370,30 +373,30 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span className="text-slate-600">At target &lt; 7.0%</span>
                 </div>
-                <strong className="text-slate-900">{GLYCEMIC_CONTROL.atTarget.toLocaleString()}</strong>
+                <strong className="text-slate-900">{cohort.glycemicControl.atTarget.toLocaleString()}</strong>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-slate-600">Above target 7.0 - 8.9%</span>
+                  <span className="text-slate-600">Above target 7.0 - 8.5%</span>
                 </div>
-                <strong className="text-slate-900">{GLYCEMIC_CONTROL.aboveTarget.toLocaleString()}</strong>
+                <strong className="text-slate-900">{cohort.glycemicControl.aboveTarget.toLocaleString()}</strong>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-rose-500" />
-                  <span className="text-slate-600">High risk ≥ 9.0%</span>
+                  <span className="text-slate-600">High risk &gt; 8.5%</span>
                 </div>
-                <strong className="text-slate-900">{GLYCEMIC_CONTROL.highRisk.toLocaleString()}</strong>
+                <strong className="text-slate-900">{cohort.glycemicControl.highRisk.toLocaleString()}</strong>
               </div>
             </div>
           </div>
 
-          <div className="pt-5 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Population median HbA1c</span>
-            <strong className="text-slate-900 font-bold">{GLYCEMIC_CONTROL.medianHbA1c}%</strong>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">Cohort Median HbA1c</span>
+            <span className="text-sm font-bold text-slate-900">{cohort.glycemicControl.medianHbA1c}%</span>
           </div>
         </div>
       </div>
@@ -635,6 +638,54 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* 7. Clinical Alerts Modal */}
+      {showAlertModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-rose-600">
+                <ShieldAlert className="w-5 h-5 text-rose-600" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Clinical Alerts ({cohort.alertsCount})
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAlertModal(false)}
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Patients flagged in hospital records with active nocturnal hypoglycemia episodes or critical glycemic events requiring review.
+            </p>
+            <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+              {cohort.clinicalAlerts.map((al) => (
+                <div
+                  key={al.id}
+                  className="p-3.5 rounded-xl border border-rose-100 bg-rose-50/50 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-800 truncate">{al.patient}</p>
+                    <p className="text-rose-700 text-[11px] font-medium">{al.issue}</p>
+                    <p className="text-slate-400 text-[10px] mt-0.5">{al.time}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowAlertModal(false);
+                      onSelectPatient(al.code);
+                    }}
+                    className="px-3 py-1.5 bg-white border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    View Twin →
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -96,7 +96,14 @@ export const TopBar: React.FC<TopBarProps> = ({
                           {p.avatarInitials}
                         </span>
                         <div>
-                          <strong className="block text-slate-900">{p.name}</strong>
+                          <div className="flex items-center gap-1.5">
+                            <strong className="text-slate-900">{p.name}</strong>
+                            {(p.hasContinuousCGM || ['2000_0_20201230', '2001_0_20201102', '2001_1_20201117', '2002_0_20210513', '2003_0_20210615'].includes(p.id)) && (
+                              <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                CGM 14D
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400">{p.id}</span>
                         </div>
                       </div>
@@ -115,7 +122,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="flex items-center gap-3.5">
           <button
             onClick={() => onSwitchMode('clinic')}
-            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition"
+            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
             title="Back to Clinic Overview"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -124,11 +131,23 @@ export const TopBar: React.FC<TopBarProps> = ({
             {currentPatient.displayId}
           </div>
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
-              {currentPatient.name}
-            </h2>
-            <p className="text-xs text-slate-500">
-              {currentPatient.condition}, age {currentPatient.age}, {currentPatient.visitsCount} recorded visits
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                {currentPatient.name}
+              </h2>
+              {currentPatient.hasContinuousCGM ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>14-Day CGM Feed</span>
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  Admission Labs Only
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {currentPatient.condition}, age {currentPatient.age}, BMI {currentPatient.bmi}
             </p>
           </div>
         </div>

@@ -33,6 +33,37 @@ export type AuthFlow =
   | 'forgot_password'
   | 'verify_email';
 
+export interface CGMReading {
+  date: string;
+  timestamp: number;
+  cgm: number; // in mg/dL
+  cbg?: number | null;
+  diet?: string | null;
+  insulin?: string | null;
+}
+
+export interface CGMDailyProfile {
+  dayLabel: string; // e.g. "Day 1 (12/30)"
+  dayNumber: number;
+  mean: number;
+  tir: number; // % in 70-180 mg/dL
+  min: number;
+  max: number;
+  readingsCount: number;
+}
+
+export interface CGMSummary {
+  totalReadings: number;
+  startDate: string;
+  endDate: string;
+  meanGlucose: number;
+  timeInRangePct: number; // 70-180 mg/dL
+  timeAboveRangePct: number; // >180 mg/dL
+  timeBelowRangePct: number; // <70 mg/dL
+  cvPct: number; // Coefficient of Variation %
+  dailyProfiles: CGMDailyProfile[];
+}
+
 export interface Patient {
   id: string; // e.g. "2000_0_20201230" or "P07"
   displayId: string; // e.g. "P07"
@@ -48,6 +79,9 @@ export interface Patient {
   latestSignal: string;
   riskCategory: 'High' | 'Moderate' | 'Stable';
   avatarInitials: string;
+  hasContinuousCGM?: boolean;
+  cgmReadings?: CGMReading[];
+  cgmSummary?: CGMSummary;
   timelineData: {
     visit: number;
     currentHba1c: number;

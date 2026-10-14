@@ -10,6 +10,7 @@
  * - Bottom action buttons: Digital twin view ↗, Report page ↗
  */
 import React, { useState } from 'react';
+import { Activity, Radio, AlertCircle, ArrowRight, Gauge, CheckCircle2 } from 'lucide-react';
 import type { Patient, NavigationModule } from '../types';
 
 interface DashboardViewProps {
@@ -19,14 +20,12 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate }) => {
   // What-if sliders state (initialized to simulate 43% as in mockup)
-  // When sliders are set to target intervention: HbA1c: 7.0, FBG: 7.5, BMI: 24.5 => gives 43%!
-  // We can initialize them to the simulated target (or let patient toggle baseline vs target)
   const [whatIfHbA1c, setWhatIfHbA1c] = useState<number>(7.0);
   const [whatIfFbg, setWhatIfFbg] = useState<number>(7.5);
   const [whatIfBmi, setWhatIfBmi] = useState<number>(24.5);
 
   // Calculate simulated risk dynamically
-  const baselineRisk = patient.currentRiskPct; // 68% for P07
+  const baselineRisk = patient.currentRiskPct;
   const deltaHbA1c = whatIfHbA1c - patient.hba1c;
   const deltaFbg = whatIfFbg - patient.fastingGlucose;
   const deltaBmi = whatIfBmi - patient.bmi;
@@ -34,6 +33,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
   const simulatedRisk = Math.round(
     Math.min(95, Math.max(12, baselineRisk + deltaHbA1c * 12 + deltaFbg * 1.8 + deltaBmi * 1.5))
   );
+
+  // Generate SVG path from patient's actual continuous CGM readings (1,000+ points)
+  const renderCGMPath = () => {
+    if (!patient.cgmReadings || patient.cgmReadings.length === 0) return '';
+    const readings = patient.cgmReadings;
+    const step = Math.max(1, Math.floor(readings.length / 100));
+    const sampled = readings.filter((_, idx) => idx % step === 0);
+    const minG = 40;
+    const maxG = 340;
+    const width = 300;
+    const height = 55;
+
+    const points = sampled.map((r, idx) => {
+      const x = 10 + (idx / (sampled.length - 1 || 1)) * width;
+      const clamped = Math.max(minG, Math.min(maxG, r.cgm));
+      const y = 68 - ((clamped - minG) / (maxG - minG)) * height;
+      return `${x.toFixed(1)} ${y.toFixed(1)}`;
+    });
+
+    return `M ${points.join(' L ')}`;
+  };
+
+  const hasCGM = Boolean(patient.hasContinuousCGM && patient.cgmReadings && patient.cgmReadings.length > 0);
+  const cgmSummary = patient.cgmSummary;
 
   return (
     <div className="space-y-6">
@@ -74,54 +97,105 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
 
       {/* 2. 2x2 MAIN GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* CARD 1: Longitudinal timeline, HbA1c */}
+        {/* CARD 1: Longitudinal timeline / Continuous CGM waveform */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between min-h-[290px]">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-              Longitudinal timeline, HbA1c
-            </h3>
-
-            {/* Custom SVG Line Chart matching mockup */}
-            <div className="mt-4 w-full h-36 flex flex-col justify-center">
-              <svg className="w-full h-28 overflow-visible" viewBox="0 0 320 80">
-                {/* Horizontal guide lines */}
-                <line x1="10" y1="20" x2="310" y2="20" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="10" y1="50" x2="310" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="10" y1="75" x2="310" y2="75" stroke="#e2e8f0" strokeWidth="1" />
-
-                {/* Dashed Historical Average Line */}
-                <path
-                  d="M 10 70 Q 70 65 140 60 T 210 52 T 310 46"
-                  fill="none"
-                  stroke="#b45309"
-                  strokeWidth="2"
-                  strokeDasharray="4 3"
-                />
-
-                {/* Solid Current Patient Line */}
-                <path
-                  d="M 10 60 L 60 52 L 130 42 L 180 50 L 220 34 L 270 28 L 310 24"
-                  fill="none"
-                  stroke="#2563eb"
-                  strokeWidth="2.5"
-                />
-
-                {/* Highlight Point on Visit 14 (end point) */}
-                <circle cx="310" cy="24" r="4.5" fill="#2563eb" />
-              </svg>
-
-              {/* X-axis labels */}
-              <div className="flex justify-between text-[11px] text-slate-500 pt-1 px-1">
-                <span>Visit 1</span>
-                <span>Visit 14</span>
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm sm:text-base font-semibold text-slate-900">
+                {hasCGM ? 'Continuous CGM Waveform (14 Days)' : 'Longitudinal Glycemic Profile'}
+              </h3>
+              {hasCGM && cgmSummary && (
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  TIR {cgmSummary.timeInRangePct}% · {cgmSummary.meanGlucose} mg/dL
+                </span>
+              )}
             </div>
+
+            {hasCGM ? (
+              /* Actual 14-Day Continuous Sensor Waveform */
+              <div className="mt-4 w-full h-36 flex flex-col justify-center">
+                <svg className="w-full h-28 overflow-visible" viewBox="0 0 320 80">
+                  {/* Guide lines */}
+                  <line x1="10" y1="15" x2="310" y2="15" stroke="#f8fafc" strokeWidth="1" />
+                  <line x1="10" y1="40" x2="310" y2="40" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="10" y1="72" x2="310" y2="72" stroke="#e2e8f0" strokeWidth="1" />
+
+                  {/* Target Glycemic Band (70 - 180 mg/dL) */}
+                  <rect x="10" y="38" width="300" height="26" fill="#ecfdf5" rx="3" />
+                  <line x1="10" y1="38" x2="310" y2="38" stroke="#a7f3d0" strokeWidth="0.8" strokeDasharray="3 2" />
+                  <line x1="10" y1="64" x2="310" y2="64" stroke="#a7f3d0" strokeWidth="0.8" strokeDasharray="3 2" />
+
+                  {/* 180 mg/dL label */}
+                  <text x="312" y="41" fontSize="7" fill="#10b981" fontStyle="italic">180</text>
+                  <text x="312" y="67" fontSize="7" fill="#10b981" fontStyle="italic">70</text>
+
+                  {/* Actual Continuous CGM Waveform */}
+                  <path
+                    d={renderCGMPath()}
+                    fill="none"
+                    stroke="#2563eb"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* Latest reading pulse marker */}
+                  <circle cx="310" cy="42" r="3.5" fill="#2563eb" />
+                  <circle cx="310" cy="42" r="6" fill="#2563eb" opacity="0.25" className="animate-ping" />
+                </svg>
+
+                {/* X-axis labels */}
+                <div className="flex justify-between items-center text-[10px] text-slate-500 pt-1.5 px-1 font-medium">
+                  <span>{cgmSummary?.startDate ? new Date(cgmSummary.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Day 1'}</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                    {patient.cgmReadings?.length.toLocaleString()} continuous sensor points
+                  </span>
+                  <span>{cgmSummary?.endDate ? new Date(cgmSummary.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Day 14'}</span>
+                </div>
+              </div>
+            ) : (
+              /* Clinical State for Patients Without CGM sensor */
+              <div className="mt-3 bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-800">No Continuous CGM Sensor Telemetry</p>
+                  <p className="text-[11px] text-slate-500 max-w-[270px] mt-0.5 leading-relaxed">
+                    Continuous subcutaneous sensor not fitted for this admission. Baseline Fasting Glucose is <strong>{patient.fastingGlucose} mmol/L</strong> and HbA1c is <strong>{patient.hba1c}%</strong>.
+                  </p>
+                </div>
+                <button
+                  onClick={() => onNavigate('monitoring')}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Open Longitudinal Monitoring</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Subtext legend */}
-          <div className="pt-3 text-xs text-slate-500">
-            <span className="text-blue-600 font-semibold">Solid</span> current,{' '}
-            <span className="text-amber-700 font-semibold">dashed</span> historical average
+          <div className="pt-2 text-xs text-slate-500 flex items-center justify-between">
+            {hasCGM ? (
+              <>
+                <div>
+                  <span className="text-emerald-700 font-semibold">Green band:</span> Target (70–180 mg/dL) ·{' '}
+                  <span className="text-blue-600 font-semibold">Blue wave:</span> 15-min sensor readings
+                </div>
+                <button
+                  onClick={() => onNavigate('monitoring')}
+                  className="text-xs font-semibold text-blue-600 hover:underline"
+                >
+                  Full AGP Profile →
+                </button>
+              </>
+            ) : (
+              <span className="text-slate-400 text-[11px]">
+                Patients 2000, 2001, 2002, 2003 contain 14-day continuous CGM feeds.
+              </span>
+            )}
           </div>
         </div>
 

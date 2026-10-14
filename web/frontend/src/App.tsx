@@ -27,6 +27,7 @@ import { ReportView } from './components/ReportView';
 import { PatientsView } from './components/PatientsView';
 import { AuthView } from './components/AuthView';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
+import { ClinicalDataView } from './components/ClinicalDataView';
 import type { NavigationModule, AuthFlow, Patient } from './types';
 import { PATIENTS, getPatientById } from './data/patientsData';
 import {
@@ -270,6 +271,7 @@ export const App: React.FC = () => {
                   }}
                 />
               )}
+              {patientModule === 'patient_dashboard' && <ClinicalDataView patientId={currentPatientId} />}
 
               {/* 2. Longitudinal Monitoring */}
               {patientModule === 'monitoring' && (

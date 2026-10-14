@@ -388,6 +388,10 @@ export async function fetchSupabasePatients(): Promise<Patient[]> {
   }
 }
 
+export function getCachedRawDetails(): SupabasePatientDetail[] {
+  return cachedRawDetails;
+}
+
 export function getCachedRawSummaries(): SupabasePatientSummary[] {
   return cachedRawSummaries;
 }
@@ -539,6 +543,7 @@ export async function testSupabaseConnection(): Promise<{
     };
   }
 }
+
 
 
 

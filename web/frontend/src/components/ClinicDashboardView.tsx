@@ -20,6 +20,7 @@ import {
 import { PATIENTS } from '../data/patientsData';
 import type { Patient } from '../types';
 import { computeCohortStats } from '../lib/supabase';
+import { ClinicalDataView } from './ClinicalDataView';
 
 interface ClinicDashboardViewProps {
   patients?: Patient[];
@@ -66,6 +67,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
       </div>
 
       {/* 2. Clinical Alert Banner */}
+{/** 
       <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-xl px-4 py-3 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 text-[#92400e] font-medium">
           <AlertTriangle className="w-4 h-4 text-[#d97706] shrink-0" />
@@ -81,6 +83,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           <span>→</span>
         </button>
       </div>
+*/}
 
       {/* 3. Three Key Summary Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -639,6 +642,8 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
         </div>
       </div>
 
+      <ClinicalDataView />
+
       {/* 7. Clinical Alerts Modal */}
       {showAlertModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
@@ -689,6 +694,8 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
     </div>
   );
 };
+
+
 
 
 

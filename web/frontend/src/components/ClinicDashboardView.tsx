@@ -498,7 +498,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
                     <span className="text-slate-600">High risk</span>
                   </div>
-                  <strong className="text-slate-900">{CLINICAL_SNAPSHOT.highRisk}</strong>
+                  <strong className="text-slate-900">{/**CLINICAL_SNAPSHOT.highRisk*/}</strong>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '12%' }} />
@@ -511,7 +511,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                     <span className="w-2 h-2 rounded-full bg-amber-500" />
                     <span className="text-slate-600">Moderate</span>
                   </div>
-                  <strong className="text-slate-900">{CLINICAL_SNAPSHOT.moderate}</strong>
+                  <strong className="text-slate-900">{/**CLINICAL_SNAPSHOT.moderate*/}</strong>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: '28%' }} />
@@ -524,7 +524,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="text-slate-600">Stable</span>
                   </div>
-                  <strong className="text-slate-900">{CLINICAL_SNAPSHOT.stable.toLocaleString()}</strong>
+                  <strong className="text-slate-900">{/**CLINICAL_SNAPSHOT.stable.toLocaleString()*/}</strong>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                   <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '78%' }} />

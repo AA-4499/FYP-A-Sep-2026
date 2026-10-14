@@ -85,22 +85,7 @@ Then open your browser at `http://localhost:8501`.
 
 ### 3. Train Using Supabase Data (`train_from_supabase.py`)
 
-If you want to train the model directly using patient records from your Supabase PostgreSQL database:
-
-#### Step 1: Set Up Supabase Output Tables
-Open your [Supabase SQL Editor](https://supabase.com/dashboard/project/dgtaujhgwxmoghqdqkti/editor) and run the queries in `supabase_output_tables.sql`. This creates:
-- `training_predictions`: Stores point-by-point actual vs predicted CGM values.
-- `training_metrics`: Stores cohort and per-patient MAE and RMSE metrics.
-- `training_timeline_splits`: Stores train/test timeline boundaries and sample counts.
-
-#### Step 2: Configure Credentials
-Create a `.env` file in `TrainingModel/` (or use the built-in defaults):
-```env
-SUPABASE_URL=https://dgtaujhgwxmoghqdqkti.supabase.co
-SUPABASE_KEY=your_supabase_secret_or_service_key
-```
-
-#### Step 3: Run the Training Pipeline
+#### Run the Training Pipeline
 ```powershell
 # Run 30 epochs and upload outputs to Supabase:
 py -3 train_from_supabase.py --epochs 30 --batch-size 128
@@ -116,7 +101,7 @@ Once completed, the new weights are saved locally and all predictions and metric
 
 ---
 
-### 4. Deploy Streamlit to the Web (Streamlit Community Cloud)
+### Deploy Streamlit to the Web (Streamlit Community Cloud)
 
 You can deploy this dashboard to the web completely free:
 

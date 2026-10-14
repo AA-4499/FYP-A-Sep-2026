@@ -78,6 +78,26 @@ Training output files are saved in .\FYP_A_new\outputs:
   - test_predictions.csv     Held-out actual vs predicted values
 
 
+3.1 Train with Supabase data (patient_detail) & write back outputs
+-------------------------------------------------------------------
+1. Run `supabase_output_tables.sql` in your Supabase SQL Editor.
+2. In `TrainingModel/.env`, set your connection string:
+     SUPABASE_DB_URL=postgresql://postgres:[PASSWORD]@db.dgtaujhgwxmoghqdqkti.supabase.co:5432/postgres
+3. Run the Supabase training pipeline:
+     python train_from_supabase.py
+   Or with explicit DB URL:
+     python train_from_supabase.py --db-url "postgresql://postgres:PASSWORD@db.dgtaujhgwxmoghqdqkti.supabase.co:5432/postgres"
+
+This will automatically:
+  - Fetch all 5 patients from table `patient_detail`
+  - Train the GRU model and evaluate on the 20% test set
+  - Upload outputs into Supabase tables:
+      * `training_predictions` (Point-by-point predictions vs actual values)
+      * `training_metrics` (Overall & per-patient MAE / RMSE)
+      * `training_timeline_splits` (Data splits and sample counts)
+
+
+
 4. Run the Streamlit app
 ------------------------
 From the TrainingModel folder, run:

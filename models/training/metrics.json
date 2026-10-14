@@ -1,0 +1,198 @@
+{
+  "model": "PyTorch GRU",
+  "target": "next 15-minute CGM glucose value (mg/dL)",
+  "output_representation": "predicted change from the most recent glucose input",
+  "evaluation": "rolling one-step-ahead windows over held-out timeline rows",
+  "split": {
+    "unit": "patient record workbook; repeated patient IDs are split and trained separately",
+    "training": "first 80% of each record's ordered rows",
+    "testing": "remaining final 20% of each record's ordered rows",
+    "validation": "last 20% of each record's available training-period windows",
+    "short_timelines": "Use each record's chronological 80/20 ordered-row split; very short or sparse records may still have few or no usable windows after lookback and gap checks.",
+    "sequence_gap_limit_minutes": 22.5,
+    "workbooks": 109,
+    "patients": 109,
+    "training_windows": 17297,
+    "validation_windows": 4505,
+    "testing_windows": 22401
+  },
+  "test_metrics": {
+    "mae_mg_dl": 3.8076339147116562,
+    "rmse_mg_dl": 5.2796634084454235,
+    "persistence_baseline_mae_mg_dl": 5.929529947604693,
+    "persistence_baseline_rmse_mg_dl": 8.78026669555177,
+    "patients": 109,
+    "windows": 22401
+  },
+  "parameters": {
+    "epochs_requested": 30,
+    "epochs_completed": 29,
+    "batch_size": 128,
+    "sequence_length": 24,
+    "lookback_minutes": 360,
+    "hidden_dim": 64,
+    "learning_rate": 0.001,
+    "training_window_stride": 4,
+    "test_window_stride": 1,
+    "seed": 2026,
+    "device": "cpu",
+    "feature_columns": [
+      "glucose",
+      "meal",
+      "insulin",
+      "meal_recent_1h",
+      "meal_recent_3h",
+      "insulin_recent_1h",
+      "insulin_recent_3h",
+      "hour_sin",
+      "hour_cos"
+    ]
+  },
+  "history": [
+    {
+      "epoch": 1.0,
+      "train_loss": 0.8512211379311833,
+      "validation_mae_mg_dl": 5.856117874297927
+    },
+    {
+      "epoch": 2.0,
+      "train_loss": 0.7455790864874767,
+      "validation_mae_mg_dl": 5.324818168072801
+    },
+    {
+      "epoch": 3.0,
+      "train_loss": 0.574075809353906,
+      "validation_mae_mg_dl": 4.301114961918398
+    },
+    {
+      "epoch": 4.0,
+      "train_loss": 0.4286386847173836,
+      "validation_mae_mg_dl": 4.031668694567072
+    },
+    {
+      "epoch": 5.0,
+      "train_loss": 0.3813026738303269,
+      "validation_mae_mg_dl": 3.968636965566417
+    },
+    {
+      "epoch": 6.0,
+      "train_loss": 0.3664839593183721,
+      "validation_mae_mg_dl": 3.9176929977704895
+    },
+    {
+      "epoch": 7.0,
+      "train_loss": 0.355598521493119,
+      "validation_mae_mg_dl": 3.9422003768260416
+    },
+    {
+      "epoch": 8.0,
+      "train_loss": 0.35056355368844994,
+      "validation_mae_mg_dl": 3.8642273389538966
+    },
+    {
+      "epoch": 9.0,
+      "train_loss": 0.34463095003182803,
+      "validation_mae_mg_dl": 3.890608996053647
+    },
+    {
+      "epoch": 10.0,
+      "train_loss": 0.34418613416559884,
+      "validation_mae_mg_dl": 3.927429863932924
+    },
+    {
+      "epoch": 11.0,
+      "train_loss": 0.33870149883056383,
+      "validation_mae_mg_dl": 3.891703848886437
+    },
+    {
+      "epoch": 12.0,
+      "train_loss": 0.3356146442946681,
+      "validation_mae_mg_dl": 3.9065071173698604
+    },
+    {
+      "epoch": 13.0,
+      "train_loss": 0.3274697628353154,
+      "validation_mae_mg_dl": 3.8030000396626904
+    },
+    {
+      "epoch": 14.0,
+      "train_loss": 0.3242085036524611,
+      "validation_mae_mg_dl": 3.8205420702596617
+    },
+    {
+      "epoch": 15.0,
+      "train_loss": 0.3226755785059569,
+      "validation_mae_mg_dl": 3.8129373429750366
+    },
+    {
+      "epoch": 16.0,
+      "train_loss": 0.31828270289410937,
+      "validation_mae_mg_dl": 3.844645057534272
+    },
+    {
+      "epoch": 17.0,
+      "train_loss": 0.3214715349523981,
+      "validation_mae_mg_dl": 3.80145639298891
+    },
+    {
+      "epoch": 18.0,
+      "train_loss": 0.3219977611147228,
+      "validation_mae_mg_dl": 3.8241414399311093
+    },
+    {
+      "epoch": 19.0,
+      "train_loss": 0.3173008113556765,
+      "validation_mae_mg_dl": 3.82870824138544
+    },
+    {
+      "epoch": 20.0,
+      "train_loss": 0.3141918779763416,
+      "validation_mae_mg_dl": 3.826724615742708
+    },
+    {
+      "epoch": 21.0,
+      "train_loss": 0.31295620799995044,
+      "validation_mae_mg_dl": 3.8241965070548782
+    },
+    {
+      "epoch": 22.0,
+      "train_loss": 0.3103152003847616,
+      "validation_mae_mg_dl": 3.7574907757995133
+    },
+    {
+      "epoch": 23.0,
+      "train_loss": 0.30934177345193564,
+      "validation_mae_mg_dl": 3.784255629189139
+    },
+    {
+      "epoch": 24.0,
+      "train_loss": 0.3059366443408475,
+      "validation_mae_mg_dl": 3.8000931675240945
+    },
+    {
+      "epoch": 25.0,
+      "train_loss": 0.30854666349794396,
+      "validation_mae_mg_dl": 3.7830139676685737
+    },
+    {
+      "epoch": 26.0,
+      "train_loss": 0.3067218501105945,
+      "validation_mae_mg_dl": 3.7628284907367466
+    },
+    {
+      "epoch": 27.0,
+      "train_loss": 0.3036974770537469,
+      "validation_mae_mg_dl": 3.762601285504713
+    },
+    {
+      "epoch": 28.0,
+      "train_loss": 0.30365852279946204,
+      "validation_mae_mg_dl": 3.762058266524337
+    },
+    {
+      "epoch": 29.0,
+      "train_loss": 0.30077560377281554,
+      "validation_mae_mg_dl": 3.7796554133577165
+    }
+  ]
+}

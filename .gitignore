@@ -11,6 +11,8 @@ node_modules/
 # Environment files
 .env
 .env*
+!.env.example
+
 
 # Model weights & binaries (keep weights directory with .gitkeep)
 *.joblib
@@ -18,6 +20,11 @@ node_modules/
 *.pt
 *.onnx
 !models/weights/.gitkeep
+!models/weights/*.pt
+!models/training/*.pt
+!TrainingModel/FYP_A_new/outputs/*.pt
+
+
 
 # Web frontend build outputs
 frontend/node_modules/

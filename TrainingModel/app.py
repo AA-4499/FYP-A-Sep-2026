@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import sys
+import requests
 from datetime import time, timedelta
 from pathlib import Path
 
@@ -32,6 +34,11 @@ if not DATA_DIR.exists() and (PROJECT_DIR.parent / "data" / "Shanghai_T2DM").exi
     DATA_DIR = PROJECT_DIR.parent / "data" / "Shanghai_T2DM"
 CHECKPOINT_PATH = DEFAULT_OUTPUT_DIR / "gru_t2dm_forecaster.pt"
 TEST_PREDICTIONS_PATH = DEFAULT_OUTPUT_DIR / "test_predictions.csv"
+DEFAULT_SUPABASE_URL = "https://dgtaujhgwxmoghqdqkti.supabase.co"
+DEFAULT_SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your_supabase_secret_key_here")
+
+
+
 
 
 def default_scenario_time(forecast_start: pd.Timestamp, minutes_ahead: int) -> time:
@@ -131,32 +138,97 @@ def cached_forecaster(
     return load_forecaster_checkpoint(checkpoint_path, device_name=device_name)
 
 
-if not DATA_DIR.is_dir():
-    st.error(
-        f"Shanghai T2DM data folder was not found at `{DATA_DIR}`. "
-        f"The model's default data path is `{DEFAULT_DATA_DIR}`."
+@st.cache_data(show_spinner="Loading patient timelines from Supabase...")
+def cached_supabase_timelines(url: str, key: str) -> dict[str, pd.DataFrame]:
+    from train_from_supabase import fetch_all_supabase_rows, prepare_supabase_timelines
+    raw_rows = fetch_all_supabase_rows(url, key, "patient_detail")
+    return prepare_supabase_timelines(raw_rows)
+
+
+@st.cache_data(show_spinner="Loading held-out test predictions from Supabase...")
+def cached_supabase_predictions(url: str, key: str) -> pd.DataFrame:
+    headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+    endpoint = (
+        f"{url.rstrip('/')}/rest/v1/training_predictions"
+        "?select=patient_id,timestamp,actual_glucose_mg_dl,predicted_glucose_mg_dl,persistence_baseline_mg_dl"
+        "&order=timestamp.asc"
     )
-    st.stop()
+    resp = requests.get(endpoint, headers=headers, timeout=30)
+    resp.raise_for_status()
+    df = pd.DataFrame(resp.json())
+    if df.empty:
+        raise ValueError(
+            "No prediction records found in Supabase table 'training_predictions'. "
+            "Please run `python train_from_supabase.py` first."
+        )
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df["patient_id"] = df["patient_id"].astype(str)
+    return df
 
+
+@st.cache_data(show_spinner="Loading evaluation metrics from Supabase...")
+def cached_supabase_metrics(url: str, key: str) -> list[dict]:
+    headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+    endpoint = f"{url.rstrip('/')}/rest/v1/training_metrics?select=*&order=created_at.desc"
+    resp = requests.get(endpoint, headers=headers, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+supabase_url = DEFAULT_SUPABASE_URL
+supabase_key = DEFAULT_SUPABASE_KEY
 try:
-    patient_timelines = cached_patient_timelines(str(DATA_DIR))
-except Exception as error:
-    st.error(f"Could not read the Shanghai T2DM data folder: {error}")
-    st.stop()
+    if hasattr(st, "secrets"):
+        supabase_url = st.secrets.get("SUPABASE_URL", supabase_url)
+        supabase_key = st.secrets.get("SUPABASE_KEY", supabase_key)
+except Exception:
+    pass
+supabase_url = os.getenv("SUPABASE_URL", supabase_url)
+supabase_key = os.getenv("SUPABASE_KEY", supabase_key)
 
-workbook_count = len(
-    [
-        path
-        for path in DATA_DIR.glob("*")
-        if path.is_file()
-        and path.suffix.lower() in {".xlsx", ".xls", ".xlsm"}
-        and not path.name.startswith(("~$", "."))
-    ]
-)
-st.success(
-    f"Found `{DATA_DIR}`: loaded {len(patient_timelines)} patient record timelines "
-    f"from {workbook_count} Excel workbooks."
-)
+with st.sidebar:
+    st.header("Data Source")
+    has_local = DATA_DIR.is_dir()
+    source_choice = st.radio(
+        "Source",
+        ["☁️ Supabase Cloud (Live DB)", "📁 Local Excel Workbooks"],
+        index=0,
+        help="Select whether to read patient records and predictions from Supabase PostgreSQL or local Excel files.",
+    )
+
+if source_choice.startswith("☁️"):
+    try:
+        patient_timelines = cached_supabase_timelines(supabase_url, supabase_key)
+        test_predictions = cached_supabase_predictions(supabase_url, supabase_key)
+        st.sidebar.success(f"🟢 Supabase Connected ({len(patient_timelines)} patients)")
+    except Exception as error:
+        st.error(f"Could not load data from Supabase: {error}")
+        st.stop()
+else:
+    if not DATA_DIR.is_dir():
+        st.error(f"Local Shanghai T2DM data folder not found at `{DATA_DIR}`.")
+        st.stop()
+    try:
+        patient_timelines = cached_patient_timelines(str(DATA_DIR))
+    except Exception as error:
+        st.error(f"Could not read local Shanghai T2DM data: {error}")
+        st.stop()
+
+    if not TEST_PREDICTIONS_PATH.is_file():
+        st.error(
+            "Local test predictions are missing. Run `python -m FYP_A_new.train_t2dm` "
+            "to create `FYP_A_new\\outputs\\test_predictions.csv`."
+        )
+        st.stop()
+    try:
+        test_predictions = cached_test_predictions(
+            str(TEST_PREDICTIONS_PATH),
+            TEST_PREDICTIONS_PATH.stat().st_mtime_ns,
+        )
+        st.sidebar.info(f"📁 Local workbooks loaded ({len(patient_timelines)} records)")
+    except Exception as error:
+        st.error(f"Could not load held-out test predictions: {error}")
+        st.stop()
 
 if not CHECKPOINT_PATH.is_file():
     st.warning(
@@ -167,22 +239,6 @@ if not CHECKPOINT_PATH.is_file():
         r".\.venv\Scripts\python.exe -m FYP_A_new.train_t2dm",
         language="powershell",
     )
-    st.stop()
-
-if not TEST_PREDICTIONS_PATH.is_file():
-    st.error(
-        "The held-out test predictions are missing. Retrain the FYP_A_new model "
-        "to create `FYP_A_new\\outputs\\test_predictions.csv`."
-    )
-    st.stop()
-
-try:
-    test_predictions = cached_test_predictions(
-        str(TEST_PREDICTIONS_PATH),
-        TEST_PREDICTIONS_PATH.stat().st_mtime_ns,
-    )
-except Exception as error:
-    st.error(f"Could not load held-out test predictions: {error}")
     st.stop()
 
 device_name = "cuda" if torch.cuda.is_available() else "cpu"
@@ -550,6 +606,17 @@ with forecast_area:
     )
 
 with st.expander("Model and data details"):
+    if source_choice.startswith("☁️"):
+        try:
+            sb_metrics = cached_supabase_metrics(supabase_url, supabase_key)
+            if sb_metrics:
+                st.subheader("Supabase Evaluation Metrics (Live)")
+                metrics_display_df = pd.DataFrame(sb_metrics)[
+                    ["patient_id", "mae_mg_dl", "rmse_mg_dl", "baseline_mae_mg_dl", "baseline_rmse_mg_dl", "test_windows", "epochs", "created_at"]
+                ]
+                st.dataframe(metrics_display_df, use_container_width=True)
+        except Exception:
+            pass
     training = checkpoint.get("summary", {})
     st.write(
         {

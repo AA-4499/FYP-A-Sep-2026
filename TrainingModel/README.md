@@ -1,6 +1,7 @@
 # Shanghai T2DM CGM Forecasting & Interactive App
 
 https://fyp-a-sep-2026-ofbasegafygutnvrv8fc8p.streamlit.app/
+
 This folder (`TrainingModel`) is a self-contained module containing:
 1. **The Machine Learning Pipeline (`FYP_A_new`)**: A PyTorch GRU model trained on the Shanghai T2DM Continuous Glucose Monitoring (CGM) dataset using chronological 80/20 train/test splits.
 2. **Cloud Training Pipeline (`train_from_supabase.py`)**: An automated end-to-end pipeline that pulls patient data from Supabase (`patient_detail`), trains the model, and uploads point-by-point predictions and evaluation metrics back to Supabase.

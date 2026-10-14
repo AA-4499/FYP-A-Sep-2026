@@ -153,10 +153,10 @@ export function mapSupabaseToPatient(
 ): Patient {
   const patientNumber = summary['Patient Number'] || 'Unknown';
   const age = Number(summary['Age (years)']) || 58;
-  const bmi = Number(summary['BMI (kg/m²)']?.toFixed(1)) || 27.3;
+  const bmi = Number(summary['BMI (kg/m\u00b2)']);
   const hba1c = convertHbA1cToPct(summary['HbA1c (mmol/mol)']);
   const fbg = convertGlucoseToMmol(summary['Fasting Plasma Glucose (mg/dl)']);
-  const condition = summary['Type of Diabetes'] || 'Type 2 diabetes';
+  const condition = summary['Type of Diabetes'] || '';
   const genderNum = summary['Gender (Female=1, Male=2)'];
   const genderStr = genderNum === 1 ? 'Female' : genderNum === 2 ? 'Male' : 'Patient';
 
@@ -350,6 +350,7 @@ export function mapSupabaseToPatient(
 }
 
 let cachedRawSummaries: SupabasePatientSummary[] = [];
+let cachedRawDetails: SupabasePatientDetail[] = [];
 
 /**
  * Fetch all patients from Supabase public.patient_summary
@@ -377,6 +378,9 @@ export async function fetchSupabasePatients(): Promise<Patient[]> {
     }
 
     cachedRawSummaries = data as SupabasePatientSummary[];
+    const { data: detailData, error: detailError } = await client.from('patient_detail').select('*').limit(100000);
+    if (detailError) console.warn('Supabase query error on patient_detail:', detailError.message);
+    cachedRawDetails = (detailData || []) as SupabasePatientDetail[];
     return cachedRawSummaries.map((row) => mapSupabaseToPatient(row));
   } catch (err) {
     console.error('Error fetching patients from Supabase:', err);
@@ -392,168 +396,51 @@ export function getCachedRawSummaries(): SupabasePatientSummary[] {
  * Computes live cohort-wide metrics directly from Supabase patient_summary rows
  */
 export function computeCohortStats(
-  patients: Patient[],
-  summaries: SupabasePatientSummary[] = cachedRawSummaries
+  _patients: Patient[],
+  summaries: SupabasePatientSummary[] = cachedRawSummaries,
+  details: SupabasePatientDetail[] = cachedRawDetails
 ) {
-  if (!summaries || summaries.length === 0) {
-    // Default fallback to 109 computed metrics
-    return {
-      activePatients: patients.length || 109,
-      activePatientsGrowth: `${patients.length || 109} enrolled patients`,
-      timeInRange: 74.2,
-      timeInRangeGrowth: '↑ 2.8% in 30 days',
-      meanGlucose: 165,
-      meanGlucoseDelta: 'Cohort Fasting Baseline 9.2 mmol/L',
-      alertsCount: 10,
-      reviewCapacityPct: 68,
-      reviewsCompleted: 34,
-      totalReviewsNeeded: 109,
-      avgAge: 60.3,
-      avgBmi: 24.1,
-      avgHbA1c: 9.0,
-      avgHbA1cMmol: 74.7,
-      genderDistribution: [
-        { name: 'Female', value: 45.9, color: '#84cc16' },
-        { name: 'Male', value: 54.1, color: '#3b82f6' },
-      ],
-      ageDistribution: [
-        { range: '18 - 30', pct: 0.9 },
-        { range: '31 - 40', pct: 6.4 },
-        { range: '41 - 50', pct: 15.6 },
-        { range: '51 - 60', pct: 29.4 },
-        { range: '61 - 70', pct: 33.0 },
-        { range: '71+', pct: 14.7 },
-      ],
-      bmiDistribution: [
-        { category: 'Underweight', pct: 3.7 },
-        { category: 'Normal', pct: 61.5 },
-        { category: 'Overweight', pct: 28.4 },
-        { category: 'Obese', pct: 6.4 },
-      ],
-      glycemicControl: {
-        atTarget: 14,
-        aboveTarget: 38,
-        highRisk: 57,
-        medianHbA1c: 8.8,
-      },
-      clinicalAlerts: [
-        { id: 'ALT-1', patient: 'Patient 2000_0_20201230', code: '2000_0_20201230', severity: 'Critical' as const, issue: 'Nocturnal hypoglycemia documented', time: 'Active' },
-        { id: 'ALT-2', patient: 'Patient 2002_0_20210513', code: '2002_0_20210513', severity: 'Critical' as const, issue: 'Severe glucose excursion > 400 mg/dL', time: 'Active' },
-        { id: 'ALT-3', patient: 'Patient 2003_0_20210615', code: '2003_0_20210615', severity: 'High' as const, issue: 'Low Time-in-Range (31.6%)', time: 'Active' },
-      ],
-    };
-  }
-
   const total = summaries.length;
-  let males = 0;
-  let females = 0;
-  const ages: number[] = [];
-  const bmis: number[] = [];
-  const hba1cs: number[] = [];
-  const fbgs: number[] = [];
-
+  const values = (key: keyof SupabasePatientSummary) => summaries.map((row) => row[key]).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const average = (items: number[]) => items.length ? Number((items.reduce((a, b) => a + b, 0) / items.length).toFixed(1)) : null;
+  const ages = values('Age (years)');
+  const bmis = summaries.map((s) => s['BMI (kg/m\u00b2)']).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const fbg = values('Fasting Plasma Glucose (mg/dl)');
+  const hba1cs = values('HbA1c (mmol/mol)');
+  const cgm = details.map((d) => d['CGM (mg / dl)']).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const meanCgm = average(cgm);
+  const genderTotal = summaries.filter((s) => s['Gender (Female=1, Male=2)'] === 1 || s['Gender (Female=1, Male=2)'] === 2).length;
+  const female = summaries.filter((s) => s['Gender (Female=1, Male=2)'] === 1).length;
+  const male = summaries.filter((s) => s['Gender (Female=1, Male=2)'] === 2).length;
   const ageBins = { '18 - 30': 0, '31 - 40': 0, '41 - 50': 0, '51 - 60': 0, '61 - 70': 0, '71+': 0 };
-  const bmiBins = { 'Underweight': 0, 'Normal': 0, 'Overweight': 0, 'Obese': 0 };
-  let atTarget = 0, aboveTarget = 0, highRisk = 0;
-  const alertsList: { id: string; patient: string; code: string; severity: 'Critical' | 'High' | 'Moderate'; issue: string; time: string }[] = [];
-
-  summaries.forEach((s, idx) => {
-    const pNum = s['Patient Number'];
-    const g = s['Gender (Female=1, Male=2)'];
-    if (g === 2) males++;
-    else if (g === 1) females++;
-
-    const a = Number(s['Age (years)']);
-    if (a) {
-      ages.push(a);
-      if (a <= 30) ageBins['18 - 30']++;
-      else if (a <= 40) ageBins['31 - 40']++;
-      else if (a <= 50) ageBins['41 - 50']++;
-      else if (a <= 60) ageBins['51 - 60']++;
-      else if (a <= 70) ageBins['61 - 70']++;
-      else ageBins['71+']++;
-    }
-
-    const b = Number(s['BMI (kg/m²)']);
-    if (b) {
-      bmis.push(b);
-      if (b < 18.5) bmiBins['Underweight']++;
-      else if (b <= 24.9) bmiBins['Normal']++;
-      else if (b <= 29.9) bmiBins['Overweight']++;
-      else bmiBins['Obese']++;
-    }
-
-    const h = Number(s['HbA1c (mmol/mol)']);
-    if (h) {
-      hba1cs.push(h);
-      const pct = (0.09148 * h) + 2.152;
-      if (pct < 7.0) atTarget++;
-      else if (pct <= 8.5) aboveTarget++;
-      else highRisk++;
-    }
-
-    const f = Number(s['Fasting Plasma Glucose (mg/dl)']);
-    if (f) fbgs.push(f);
-
-    if (s['Hypoglycemia (yes/no)'] === 'yes') {
-      alertsList.push({
-        id: `ALT-${alertsList.length + 1}`,
-        patient: `Patient ${pNum}`,
-        code: pNum,
-        severity: 'Critical',
-        issue: 'Documented hypoglycemia episode logged',
-        time: 'Admission record',
-      });
-    }
-  });
-
-  const avgAge = ages.length > 0 ? Number((ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1)) : 60.3;
-  const avgBmi = bmis.length > 0 ? Number((bmis.reduce((a, b) => a + b, 0) / bmis.length).toFixed(1)) : 24.1;
-  const avgHbA1cMmol = hba1cs.length > 0 ? Number((hba1cs.reduce((a, b) => a + b, 0) / hba1cs.length).toFixed(1)) : 74.7;
-  const avgHbA1c = Number(((0.09148 * avgHbA1cMmol) + 2.152).toFixed(1));
-  const meanFbg = fbgs.length > 0 ? Math.round(fbgs.reduce((a, b) => a + b, 0) / fbgs.length) : 165;
-
-  const femalePct = Number(((females / (males + females || 1)) * 100).toFixed(1));
-  const malePct = Number(((males / (males + females || 1)) * 100).toFixed(1));
-
-  const ageDistribution = Object.entries(ageBins).map(([range, count]) => ({
-    range,
-    pct: Number(((count / (ages.length || 1)) * 100).toFixed(1)),
-  }));
-
-  const bmiDistribution = Object.entries(bmiBins).map(([category, count]) => ({
-    category,
-    pct: Number(((count / (bmis.length || 1)) * 100).toFixed(1)),
-  }));
-
+  ages.forEach((a) => { if (a <= 30) ageBins['18 - 30']++; else if (a <= 40) ageBins['31 - 40']++; else if (a <= 50) ageBins['41 - 50']++; else if (a <= 60) ageBins['51 - 60']++; else if (a <= 70) ageBins['61 - 70']++; else ageBins['71+']++; });
+  const bmiBins = { Underweight: 0, Normal: 0, Overweight: 0, Obese: 0 };
+  bmis.forEach((b) => { if (b < 18.5) bmiBins.Underweight++; else if (b <= 24.9) bmiBins.Normal++; else if (b <= 29.9) bmiBins.Overweight++; else bmiBins.Obese++; });
+  const pct = (n: number, d: number) => d ? Number(((n / d) * 100).toFixed(1)) : 0;
+  const alerts = summaries.filter((s) => s['Hypoglycemia (yes/no)']?.toLowerCase() === 'yes').map((s, i) => ({ id: `ALT-${i + 1}`, patient: `Patient ${s['Patient Number']}`, code: s['Patient Number'], severity: 'Critical' as const, issue: 'Hypoglycemia documented in patient_summary', time: 'Admission record' }));
+  const glycemic = hba1cs.reduce((acc, h) => { const pctValue = 0.09148 * h + 2.152; if (pctValue < 7) acc.atTarget++; else if (pctValue <= 8.5) acc.aboveTarget++; else acc.highRisk++; return acc; }, { atTarget: 0, aboveTarget: 0, highRisk: 0 });
+  const sortedHba1c = [...hba1cs].sort((a, b) => a - b);
+  const medianMmol = sortedHba1c.length ? sortedHba1c[Math.floor(sortedHba1c.length / 2)] : null;
   return {
     activePatients: total,
-    activePatientsGrowth: `${total} registered cohort patients`,
-    timeInRange: 74.2,
-    timeInRangeGrowth: 'Target 70–180 mg/dL',
-    meanGlucose: meanFbg,
-    meanGlucoseDelta: `${(meanFbg / 18.0182).toFixed(1)} mmol/L cohort mean`,
-    alertsCount: alertsList.length,
-    reviewCapacityPct: Math.round(((total - alertsList.length) / total) * 100),
-    reviewsCompleted: total - alertsList.length,
+    activePatientsGrowth: `${total} rows in patient_summary`,
+    timeInRange: meanCgm,
+    timeInRangeGrowth: cgm.length ? `${cgm.length} CGM rows averaged` : 'No CGM rows in patient_detail',
+    meanGlucose: meanCgm,
+    meanGlucoseDelta: cgm.length ? 'Average CGM (mg/dL)' : 'No CGM data',
+    alertsCount: alerts.length,
+    reviewCapacityPct: total ? Math.round(((total - alerts.length) / total) * 100) : 0,
+    reviewsCompleted: total - alerts.length,
     totalReviewsNeeded: total,
-    avgAge,
-    avgBmi,
-    avgHbA1c,
-    avgHbA1cMmol,
-    genderDistribution: [
-      { name: 'Female', value: femalePct, color: '#84cc16' },
-      { name: 'Male', value: malePct, color: '#3b82f6' },
-    ],
-    ageDistribution,
-    bmiDistribution,
-    glycemicControl: {
-      atTarget,
-      aboveTarget,
-      highRisk,
-      medianHbA1c: avgHbA1c,
-    },
-    clinicalAlerts: alertsList,
+    avgAge: average(ages),
+    avgBmi: average(bmis),
+    avgHbA1c: medianMmol == null ? null : Number((0.09148 * medianMmol + 2.152).toFixed(1)),
+    avgHbA1cMmol: average(hba1cs),
+    genderDistribution: [{ name: 'Female', value: pct(female, genderTotal), color: '#84cc16' }, { name: 'Male', value: pct(male, genderTotal), color: '#3b82f6' }],
+    ageDistribution: Object.entries(ageBins).map(([range, count]) => ({ range, pct: pct(count, ages.length) })),
+    bmiDistribution: Object.entries(bmiBins).map(([category, count]) => ({ category, pct: pct(count, bmis.length) })),
+    glycemicControl: { ...glycemic, medianHbA1c: medianMmol == null ? null : Number((0.09148 * medianMmol + 2.152).toFixed(1)) },
+    clinicalAlerts: alerts,
   };
 }
 
@@ -652,3 +539,7 @@ export async function testSupabaseConnection(): Promise<{
     };
   }
 }
+
+
+
+

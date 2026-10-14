@@ -116,10 +116,10 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Metric 2: Time in range */}
+        {/* Metric 2: Average CGM */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-slate-500 font-medium">Time in range</span>
+            <span className="text-xs text-slate-500 font-medium">Average CGM</span>
             <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
               <Gauge className="w-4 h-4" />
             </div>
@@ -127,14 +127,14 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           <div className="mt-2 flex items-baseline justify-between">
             <div>
               <p className="text-3xl font-bold text-slate-900 tracking-tight">
-                {cohort.timeInRange}%
+                {cohort.timeInRange ?? "-"} mg/dL
               </p>
               <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                 <span>↑</span>
                 <span>{cohort.timeInRangeGrowth}</span>
               </p>
               <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                CGM Telemetry Standard: 70–180 mg/dL
+                Average of patient_detail CGM (mg/dL)
               </p>
             </div>
             {/* Sparkline bars */}
@@ -159,7 +159,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
           <div className="mt-2 flex items-baseline justify-between">
             <div>
               <p className="text-3xl font-bold text-slate-900 tracking-tight">
-                {cohort.meanGlucose} <span className="text-base font-medium text-slate-500">mg/dL</span>
+                {cohort.meanGlucose ?? "-"} <span className="text-base font-medium text-slate-500">mg/dL</span>
               </p>
               <p className="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
                 <span>{cohort.meanGlucoseDelta}</span>
@@ -482,11 +482,11 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
             <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-semibold block">Avg glucose</span>
-                <strong className="text-base text-slate-900 font-bold">154 mg/dL</strong>
+                <strong className="text-base text-slate-900 font-bold">{cohort.meanGlucose ?? "-"} mg/dL</strong>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Time in range</span>
-                <strong className="text-base text-slate-900 font-bold">68.4%</strong>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Average CGM</span>
+                <strong className="text-base text-slate-900 font-bold">{cohort.meanGlucose ?? "-"} mg/dL</strong>
               </div>
             </div>
 
@@ -689,3 +689,6 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
     </div>
   );
 };
+
+
+

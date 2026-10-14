@@ -4,7 +4,7 @@ create type public.app_role as enum ('patient', 'clinician', 'admin');
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
-  role public.app_role not null default 'patient',
+  role public.app_role not null default 'patient',`r`n  patient_id text,
   created_at timestamptz not null default now()
 );
 
@@ -59,3 +59,5 @@ create policy audit_admin_read on public.audit_logs for select using (public.my_
 -- using (public.my_role() = 'admin'
 --   or (public.my_role() = 'clinician' and exists (select 1 from public.clinician_patient_assignments a where a.clinician_id = auth.uid() and a.patient_id = "Patient Number"))
 --   or (public.my_role() = 'patient' and "Patient Number" = auth.jwt()->>'patient_id'));
+
+

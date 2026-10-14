@@ -6,6 +6,9 @@ import type { KnowledgeGraphNode, KnowledgeGraphEdge } from '../types';
 
 export const KG_NODES: KnowledgeGraphNode[] = [
   // Core Patient Node
+  /**
+   * The central node representing the patient
+   
   {
     id: '2000_0_20201230',
     label: '2000_0_20201230',
@@ -286,10 +289,12 @@ export const KG_NODES: KnowledgeGraphNode[] = [
     x: 400,
     y: 370,
   },
+  */
 ];
 
 export const KG_EDGES: KnowledgeGraphEdge[] = [
   // Core patient connects to category hubs
+  /** 
   { source: '2000_0_20201230', target: 'cat_demographics' },
   { source: '2000_0_20201230', target: 'cat_clinical' },
   { source: '2000_0_20201230', target: 'cat_medical' },
@@ -309,12 +314,15 @@ export const KG_EDGES: KnowledgeGraphEdge[] = [
   { source: 'cat_medical', target: 'leaf_medication' },
 
   { source: 'cat_lifestyle', target: 'leaf_diet' },
+   */
 ];
 
 export const KG_LONGITUDINAL_CLINICAL_DATA = [
+/** 
   { date: '30 Dec', cgm: 8.8, cbg: 9.1 },
   { date: '05 Jan', cgm: 7.2, cbg: 7.6 },
   { date: '12 Jan', cgm: 8.4, cbg: 8.9 },
   { date: '20 Jan', cgm: 6.9, cbg: 7.1 },
   { date: '28 Jan', cgm: 7.8, cbg: 8.0 },
+  */
 ];

@@ -30,6 +30,7 @@ import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import type { NavigationModule, AuthFlow, Patient } from './types';
 import { PATIENTS, getPatientById } from './data/patientsData';
 import {
+  getSupabaseClient,
   fetchSupabasePatients,
   fetchSupabasePatientDetail,
   testSupabaseConnection,
@@ -37,7 +38,8 @@ import {
 
 export const App: React.FC = () => {
   // Navigation Mode: 'clinic' (Borneo Center) | 'patient' (DiabetesTwin P07) | 'auth' (Sign in / Registration)
-  const [appMode, setAppMode] = useState<'clinic' | 'patient' | 'auth'>('clinic');
+  const [appMode, setAppMode] = useState<'clinic' | 'patient' | 'auth'>('auth');
+  const [userRole, setUserRole] = useState<'patient' | 'clinician' | 'admin' | null>(null);
 
   // Currently active module in the sidebar
   const [clinicModule, setClinicModule] = useState<NavigationModule>('overview');
@@ -54,6 +56,22 @@ export const App: React.FC = () => {
 
   // Auth flow to display when auth mode is opened
   const [authFlow, setAuthFlow] = useState<AuthFlow>('signin');
+
+  useEffect(() => {
+    const client = getSupabaseClient();
+    if (!client) return;
+    client.auth.getSession().then(({ data }) => {
+      const role = data.session?.user.user_metadata?.role as 'patient' | 'clinician' | 'admin' | undefined;
+      setUserRole(role || null);
+      if (data.session) setAppMode(role === 'patient' ? 'patient' : 'clinic');
+    });
+    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
+      const role = session?.user.user_metadata?.role as 'patient' | 'clinician' | 'admin' | undefined;
+      setUserRole(role || null);
+      if (!session) setAppMode('auth');
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   // Load patients from Supabase or fallback
   const syncSupabaseData = useCallback(async () => {
@@ -127,16 +145,21 @@ export const App: React.FC = () => {
     return (
       <AuthView
         initialFlow={authFlow}
-        onSuccessLogin={(role) => {
-          if (role === 'patient') {
-            setAppMode('patient');
-            setPatientModule('patient_dashboard');
-          } else {
-            setAppMode('clinic');
-            setClinicModule('overview');
-          }
+        onSuccessLogin={() => {
+          const client = getSupabaseClient();
+          client?.auth.getUser().then(({ data }) => {
+            const role = data.user?.user_metadata?.role;
+            setUserRole(role || null);
+            if (role === 'patient') {
+              setAppMode('patient');
+              setPatientModule('patient_dashboard');
+            } else {
+              setAppMode('clinic');
+              setClinicModule('overview');
+            }
+          });
         }}
-        onClose={() => setAppMode('clinic')}
+        onClose={() => setAppMode('auth')}
       />
     );
   }
@@ -311,3 +334,7 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+

@@ -5,12 +5,15 @@ Swinburne University of Technology Sarawak · Ts. Dr. Vong Wan Tze
 from __future__ import annotations
 
 import os
+import math
 from pathlib import Path
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, g
 try:
     from flask_cors import CORS
 except ImportError:
     CORS = None
+
+from auth import require_auth
 
 from services import (
     list_patients,
@@ -29,8 +32,22 @@ from services import (
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
+@app.before_request
+def authorize_api_request():
+    if not request.path.startswith("/api/patients"):
+        return None
+    response = require_auth({"patient", "clinician", "admin"})(lambda: None)()
+    if response is not None:
+        return response
+    user = getattr(g, "current_user", {})
+    patient_id = request.view_args.get("patient_id") if request.view_args else None
+    if patient_id and user.get("role") == "patient" and user.get("claims", {}).get("patient_id") != patient_id:
+        return jsonify({"error": "Patients may only access their own records."}), 403
+    return None
+
 if CORS is not None:
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    allowed_origins = [o.strip().rstrip("/") for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
 import sys
 BASE_DIR = Path(__file__).resolve().parent
@@ -168,7 +185,12 @@ def patient_insights(patient_id: str):
 @app.route("/api/patients/<patient_id>/digital-twin", methods=["GET", "POST"])
 def patient_digital_twin(patient_id: str):
     """Obtain multi-organ physiological status and 3D avatar descriptors."""
-    custom_features = request.get_json(silent=True) if request.method == "POST" else None
+    custom_features = request.get_json(silent=True) if request.method == "POST" else None`r`n    if request.method == "POST" and custom_features:
+        validated_features, warnings = validate_biomarkers(custom_features)
+        if warnings:
+            return jsonify({"message": "Input validation warnings for digital twin", "warnings": warnings, "data": validated_features}), 400
+        custom_features = validated_features
+
     twin_state = get_digital_twin_state(patient_id, custom_features=custom_features)
     return jsonify(twin_state)
 
@@ -177,11 +199,36 @@ def patient_digital_twin(patient_id: str):
 # What-If Scenario Simulation Endpoints (Module 8)
 # --------------------------------------------------------------------------
 
+def validate_biomarkers(data: dict) -> tuple[dict, list[str]]:
+    if not isinstance(data, dict):
+        return {}, ["Request body must be a JSON object."]
+    warnings = []
+    ranges = {"glucose_value": (20, 600, "Glucose", "mg/dL"), "glucose": (20, 600, "Glucose", "mg/dL"), "hba1c_value": (4, 20, "HbA1c", "%"), "hba1c": (4, 20, "HbA1c", "%"), "fbg_value": (20, 600, "Fasting Blood Glucose", "mg/dL"), "fasting_glucose": (20, 600, "Fasting Blood Glucose", "mg/dL"), "bmi_value": (10, 70, "BMI", "kg/m^2"), "bmi": (10, 70, "BMI", "kg/m^2"), "systolic_bp": (70, 200, "Systolic Blood Pressure", "mmHg"), "diastolic_bp": (40, 120, "Diastolic Blood Pressure", "mmHg"), "egfr": (0, 200, "eGFR", "mL/min/1.73m^2")}
+    for field, value in data.items():
+        if field not in ranges:
+            continue
+        minimum, maximum, label, unit = ranges[field]
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            warnings.append({"field": field, "flag": "not_numeric", "message": f"{label} must be numeric."})
+            continue
+        if not math.isfinite(number):
+            warnings.append({"field": field, "flag": "not_finite", "message": f"{label} must be finite."})
+        elif not minimum <= number <= maximum:
+            warnings.append({"field": field, "flag": "out_of_range", "message": f"{label} {value} {unit} is outside the plausible range ({minimum}-{maximum} {unit})."})
+    return data.copy(), warnings
+
 @app.route("/api/patients/<patient_id>/simulate", methods=["POST"])
 def patient_simulate(patient_id: str):
     """Simulate counterfactual interventions and compute outcome deltas."""
     payload = request.get_json(silent=True) or {}
-    simulation_result = simulate_what_if(patient_id, scenario_deltas=payload)
+    validated_payload, warnings = validate_biomarkers(payload)
+    if warnings:
+        # You can choose to return an error, or just include warnings in the response
+        # For now, let's include them in the response.
+        return jsonify({"message": "Input validation warnings", "warnings": warnings, "data": validated_payload}), 400
+    simulation_result = simulate_what_if(patient_id, scenario_deltas=validated_payload)
     return jsonify(simulation_result)
 
 
@@ -220,3 +267,5 @@ def serve_spa(path: str):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
+

@@ -22,10 +22,11 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import type { AuthFlow } from '../types';
+import { getSupabaseClient } from '../lib/supabase';
 
 interface AuthViewProps {
   initialFlow?: AuthFlow;
-  onSuccessLogin: (role?: 'admin' | 'doctor' | 'patient') => void;
+  onSuccessLogin: () => void;
   onClose?: () => void;
 }
 
@@ -40,6 +41,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [email, setEmail] = useState('admin@borneocenter.my');
   const [password, setPassword] = useState('••••••••••••');
   const [rememberMe, setRememberMe] = useState(true);
+  const [authError, setAuthError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Patient registration states
   const [patientName, setPatientName] = useState('Elena Morales');
@@ -226,10 +229,18 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 </p>
               </div>
 
+              {authError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{authError}</p>}
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  onSuccessLogin('admin');
+                  setAuthError('');
+                  setIsSubmitting(true);
+                  const client = getSupabaseClient();
+                  if (!client) { setAuthError('Supabase is not configured.'); setIsSubmitting(false); return; }
+                  const { data, error } = await client.auth.signInWithPassword({ email, password });
+                  setIsSubmitting(false);
+                  if (error || !data.session) { setAuthError(error?.message || 'Sign in failed.'); return; }
+                  onSuccessLogin();
                 }}
                 className="space-y-4 text-xs"
               >
@@ -285,7 +296,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   type="submit"
                   className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                 >
-                  <span>Sign in</span>
+                  <span>{isSubmitting ? 'Signing in�' : 'Sign in'}</span>
                   <span>→</span>
                 </button>
               </form>
@@ -395,7 +406,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </div>
 
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   setCurrentFlow('verify_email');
                 }}
@@ -578,7 +589,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </div>
 
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   setCurrentFlow('verify_email');
                 }}
@@ -769,7 +780,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </div>
 
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   alert('Password reset link has been dispatched to ' + recoveryEmail);
                   setCurrentFlow('signin');
@@ -890,9 +901,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </div>
 
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  onSuccessLogin('patient');
+                  onSuccessLogin();
                 }}
                 className="space-y-5 text-xs"
               >
@@ -954,3 +965,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
     </div>
   );
 };
+
+
+
+

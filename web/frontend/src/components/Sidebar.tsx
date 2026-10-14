@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>Patients</span>
               </div>
               <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md font-bold">
-                2,486
+                
               </span>
             </button>
 
@@ -131,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>Glucose review</span>
               </div>
               <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-md font-bold">
-                12
+                
               </span>
             </button>
 
@@ -171,7 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>Alerts & tasks</span>
               </div>
               <span className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded-md font-bold">
-                17
+                
               </span>
             </button>
 
@@ -224,19 +224,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* 5. Bottom Card: Weekly Review Capacity & Settings */}
         <div className="space-y-4 pt-4 border-t border-slate-100">
-          <div className="p-3.5 rounded-2xl bg-[#0f172a] text-white space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-300">Weekly review capacity</span>
-              <strong className="text-emerald-400 font-bold">68%</strong>
-            </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-emerald-400 h-1.5 rounded-full" style={{ width: '68%' }} />
-            </div>
-            <p className="text-[10px] text-slate-400">
-              174 of 256 patient reviews completed
-            </p>
-          </div>
-
           <div className="space-y-1 text-xs">
             <button
               onClick={() => onSelectModule('settings')}

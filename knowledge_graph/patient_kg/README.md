@@ -45,3 +45,18 @@ MATCH (n) RETURN labels(n) AS labels, count(*) AS count ORDER BY count DESC;
 ```
 
 The graph intentionally excludes demographics, biomarkers, medications, risk scores, treatment recommendations, and causal assertions. Relationship labels describe recorded conditions.
+
+
+## Phase 2 web-app demonstration
+
+The frontend Knowledge Graph page currently uses a fixed demonstration record so it can be reviewed without changing the team's authentication or Supabase integration.
+
+- Open the existing **Knowledge graph** item in the sidebar.
+- The page shows one central patient node and four condition nodes.
+- Select a node to inspect the recorded value, source field, relationship type, and explanatory note.
+- The page labels the sample record and explicitly states that it is not connected to the signed-in user yet.
+- No Supabase writes, schema changes, authentication changes, or patient selector changes are part of this demonstration.
+
+The demo is implemented in `web/frontend/src/components/KnowledgeGraphView.tsx`. Later, the group can replace `DEMO_RECORD`, `DEMO_NODES`, and `DEMO_RELATIONSHIPS` with an API payload while preserving the graph and node-details UI.
+
+The example source row is `2000_0_20201230`; it uses the recorded Type 2 diabetes, hypertension, nephropathy, and hypoglycemia values. Verify those values against the team's agreed demo record before presenting.

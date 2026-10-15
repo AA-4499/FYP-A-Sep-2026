@@ -1,28 +1,87 @@
 /**
- * TypeScript Type Definitions for DiabetesTwin Platform
- * Matching the exact mockup specification
+ * TypeScript Type Definitions for Smart Diabetes Digital Twin Platform
+ * Grounded in Figma specifications across Clinic, Patient Twin, and Auth modules.
  */
 
-export type NavigationModule =
+export type ClinicModule =
+  | 'overview'
   | 'patients'
+  | 'glucose_review'
+  | 'clinical_analytics'
+  | 'alerts_tasks'
+  | 'care_team'
+  | 'devices'
+  | 'reports'
+  | 'settings'
+  | 'clinical_support';
+
+export type PatientModule =
+  | 'patient_dashboard'
   | 'monitoring'
   | 'risk'
   | 'explain_ai'
   | 'knowledge_graph'
   | 'digital_twin'
-  | 'what_if'
   | 'reports';
 
+export type NavigationModule = ClinicModule | PatientModule;
+
+export type AuthFlow =
+  | 'signin'
+  | 'register_patient'
+  | 'register_doctor'
+  | 'forgot_password'
+  | 'verify_email';
+
+export interface CGMReading {
+  date: string;
+  timestamp: number;
+  cgm: number; // in mg/dL
+  cbg?: number | null;
+  diet?: string | null;
+  insulin?: string | null;
+}
+
+export interface CGMDailyProfile {
+  dayLabel: string; // e.g. "Day 1 (12/30)"
+  dayNumber: number;
+  mean: number;
+  tir: number; // % in 70-180 mg/dL
+  min: number;
+  max: number;
+  readingsCount: number;
+}
+
+export interface CGMSummary {
+  totalReadings: number;
+  startDate: string;
+  endDate: string;
+  meanGlucose: number;
+  timeInRangePct: number; // 70-180 mg/dL
+  timeAboveRangePct: number; // >180 mg/dL
+  timeBelowRangePct: number; // <70 mg/dL
+  cvPct: number; // Coefficient of Variation %
+  dailyProfiles: CGMDailyProfile[];
+}
+
 export interface Patient {
-  id: string; // e.g. "P07"
+  id: string; // e.g. "2000_0_20201230" or "P07"
+  displayId: string; // e.g. "P07"
   name: string;
   age: number;
-  condition: string; // e.g. "Type 2 diabetes"
-  visitsCount: number; // e.g. 14
-  hba1c: number; // e.g. 8.1
-  fastingGlucose: number; // e.g. 9.4
-  bmi: number; // e.g. 27.3
-  currentRiskPct: number; // e.g. 68
+  condition: string;
+  visitsCount: number;
+  hba1c: number;
+  fastingGlucose: number;
+  bmi: number;
+  currentRiskPct: number;
+  timeInRangePct: number;
+  latestSignal: string;
+  riskCategory: 'High' | 'Moderate' | 'Stable';
+  avatarInitials: string;
+  hasContinuousCGM?: boolean;
+  cgmReadings?: CGMReading[];
+  cgmSummary?: CGMSummary;
   timelineData: {
     visit: number;
     currentHba1c: number;
@@ -40,4 +99,22 @@ export interface Patient {
     liver: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
     retina: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
   };
+}
+
+export interface KnowledgeGraphNode {
+  id: string;
+  label: string;
+  category: 'Patient' | 'Demographics' | 'Clinical Data' | 'Medical Data' | 'Lifestyle';
+  entityType: string;
+  value?: string;
+  description: string;
+  details: Record<string, string>;
+  x?: number;
+  y?: number;
+}
+
+export interface KnowledgeGraphEdge {
+  source: string;
+  target: string;
+  label?: string;
 }

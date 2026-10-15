@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/model-viewer": "^4.0.0",
+    "@supabase/supabase-js": "^2.117.3",
     "clsx": "^2.1.1",
     "cytoscape": "^3.30.4",
     "lucide-react": "^0.469.0",

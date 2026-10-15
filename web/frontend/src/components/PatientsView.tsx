@@ -9,12 +9,14 @@ import { PATIENTS } from '../data/patientsData';
 
 interface PatientsViewProps {
   currentPatient: Patient;
+  patients?: Patient[];
   onSelectPatient: (patientId: string) => void;
   onNavigate: (module: NavigationModule) => void;
 }
 
 export const PatientsView: React.FC<PatientsViewProps> = ({
   currentPatient,
+  patients,
   onSelectPatient,
   onNavigate,
 }) => {
@@ -25,10 +27,13 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
   const [loginPass, setLoginPass] = useState('password123');
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
-  const filtered = PATIENTS.filter((p) => {
+  const patientList = patients && patients.length > 0 ? patients : PATIENTS;
+
+  const filtered = patientList.filter((p) => {
     const matchesSearch =
       p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.displayId.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRisk =
       filterRisk === 'all' ||
@@ -121,7 +126,14 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                     {p.id}
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm">{p.name}</h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-bold text-slate-900 text-sm">{p.name}</h3>
+                      {(p.hasContinuousCGM || ['2000_0_20201230', '2001_0_20201102', '2001_1_20201117', '2002_0_20210513', '2003_0_20210615'].includes(p.id)) && (
+                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                          14D CGM
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-slate-500">{p.condition}, {p.age}y</p>
                   </div>
                 </div>
@@ -145,12 +157,12 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                   <strong className="text-slate-800">{p.hba1c}%</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Glucose</span>
+                  <span className="text-[10px] text-slate-400 block">Fasting Gluc</span>
                   <strong className="text-slate-800">{p.fastingGlucose}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-slate-400 block">Visits</span>
-                  <strong className="text-slate-800">{p.visitsCount}</strong>
+                  <span className="text-[10px] text-slate-400 block">BMI</span>
+                  <strong className="text-slate-800">{p.bmi}</strong>
                 </div>
               </div>
 

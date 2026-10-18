@@ -64,6 +64,16 @@ export interface CGMSummary {
   dailyProfiles: CGMDailyProfile[];
 }
 
+export interface AGPProfileBin {
+  minuteOfDay: number;
+  p10: number;
+  p25: number;
+  median: number;
+  p75: number;
+  p90: number;
+  readingsCount: number;
+}
+
 export interface Patient {
   id: string; // e.g. "2000_0_20201230" or "P07"
   displayId: string; // e.g. "P07"

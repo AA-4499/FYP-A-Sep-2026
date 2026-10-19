@@ -8,3 +8,9 @@ neo4j>=5.26,<6
 flask-cors>=4.0
 gunicorn>=21.2
 PyJWT>=2.8
+
+torch>=2.0
+openpyxl>=3.1
+xlrd>=2.0.1
+requests>=2.28
+python-dotenv>=1.0

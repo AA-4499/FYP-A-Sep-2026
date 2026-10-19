@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import os
 import math
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from flask import Flask, jsonify, request, send_from_directory, g
 try:
     from flask_cors import CORS
@@ -29,7 +31,10 @@ from services import (
     generate_patient_report,
 )
 
+from forecast_routes import forecast_api
+
 app = Flask(__name__)
+app.register_blueprint(forecast_api)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 @app.before_request
@@ -49,7 +54,6 @@ if CORS is not None:
     allowed_origins = [o.strip().rstrip("/") for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",") if o.strip()]
     CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
 
-import sys
 BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
@@ -185,7 +189,8 @@ def patient_insights(patient_id: str):
 @app.route("/api/patients/<patient_id>/digital-twin", methods=["GET", "POST"])
 def patient_digital_twin(patient_id: str):
     """Obtain multi-organ physiological status and 3D avatar descriptors."""
-    custom_features = request.get_json(silent=True) if request.method == "POST" else None`r`n    if request.method == "POST" and custom_features:
+    custom_features = request.get_json(silent=True) if request.method == "POST" else None
+    if request.method == "POST" and custom_features:
         validated_features, warnings = validate_biomarkers(custom_features)
         if warnings:
             return jsonify({"message": "Input validation warnings for digital twin", "warnings": warnings, "data": validated_features}), 400

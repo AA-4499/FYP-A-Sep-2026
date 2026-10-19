@@ -191,3 +191,7 @@ npm run build
 - **Supervisor:** Ts. Dr. Vong Wan Tze
 - **Cohort Dataset:** ShanghaiT2DM (Longitudinal Continuous Glucose Monitoring & Clinical Records)
 - **License:** MIT License for academic and research evaluation.
+
+## GRU forecasting integration
+
+The personal GRU training code and notebook live in `models/training/`; its forecasting dashboard is integrated into the React Risk Prediction page. See [migration and Vercel deployment instructions](docs/training-model-migration.md).

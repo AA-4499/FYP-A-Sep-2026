@@ -20,6 +20,7 @@ web/frontend/.env*
 *.pt
 *.onnx
 !models/weights/.gitkeep
+!models/weights/gru_t2dm_forecaster.pt
 
 # Web frontend build outputs
 frontend/node_modules/
@@ -30,3 +31,7 @@ web/frontend/dist/
 # Artifact cache
 artifacts_notebook/twin_cache/
 
+
+# Local verification dependencies and package cache
+.test-deps/
+.npm-cache/

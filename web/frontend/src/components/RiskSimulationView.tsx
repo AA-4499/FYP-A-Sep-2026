@@ -1,318 +1,156 @@
-/**
- * Dedicated Risk Prediction and What-If Simulation View (Figma Image 3)
- * Full interactive simulation sandbox allowing clinicians to manipulate biomarkers
- * and view dynamic risk projections alongside SHAP attributions.
- */
-import React, { useState } from 'react';
-import {
-  Sliders,
-  ShieldAlert,
-  ArrowLeft,
-  RefreshCw,
-  TrendingDown,
-  CheckCircle2,
-  Info,
-} from 'lucide-react';
-import type { Patient } from '../types';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, RefreshCw, Activity, AlertCircle } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from 'recharts';
+import type { Patient, NavigationModule } from '../types';
+import { fetchGlucoseForecast, type ForecastPoint, type ForecastEvent, type GlucoseForecast } from '../lib/forecast';
 
-interface RiskSimulationViewProps {
-  patient: Patient;
-  onNavigate: (module: any) => void;
+type Props = { patient: Patient; onNavigate: (module: NavigationModule) => void };
+const card = 'bg-white rounded-2xl border border-slate-200 p-5 shadow-sm';
+const input = 'mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800';
+const formatTime = (value: number) => new Date(value).toISOString().slice(5, 16).replace('T', ' ');
+
+function chartRows(series: Record<string, ForecastPoint[]>) {
+  const rows = new Map<number, Record<string, number>>();
+  Object.entries(series).forEach(([key, points]) => points.forEach(point => {
+    // Model timestamps represent the workbook clock, without a timezone conversion.
+    const timestamp = Date.parse(/[zZ]$|[+-]\d\d:\d\d$/.test(point.timestamp) ? point.timestamp : `${point.timestamp}Z`);
+    const row = rows.get(timestamp) || { timestamp };
+    row[key] = point.value;
+    rows.set(timestamp, row);
+  }));
+  return [...rows.values()].sort((a, b) => a.timestamp - b.timestamp);
 }
 
-export const RiskSimulationView: React.FC<RiskSimulationViewProps> = ({
-  patient,
-  onNavigate,
-}) => {
-  // Simulation sliders initialized to targeted clinical goals
-  const [simHbA1c, setSimHbA1c] = useState<number>(7.0);
-  const [simFbg, setSimFbg] = useState<number>(7.5);
-  const [simBmi, setSimBmi] = useState<number>(24.5);
-  const [simPhysicalActivity, setSimPhysicalActivity] = useState<number>(150); // min/week
+function GlucoseChart({ series }: { series: { key: string; label: string; color: string; points: ForecastPoint[] }[] }) {
+  const rows = chartRows(Object.fromEntries(series.map(s => [s.key, s.points])));
+  return <div className="h-80 w-full mt-4" role="img" aria-label={series.map(s => s.label).join(', ') + ' CGM chart in mg/dL'}>
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={rows} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis dataKey="timestamp" type="number" domain={['dataMin', 'dataMax']} scale="time" tickFormatter={formatTime} minTickGap={60} tick={{ fontSize: 10 }} />
+        <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11 }} unit=" mg/dL" width={85} />
+        <Tooltip labelFormatter={value => formatTime(Number(value))} formatter={(value: unknown) => `${Number(value).toFixed(1)} mg/dL`} />
+        <Legend wrapperStyle={{ fontSize: 11 }} />
+        {[{ value: 70, color: '#c2410c' }, { value: 140, color: '#16a34a' }, { value: 180, color: '#ca8a04' }, { value: 250, color: '#dc2626' }].map(line =>
+          <ReferenceLine key={line.value} y={line.value} stroke={line.color} strokeDasharray="3 3" label={{ value: String(line.value), position: 'insideTopLeft', fontSize: 10, fill: line.color }} />)}
+        {series.map(s => <Line key={s.key} type="linear" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />)}
+      </LineChart>
+    </ResponsiveContainer>
+  </div>;
+}
 
-  // Calculate dynamic simulated risk
-  const baselineRisk = patient.currentRiskPct; // 68%
-  const deltaHbA1c = simHbA1c - patient.hba1c;
-  const deltaFbg = simFbg - patient.fastingGlucose;
-  const deltaBmi = simBmi - patient.bmi;
-  const deltaActivity = (simPhysicalActivity - 60) / 60; // baseline 60 min
+function ForecastPanel({ patient, onNavigate }: Props) {
+  const [source, setSource] = useState<'local' | 'supabase'>('supabase');
+  const [horizon, setHorizon] = useState(3);
+  const [mealEnabled, setMealEnabled] = useState(false);
+  const [insulinEnabled, setInsulinEnabled] = useState(false);
+  const [mealAmount, setMealAmount] = useState(60);
+  const [insulinAmount, setInsulinAmount] = useState(2);
+  const [mealMinutes, setMealMinutes] = useState(60);
+  const [insulinMinutes, setInsulinMinutes] = useState(120);
+  const [request, setRequest] = useState<{ revision: number; events: ForecastEvent[]; runId: string }>(() => ({ revision: 0, events: [], runId: crypto.randomUUID() }));
+  const [result, setResult] = useState<GlucoseForecast | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const simulatedRisk = Math.round(
-    Math.min(
-      95,
-      Math.max(
-        12,
-        baselineRisk +
-          deltaHbA1c * 12 +
-          deltaFbg * 1.8 +
-          deltaBmi * 1.5 -
-          deltaActivity * 3.5
-      )
-    )
-  );
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true); setError(''); setResult(null);
+    fetchGlucoseForecast(patient.id, { source, horizon_hours: horizon, events: request.events, run_id: request.runId }, controller.signal)
+      .then(data => { if (!controller.signal.aborted) setResult(data); })
+      .catch(err => { if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Forecast unavailable.'); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [patient.id, source, horizon, request]);
 
-  const riskDelta = simulatedRisk - baselineRisk;
+  function run(event: React.FormEvent) {
+    event.preventDefault();
+    const events: ForecastEvent[] = [];
+    if (mealEnabled) events.push({ kind: 'meal', amount: mealAmount, minutes_ahead: mealMinutes });
+    if (insulinEnabled) events.push({ kind: 'insulin', amount: insulinAmount, minutes_ahead: insulinMinutes });
+    setRequest(previous => ({ revision: previous.revision + 1, events, runId: crypto.randomUUID() }));
+  }
 
-  const handleReset = () => {
-    setSimHbA1c(patient.hba1c);
-    setSimFbg(patient.fastingGlucose);
-    setSimBmi(patient.bmi);
-    setSimPhysicalActivity(60);
-  };
-
-  return (
-    <div className="space-y-6 animate-fadeIn pb-12">
-      {/* 1. Header with Back Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <button
-            onClick={() => onNavigate('patient_dashboard')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Patient Dashboard</span>
-          </button>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Risk Prediction and What-if Simulation
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Predict future glucose risks and simulate scenario outcomes based on CGM trends
-          </p>
+  return <div className="space-y-5 pb-10 animate-fadeIn">
+    <div>
+      <button onClick={() => onNavigate('patient_dashboard')} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600 mb-2"><ArrowLeft size={14} />Back to Patient Dashboard</button>
+      <h1 className="text-2xl font-bold text-slate-900">Risk Prediction and What-if Simulation</h1>
+      <p className="text-sm text-slate-500 mt-1">Shanghai T2DM CGM forecasting · Patient record {patient.id}</p>
+    </div>
+    <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)] gap-5 items-start">
+      <form onSubmit={run} className={`${card} space-y-5`}>
+        <div className="flex items-center gap-2 font-semibold text-sm"><Activity size={17} className="text-blue-600" />Forecast settings</div>
+        <label className="block text-xs font-medium text-slate-600">Data source
+          <select className={input} value={source} onChange={event => { setSource(event.target.value as typeof source); setRequest({ revision: 0, events: [], runId: crypto.randomUUID() }); }}>
+            <option value="local">Local Excel workbooks</option><option value="supabase">Supabase Cloud (Live DB)</option>
+          </select>
+        </label>
+        <label className="block text-xs font-medium text-slate-600">Forecast horizon
+          <select className={input} value={horizon} onChange={event => { setHorizon(Number(event.target.value)); setRequest({ revision: 0, events: [], runId: crypto.randomUUID() }); }}>
+            {[3, 6, 12].map(hours => <option key={hours} value={hours}>{hours} hours</option>)}
+          </select>
+        </label>
+        <div className="border-t border-slate-100 pt-4 space-y-4">
+          <h2 className="text-sm font-semibold">What-if events</h2>
+          <label className="flex gap-2 text-sm"><input type="checkbox" checked={mealEnabled} onChange={e => setMealEnabled(e.target.checked)} />Include a meal event</label>
+          {mealEnabled && <div className="space-y-3">
+            <label className="block text-xs text-slate-500">Food mass (g)<input className={input} type="number" min="0.1" step="0.1" required value={mealAmount} onChange={e => setMealAmount(e.target.valueAsNumber)} /></label>
+            <label className="block text-xs text-slate-500">Minutes after latest reading<input className={input} type="number" min="15" max={horizon * 60 - 15} step="15" required value={mealMinutes} onChange={e => setMealMinutes(e.target.valueAsNumber)} /></label>
+          </div>}
+          <label className="flex gap-2 text-sm"><input type="checkbox" checked={insulinEnabled} onChange={e => setInsulinEnabled(e.target.checked)} />Include an insulin event</label>
+          {insulinEnabled && <div className="space-y-3">
+            <label className="block text-xs text-slate-500">Insulin amount (units)<input className={input} type="number" min="0.1" step="0.1" required value={insulinAmount} onChange={e => setInsulinAmount(e.target.valueAsNumber)} /></label>
+            <label className="block text-xs text-slate-500">Minutes after latest reading<input className={input} type="number" min="15" max={horizon * 60 - 15} step="15" required value={insulinMinutes} onChange={e => setInsulinMinutes(e.target.valueAsNumber)} /></label>
+          </div>}
+          <p className="text-xs text-slate-400">Each completed forecast is saved to Supabase. Apply changes to compare the baseline with your selected events. Times follow the dataset clock.</p>
         </div>
-
-        <button
-          onClick={handleReset}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition self-start sm:self-auto"
-        >
-          <RefreshCw className="w-3 h-3" />
-          <span>Reset to Baseline</span>
-        </button>
-      </div>
-
-      {/* 2. Top Vitals Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 px-2">
-        <div className="space-y-1">
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">HbA1c</p>
-          <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {patient.hba1c}%
-          </p>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">Fasting glucose</p>
-          <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {patient.fastingGlucose} <span className="text-xs font-normal text-slate-500">mmol/L</span>
-          </p>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">BMI</p>
-          <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {patient.bmi}
-          </p>
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">Current risk</p>
-          <p className="text-2xl sm:text-3xl font-bold text-[#b91c1c] tracking-tight">
-            {patient.currentRiskPct}%
-          </p>
-        </div>
-      </div>
-
-      {/* 3. 2-Column Main Section: Longitudinal Timeline & What-If Simulation Sandbox */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Card A: Longitudinal Timeline */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              Longitudinal timeline: HbA1c
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Multi-visit trajectory across 14 clinical appointments
-            </p>
-
-            <div className="mt-6 w-full h-44 flex flex-col justify-center">
-              <svg className="w-full h-32 overflow-visible" viewBox="0 0 320 80">
-                <line x1="10" y1="20" x2="310" y2="20" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="10" y1="50" x2="310" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                <line x1="10" y1="75" x2="310" y2="75" stroke="#e2e8f0" strokeWidth="1" />
-
-                {/* Dashed Historical Average Line */}
-                <path
-                  d="M 10 70 Q 70 65 140 60 T 210 52 T 310 46"
-                  fill="none"
-                  stroke="#b45309"
-                  strokeWidth="2"
-                  strokeDasharray="4 3"
-                />
-
-                {/* Solid Current Patient Line */}
-                <path
-                  d="M 10 60 L 60 52 L 130 42 L 180 50 L 220 34 L 270 28 L 310 24"
-                  fill="none"
-                  stroke="#2563eb"
-                  strokeWidth="2.5"
-                />
-
-                <circle cx="310" cy="24" r="4.5" fill="#2563eb" />
-              </svg>
-
-              <div className="flex justify-between text-[11px] text-slate-500 pt-2 px-1">
-                <span>Visit 1 (Baseline 6.9%)</span>
-                <span>Visit 14 (Latest 8.1%)</span>
-              </div>
-            </div>
+        <button type="submit" disabled={loading} className="w-full flex justify-center items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />{loading ? 'Running model…' : 'Run forecast'}</button>
+        <button type="button" className="w-full text-xs text-slate-500 hover:text-blue-600" onClick={() => { setMealEnabled(false); setInsulinEnabled(false); setRequest(previous => ({ revision: previous.revision + 1, events: [], runId: crypto.randomUUID() })); }}>Reset to baseline</button>
+      </form>
+      <div className="space-y-5 min-w-0" aria-live="polite" aria-busy={loading}>
+        {loading && <div className={`${card} text-sm text-slate-500 flex gap-2 items-center`}><RefreshCw size={16} className="animate-spin" />Loading CGM history and running the GRU model…</div>}
+        {error && <div role="alert" className={`${card} border-amber-200 bg-amber-50 text-sm text-amber-900 flex gap-2 items-start`}><AlertCircle size={18} className="shrink-0" /><div><p>{error}</p><button type="button" className="mt-2 underline font-semibold" onClick={() => setRequest(previous => ({ ...previous, revision: previous.revision + 1 }))}>Retry same forecast</button></div></div>}
+        {result && <>
+          <p className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2 text-xs text-emerald-800">Saved to Supabase ? {result.storage.test_predictions_saved} held-out predictions, metrics and full forecast curves</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              ['Latest observed CGM', `${result.latest_glucose.toFixed(1)} mg/dL`],
+              ['Held-out test MAE', result.metrics ? `${result.metrics.mae_mg_dl.toFixed(1)} mg/dL` : 'Unavailable'],
+              [`After ${result.horizon_hours} hours`, `${result.scenario_end.toFixed(1)} mg/dL`],
+              ['What-if change', result.scenario_enabled ? `${(result.scenario_end - result.baseline_end) >= 0 ? '+' : ''}${(result.scenario_end - result.baseline_end).toFixed(1)} mg/dL` : 'No event'],
+            ].map(([label, value]) => <div key={label} className={`${card} !p-4`}><p className="text-xs text-slate-500">{label}</p><p className="text-lg font-bold text-slate-900 mt-2">{value}</p></div>)}
           </div>
-
-          <div className="pt-4 border-t border-slate-100 text-xs text-slate-500">
-            <span className="text-blue-600 font-semibold">Solid</span> current visits,{' '}
-            <span className="text-amber-700 font-semibold">dashed</span> historical average
-          </div>
-        </div>
-
-        {/* Card B: What-If Simulation Sandbox */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between space-y-4">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              What-if simulation
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Perturb clinical factors to observe predicted risk response
-            </p>
-
-            <div className="mt-4 space-y-3.5 text-xs">
-              {/* Slider 1: HbA1c */}
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-slate-700 font-medium">HbA1c Target</span>
-                  <strong className="text-blue-600 font-bold">{simHbA1c.toFixed(1)}%</strong>
-                </div>
-                <input
-                  type="range"
-                  min="5.0"
-                  max="11.0"
-                  step="0.1"
-                  value={simHbA1c}
-                  onChange={(e) => setSimHbA1c(parseFloat(e.target.value))}
-                  className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                />
-              </div>
-
-              {/* Slider 2: Fasting glucose */}
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-slate-700 font-medium">Fasting Glucose Target</span>
-                  <strong className="text-blue-600 font-bold">{simFbg.toFixed(1)} mmol/L</strong>
-                </div>
-                <input
-                  type="range"
-                  min="4.5"
-                  max="14.0"
-                  step="0.1"
-                  value={simFbg}
-                  onChange={(e) => setSimFbg(parseFloat(e.target.value))}
-                  className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                />
-              </div>
-
-              {/* Slider 3: BMI */}
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-slate-700 font-medium">BMI Target</span>
-                  <strong className="text-blue-600 font-bold">{simBmi.toFixed(1)} kg/m²</strong>
-                </div>
-                <input
-                  type="range"
-                  min="18.5"
-                  max="38.0"
-                  step="0.1"
-                  value={simBmi}
-                  onChange={(e) => setSimBmi(parseFloat(e.target.value))}
-                  className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                />
-              </div>
-
-              {/* Slider 4: Physical Activity */}
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-slate-700 font-medium">Physical Activity</span>
-                  <strong className="text-blue-600 font-bold">{simPhysicalActivity} min/week</strong>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="300"
-                  step="15"
-                  value={simPhysicalActivity}
-                  onChange={(e) => setSimPhysicalActivity(parseInt(e.target.value))}
-                  className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                />
-              </div>
+          <section className={card}>
+            <h2 className="text-sm font-bold">{result.horizon_hours}-hour simulation comparison</h2>
+            <p className="text-xs text-slate-400 mt-1">Forecast begins at {result.forecast_start.replace('T', ' ')} · 15-minute steps</p>
+            <GlucoseChart series={[
+              { key: 'baseline', label: 'Without what-if simulation', color: '#2563eb', points: result.baseline },
+              ...(result.scenario_enabled ? [{ key: 'scenario', label: 'With what-if simulation', color: '#e07a36', points: result.scenario }] : []),
+            ]} />
+          </section>
+          <section className={card}>
+            <h2 className="text-sm font-bold">Training and held-out testing CGM</h2>
+            <p className="text-xs text-slate-400 mt-1">Chronological timeline · Patient record {result.record_id}</p>
+            <GlucoseChart series={[
+              { key: 'observed', label: 'Observed CGM', color: '#cbd5e1', points: result.observed },
+              { key: 'training', label: 'Training prediction', color: '#53b5a8', points: result.training },
+              { key: 'validation', label: 'Validation prediction', color: '#f59e0b', points: result.validation },
+              { key: 'testing', label: 'Testing prediction (held-out)', color: '#596caa', points: result.testing },
+              { key: 'actual', label: 'Real testing CGM', color: '#8b5cf6', points: result.testing_actual },
+            ]} />
+            {!result.metrics && <p className="text-xs text-amber-700 mt-2">This record has no eligible held-out test windows.</p>}
+          </section>
+          <details className={`${card} text-xs text-slate-500`}><summary className="cursor-pointer font-semibold text-slate-700">Model and data details</summary>
+            <div className="mt-3 space-y-2"><p className="break-all">Supabase run: {result.storage.run_id}</p><p>Model: chronological GRU · Lookback: {result.sequence_length} readings ({result.sequence_length * 15} minutes) · Source: {result.source}</p>
+              {result.metrics && <p>Selected record evaluation: MAE {result.metrics.mae_mg_dl.toFixed(2)} mg/dL · RMSE {result.metrics.rmse_mg_dl.toFixed(2)} mg/dL · {result.metrics.test_windows} held-out windows</p>}
+              <p>Training and validation curves are in-sample diagnostics. Testing shows rolling one-step predictions; the future simulation uses recursive forecasts.</p>
             </div>
-
-            {/* Current vs Simulated Cards */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                <span className="text-xs text-slate-500 font-medium block">Current</span>
-                <p className="text-2xl font-bold text-slate-900 mt-0.5">
-                  {baselineRisk}%
-                </p>
-                <span className="text-[10px] text-rose-700 font-semibold block mt-0.5">
-                  High Risk Tier
-                </span>
-              </div>
-
-              <div className="bg-[#dbeafe] rounded-xl p-3">
-                <span className="text-xs text-blue-700 font-medium block">Simulated</span>
-                <p className="text-2xl font-bold text-[#1d4ed8] mt-0.5">
-                  {simulatedRisk}%
-                </p>
-                <span className="text-[10px] text-blue-800 font-semibold block mt-0.5">
-                  {riskDelta < 0 ? `↓ ${Math.abs(riskDelta)}% risk reduction` : `↑ ${riskDelta}% increase`}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[11px] text-slate-400">
-            Simulated result, not a clinical outcome.
-          </p>
-        </div>
-      </div>
-
-      {/* 4. Why this risk? Key Factors (SHAP Bar Chart) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              Why this risk? Key factors
-            </h2>
-            <p className="text-xs text-slate-400">
-              TreeSHAP feature importance driving complication prediction
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3.5 text-xs">
-          {patient.keyFactors.map((factor) => (
-            <div key={factor.name} className="flex items-center gap-4">
-              <span className="w-36 text-slate-700 font-medium shrink-0">
-                {factor.name}
-              </span>
-              <div className="w-full bg-[#fce7e7] rounded-full h-3 overflow-hidden flex">
-                <div
-                  className="bg-[#c83232] h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${factor.value}%` }}
-                />
-              </div>
-              <span className="w-12 text-right font-bold text-slate-800 shrink-0">
-                {factor.value}
-              </span>
-            </div>
-          ))}
-        </div>
+          </details>
+        </>}
+        <p className="text-xs text-slate-400 leading-relaxed">Research and education only; not for diagnosis, treatment, or insulin dosing. Meal and insulin effects are learned from sparse historical events. The reference lines reproduce the original dashboard at 70, 140, 180 and 250 mg/dL.</p>
       </div>
     </div>
-  );
-};
+  </div>;
+}
+
+export const RiskSimulationView: React.FC<Props> = props => <ForecastPanel key={props.patient.id} {...props} />;

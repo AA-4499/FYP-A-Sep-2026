@@ -12,8 +12,13 @@ import {
   Activity,
   ArrowLeft,
   ChevronDown,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type { Patient, AGPProfileBin } from '../types';
+import { DayPicker } from 'react-day-picker';
+import 'react-day-picker/style.css';
 
 interface LongitudinalMonitoringViewProps {
   patient: Patient;
@@ -30,6 +35,10 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
   const [selectedAgpRange, setSelectedAgpRange] = useState('14');
   const [selectedAgpView, setSelectedAgpView] = useState<'range' | 'day'>('range');
   const [selectedSingleDay, setSelectedSingleDay] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(
+    () => new Date()
+  );
 
   // Normalize Unix timestamps in seconds or milliseconds.
   const getReadingDate = (timestamp: number): Date => {
@@ -88,9 +97,10 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     }
 
     if (!availableDateKeys.includes(selectedSingleDay)) {
-      setSelectedSingleDay(
-        availableDateKeys[availableDateKeys.length - 1]
-      );
+      const latestDate = availableDateKeys[availableDateKeys.length - 1];
+
+      setSelectedSingleDay(latestDate);
+      setCalendarMonth(new Date(`${latestDate}T12:00:00`));
     }
   }, [availableDateKeys, selectedSingleDay]);
 
@@ -184,8 +194,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     selectedSingleDay,
   ]);
 
-  // Calculate the three metrics from exactly the readings
-  // used by the selected AGP reporting period.
+  // Calculate the three metrics from exactly the readings used by the selected AGP reporting period.
   const agpMetrics = useMemo(() => {
     const readings = filteredAgpReadings;
 
@@ -316,8 +325,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     });
 
     return valuesByBin.flatMap((values, index) => {
-      // Leave missing intervals missing rather than
-      // inventing glucose readings.
       if (values.length === 0) return [];
 
       return [{
@@ -354,8 +361,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
       (glucoseMax - glucoseMin)) *
       (plotBottom - plotTop);
 
-  // Split the profile at missing intervals so the chart
-  // does not connect unrelated data across large gaps.
   const agpSegments = useMemo(() => {
     const segments: AGPProfileBin[][] = [];
     let current: AGPProfileBin[] = [];
@@ -644,7 +649,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                     id="agp-date-range"
                     value={selectedAgpRange}
                     onChange={(e) => setSelectedAgpRange(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {agpRangeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -654,33 +659,188 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   </select>
                 </div>
               ) : (
-                <div className="flex flex-col gap-1">
-                  <label
-                    htmlFor="agp-single-date"
-                    className="text-[10px] font-medium text-slate-500"
-                  >
-                    Select available date
+                <div className="relative flex flex-col gap-1">
+                  <label className="text-[10px] font-medium text-slate-500">
+                    Select CGM date
                   </label>
 
-                  <select
-                    id="agp-single-date"
-                    value={selectedSingleDay}
-                    onChange={(e) => setSelectedSingleDay(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedSingleDay) {
+                        setCalendarMonth(
+                          new Date(`${selectedSingleDay}T12:00:00`)
+                        );
+                      }
+                      setIsCalendarOpen((open) => !open);
+                    }}
+                    disabled={availableDateKeys.length === 0}
+                    aria-label="Choose CGM date"
+                    aria-expanded={isCalendarOpen}
+                    className="flex min-w-[190px] items-center justify-between gap-3
+                      rounded-lg border border-slate-200 bg-white px-3 py-2.5
+                      text-left text-xs font-semibold text-slate-700 shadow-sm
+                      transition hover:border-blue-300 hover:bg-blue-50/30
+                      focus:outline-none focus:ring-2 focus:ring-blue-500
+                      disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {availableDateKeys.map((dateKey) => (
-                      <option key={dateKey} value={dateKey}>
-                        {new Date(`${dateKey}T12:00:00`).toLocaleDateString(
-                          undefined,
-                          {
+                    <span className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 shrink-0 text-blue-600" />
+
+                      <span>
+                        {selectedSingleDay
+                          ? new Date(
+                              `${selectedSingleDay}T12:00:00`
+                            ).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : 'Choose a date'}
+                      </span>
+                    </span>
+
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 shrink-0 text-slate-400
+                        transition-transform ${isCalendarOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {isCalendarOpen && (
+                    <div
+                      className="absolute right-0 top-full z-[100] mt-2
+                        w-[300px] rounded-xl border border-slate-200
+                        bg-white p-3 shadow-xl"
+                    >
+                      {/* Custom month navigation */}
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          aria-label="Previous month"
+                          onClick={() => {
+                            setCalendarMonth((current) =>
+                              new Date(
+                                current.getFullYear(),
+                                current.getMonth() - 1,
+                                1,
+                                12
+                              )
+                            );
+                          }}
+                          className="flex h-8 w-8 items-center justify-center
+                            rounded-lg border border-slate-200 text-slate-600
+                            transition hover:bg-blue-50 hover:text-blue-600
+                            focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+
+                        <span className="text-sm font-semibold text-slate-800">
+                          {calendarMonth.toLocaleDateString(undefined, {
+                            month: 'long',
                             year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          }
-                        )}
-                      </option>
-                    ))}
-                  </select>
+                          })}
+                        </span>
+
+                        <button
+                          type="button"
+                          aria-label="Next month"
+                          onClick={() => {
+                            setCalendarMonth((current) =>
+                              new Date(
+                                current.getFullYear(),
+                                current.getMonth() + 1,
+                                1,
+                                12
+                              )
+                            );
+                          }}
+                          className="flex h-8 w-8 items-center justify-center
+                            rounded-lg border border-slate-200 text-slate-600
+                            transition hover:bg-blue-50 hover:text-blue-600
+                            focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <DayPicker
+                        mode="single"
+                        month={calendarMonth}
+                        onMonthChange={setCalendarMonth}
+                        selected={
+                          selectedSingleDay
+                            ? new Date(`${selectedSingleDay}T12:00:00`)
+                            : undefined
+                        }
+                        onSelect={(date) => {
+                          if (!date) return;
+
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const dateKey = `${year}-${month}-${day}`;
+
+                          // Only select dates that have actual CGM readings.
+                          if (!availableDateKeys.includes(dateKey)) return;
+
+                          setSelectedSingleDay(dateKey);
+                          setCalendarMonth(
+                            new Date(`${dateKey}T12:00:00`)
+                          );
+                          setIsCalendarOpen(false);
+                          setHoveredMinute(null);
+                        }}
+                        disabled={(date) => {
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const dateKey = `${year}-${month}-${day}`;
+
+                          // Keep invalid dates visible, but make them unclickable.
+                          return !availableDateKeys.includes(dateKey);
+                        }}
+                        showOutsideDays
+                        fixedWeeks
+                        hideNavigation
+                        className="mx-auto"
+                        classNames={{
+                          month_caption:
+                            'hidden',
+                          weekdays:
+                            'flex',
+                          weekday:
+                            'w-9 text-center text-[11px] font-medium text-slate-400',
+                          week:
+                            'mt-1 flex w-full',
+                          day:
+                            'flex h-9 w-9 items-center justify-center text-xs',
+                          day_button:
+                            'h-8 w-8 rounded-lg text-xs transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500',
+                          selected:
+                            '[&>button]:bg-blue-600 [&>button]:font-bold [&>button]:text-white [&>button]:hover:bg-blue-700',
+                          disabled:
+                            'text-slate-300 [&>button]:cursor-not-allowed [&>button]:text-slate-300 [&>button]:opacity-50 [&>button]:hover:bg-transparent',
+                          outside:
+                            'text-slate-300',
+                          today:
+                            'font-bold [&>button]:ring-1 [&>button]:ring-blue-300',
+                        }}
+                      />
+
+                      <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+                        <span className="h-2 w-2 rounded-full bg-blue-600" />
+                        <p className="text-[10px] text-slate-500">
+                          Selected date
+                        </p>
+
+                        <span className="ml-auto h-2 w-2 rounded-full bg-slate-300" />
+                        <p className="text-[10px] text-slate-500">
+                          No CGM data
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -695,10 +855,14 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                 <select
                   id="agp-view-mode"
                   value={selectedAgpView}
-                  onChange={(e) =>
-                    setSelectedAgpView(e.target.value as 'range' | 'day')
-                  }
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => {
+                    const nextView = e.target.value as 'range' | 'day';
+
+                    setSelectedAgpView(nextView);
+                    setIsCalendarOpen(false);
+                    setHoveredMinute(null);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="range">AGP · Date range</option>
                   <option value="day">CGM · Single day</option>
@@ -726,16 +890,13 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
         {hasCGM && agpHasData ? (
           <>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-slate-600">
-              <span className="inline-flex items-center gap-2">
-                <span className="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300" />
-                Target range: 70–180 mg/dL
-              </span>
-
               {selectedAgpView === 'range' ? (
                 <>
                   <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-blue-200" />
-                    25th–75th percentile
+                    <span className="relative w-5 h-3 rounded-sm bg-emerald-100 border border-emerald-300">
+                      <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-emerald-600" />
+                    </span>
+                    Target range: 70–180 mg/dL
                   </span>
 
                   <span className="inline-flex items-center gap-2">
@@ -744,15 +905,37 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   </span>
 
                   <span className="inline-flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-sm bg-blue-500" />
+                    25th–75th percentile
+                  </span>
+
+                  <span className="inline-flex items-center gap-2">
                     <span className="w-5 h-0.5 bg-blue-700" />
                     Median glucose
                   </span>
+
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-sm bg-orange-500" />
+                    Below target (&lt;70 mg/dL)
+                  </span>
+
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-sm bg-red-600" />
+                    Above target (&gt;180 mg/dL)
+                  </span>
                 </>
               ) : (
-                <span className="inline-flex items-center gap-2">
-                  <span className="w-5 h-0.5 bg-blue-600" />
-                  Actual CGM glucose readings
-                </span>
+                <>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300" />
+                    Target range: 70–180 mg/dL
+                  </span>
+
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-5 h-0.5 bg-blue-600" />
+                    Actual CGM glucose readings
+                  </span>
+                </>
               )}
             </div>
 
@@ -775,17 +958,25 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                       height={plotBottom - plotTop}
                     />
                   </clipPath>
-                </defs>
 
-                {/* Target glucose zone */}
-                <rect
-                  x={plotLeft}
-                  y={yForGlucose(180)}
-                  width={plotRight - plotLeft}
-                  height={yForGlucose(70) - yForGlucose(180)}
-                  fill="#d1fae5"
-                  opacity="0.7"
-                />
+                  <clipPath id="below-target-clip">
+                    <rect
+                      x={plotLeft}
+                      y={yForGlucose(70)}
+                      width={plotRight - plotLeft}
+                      height={plotBottom - yForGlucose(70)}
+                    />
+                  </clipPath>
+
+                  <clipPath id="above-target-clip">
+                    <rect
+                      x={plotLeft}
+                      y={plotTop}
+                      width={plotRight - plotLeft}
+                      height={yForGlucose(180) - plotTop}
+                    />
+                  </clipPath>
+                </defs>
 
                 {/* Glucose reference lines and Y-axis labels */}
                 {[40, 70, 100, 140, 180, 220, 260, 300, 340].map(
@@ -831,35 +1022,99 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
 
                 {/* Percentile ribbons and median */}
                 <g clipPath="url(#agp-plot-clip)">
-                  {agpSegments.map((segment, index) => (
-                    <g key={`agp-segment-${index}`}>
-                      {/* Outer band: 10th to 90th percentile */}
-                      <path
-                        d={makeBandPath(segment, "p10", "p90")}
-                        fill="#bfdbfe"
-                        fillOpacity="0.8"
-                        stroke="none"
-                      />
+                  {agpSegments.map((segment, index) => {
+                    const makeBandPolygon = (
+                      lowerKey: 'p10' | 'p25',
+                      upperKey: 'p75' | 'p90'
+                    ) => {
+                      if (segment.length < 2) return '';
 
-                      {/* Inner band: 25th to 75th percentile */}
-                      <path
-                        d={makeBandPath(segment, "p25", "p75")}
-                        fill="#60a5fa"
-                        fillOpacity="0.55"
-                        stroke="none"
-                      />
+                      const upper = segment.map(
+                        (bin) =>
+                          `${xForMinute(bin.minuteOfDay)},${yForGlucose(bin[upperKey])}`
+                      );
 
-                      {/* Median glucose */}
-                      <path
-                        d={makeMedianPath(segment)}
-                        fill="none"
-                        stroke="#1d4ed8"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </g>
-                  ))}
+                      const lower = [...segment].reverse().map(
+                        (bin) =>
+                          `${xForMinute(bin.minuteOfDay)},${yForGlucose(bin[lowerKey])}`
+                      );
+
+                      return `M ${upper.join(' L ')} L ${lower.join(' L ')} Z`;
+                    };
+
+                    const outerPath = makeBandPolygon('p10', 'p90');
+                    const innerPath = makeBandPolygon('p25', 'p75');
+
+                    const medianPath = segment
+                      .map((bin, i) => {
+                        const command = i === 0 ? 'M' : 'L';
+
+                        return (
+                          `${command} ${xForMinute(bin.minuteOfDay)} ` +
+                          `${yForGlucose(bin.median)}`
+                        );
+                      })
+                      .join(' ');
+
+                    return (
+                      <g key={`agp-segment-${index}`}>
+                        <path
+                          d={outerPath}
+                          fill="#86EFAC"
+                          fillOpacity="0.65"
+                          stroke="none"
+                        />
+
+                        <path
+                          d={outerPath}
+                          fill="#FED7AA"
+                          fillOpacity="0.9"
+                          stroke="none"
+                          clipPath="url(#below-target-clip)"
+                        />
+
+                        <path
+                          d={outerPath}
+                          fill="#FECACA"
+                          fillOpacity="0.9"
+                          stroke="none"
+                          clipPath="url(#above-target-clip)"
+                        />
+
+                        <path
+                          d={innerPath}
+                          fill="#15803D"
+                          fillOpacity="0.45"
+                          stroke="none"
+                        />
+
+                        <path
+                          d={innerPath}
+                          fill="#F97316"
+                          fillOpacity="0.9"
+                          stroke="none"
+                          clipPath="url(#below-target-clip)"
+                        />
+
+                        <path
+                          d={innerPath}
+                          fill="#DC2626"
+                          fillOpacity="0.9"
+                          stroke="none"
+                          clipPath="url(#above-target-clip)"
+                        />
+
+                        <path
+                          d={medianPath}
+                          fill="none"
+                          stroke="#1D4ED8"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </g>
+                    );
+                  })}
                 </g>
 
                 {/* Hover crosshair and tooltip */}
@@ -878,8 +1133,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
 
                         const tooltipY = plotTop + 8;
 
-                        // Avoid displaying a distant percentile bin as the
-                        // reading for the hovered time.
                         const hasNearbyBin =
                           hoveredAgpBin !== null &&
                           Math.abs(

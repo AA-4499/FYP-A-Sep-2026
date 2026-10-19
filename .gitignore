@@ -35,3 +35,6 @@ artifacts_notebook/twin_cache/
 # Local verification dependencies and package cache
 .test-deps/
 .npm-cache/
+
+# Local UI verification artifacts
+.ui-check/

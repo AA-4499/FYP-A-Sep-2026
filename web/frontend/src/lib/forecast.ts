@@ -13,11 +13,30 @@ export interface GlucoseForecast {
   training: ForecastPoint[]; validation: ForecastPoint[]; testing: ForecastPoint[]; testing_actual: ForecastPoint[];
 }
 
+
+const API_URL_STORAGE_KEY = 'dt_forecast_api_url';
+
+export function getForecastApiUrl(): string {
+  const saved = typeof window !== 'undefined' ? localStorage.getItem(API_URL_STORAGE_KEY) : null;
+  return (saved || (import.meta.env.VITE_API_BASE_URL as string) || (import.meta.env.DEV ? 'http://localhost:5000' : '')).trim().replace(/\/+$/, '');
+}
+
+export function saveForecastApiUrl(value: string): void {
+  const trimmed = value.trim();
+  if (!trimmed) { localStorage.removeItem(API_URL_STORAGE_KEY); return; }
+  let url: URL;
+  try { url = new URL(trimmed); } catch { throw new Error('Enter the full public model service address, starting with https://.'); }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
+    throw new Error('Enter the model service origin, such as https://your-service.onrender.com, without /api or credentials.');
+  }
+  localStorage.setItem(API_URL_STORAGE_KEY, url.origin);
+}
+
 export async function fetchGlucoseForecast(patientId: string, options: {
   source: 'local' | 'supabase'; horizon_hours: number; events: ForecastEvent[]; run_id: string;
 }, signal: AbortSignal): Promise<GlucoseForecast> {
-  const base = ((import.meta.env.VITE_API_BASE_URL as string) || (import.meta.env.DEV ? 'http://localhost:5000' : '')).replace(/\/$/, '');
-  if (!base && !import.meta.env.DEV) throw new Error('The forecasting API is not configured. Set VITE_API_BASE_URL and redeploy the frontend.');
+  const base = getForecastApiUrl();
+  if (!base && !import.meta.env.DEV) throw new Error('The model service is not connected. Open Service connection and enter the Python prediction service address.');
   const client = getSupabaseClient();
   const session = client ? (await client.auth.getSession()).data.session : null;
   if (!session) throw new Error('Sign in to access patient forecasts.');
@@ -27,7 +46,7 @@ export async function fetchGlucoseForecast(patientId: string, options: {
     body: JSON.stringify(options),
   });
   const contentType = response.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) throw new Error('The forecasting API returned an invalid response. Check VITE_API_BASE_URL.');
+  if (!contentType.includes('application/json')) throw new Error('This address did not return prediction data. Use the Python model service address, rather than your Vercel webpage or Supabase project URL.');
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'The forecast could not be generated.');
   return result;

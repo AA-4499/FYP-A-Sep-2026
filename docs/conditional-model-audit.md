@@ -1,80 +1,78 @@
-# CGM 预测模型审查与条件预测候选版本
+# CGM model audit and conditional forecasting candidate
 
-本次目标是检查进食、胰岛素、时刻与病人 summary 是否真正进入预测，并修正可复现的软件问题。候选模型改善了长时段条件预测，但尚未建立“同一病人不进食／不用药”的可信因果反事实。
+This audit checks how meals, insulin, time and patient summary features enter forecasts, and fixes reproducible implementation defects. The candidate improves longer-horizon conditional prediction. It does not establish credible causal counterfactuals for the same patient without food or medication.
 
-## 实际发现
+## Findings
 
-1. 旧模型仅有 9 个时间序列特征，未读取 summary。它已有 `hour_sin/hour_cos`；不能说完全没有时间信息。
-2. 旧模型训练目标是下一次 15 分钟血糖。3／6／12 小时曲线由连续递推得到，原有约 3.8 mg/dL 的一步测试 MAE 不代表长时段预测准确度。
-3. 递推历史窗口存在时间错位：标记为下一时刻的行放入了上一时刻的血糖。已改为放入该时刻的预测血糖，并新增回归测试。
-4. 旧特征将皮下注射、静脉注射、泵 bolus（IU）和泵 basal 速率（IU/h）相加，单位与作用方式混在一起。
-5. 饮食文本被解析为食物总重量；60 g 食物不等于 60 g 碳水化合物，等重量的不同食物不能视为同一输入。
-6. 原始 109 份记录共 112,379 行，112,287 行有可解析 CGM；2,999 行有可解析进食，2,366 行有可解析胰岛素。没有 CGM 的进食行数量为 0；没有 CGM 的胰岛素行数量为 1。因此，大量事件被丢弃不是这批数据上的主要解释。
-7. 大量空白／零事件输入不等于经过核实的禁食／未使用胰岛素。不能通过复制样本、把事件改成 0 并沿用实际血糖，就得到真实“无干预”训练标签。
+1. The legacy model uses nine time-series features and does not read the summary. It already includes `hour_sin/hour_cos`, so time information is present.
+2. Its training target is the next 15-minute glucose reading. The 3-, 6- and 12-hour curves come from recursive predictions. The original one-step test MAE of approximately 3.8 mg/dL does not measure long-horizon accuracy.
+3. The recursive history window had a timestamp mismatch: a row stamped with the next timestamp contained the previous glucose value. It now contains the prediction for that timestamp, with regression-test coverage.
+4. Legacy features add subcutaneous doses, intravenous doses, pump bolus doses (IU) and pump basal rates (IU/h), mixing units and delivery modes.
+5. Dietary text is parsed as total food mass. A 60 g food entry is not 60 g of carbohydrate, and foods of equal mass are not equivalent inputs.
+6. The 109 raw records contain 112,379 rows, including 112,287 rows with parseable CGM, 2,999 with parseable meals and 2,366 with parseable insulin. No meal rows and only one insulin row lack CGM. Widespread event loss is therefore not the main explanation in this dataset.
+7. Blank or zero event inputs do not establish verified fasting or absence of insulin. Duplicating observations, setting their events to zero and retaining their observed glucose does not produce valid untreated training labels.
 
-模型的“未来”相对于最后一条 CGM 的时间，不是电脑当前时间。没有新的测量时，仅仅隔一段时间重新打开同一历史记录，不应该凭空生成新的真实病人状态。
+A forecast starts after the last observed CGM timestamp, rather than the computer's current time. Reopening the same historical record later, without new measurements, should not invent a new observed patient state.
 
-## 新候选模型
+## Candidate model
 
-代码：`models/training/t2dm/conditional_pipeline.py`。
+Implementation: `models/training/t2dm/conditional_pipeline.py`.
 
 ```mermaid
 flowchart LR
-    H[过去 6 小时 CGM / 分类型事件 / 时刻] --> E[GRU 历史编码]
-    S[病人 summary / 缺失标记] --> C[病人上下文]
+    H[Past 6 hours of CGM / typed events / clock] --> E[GRU history encoder]
+    S[Patient summary / missing indicators] --> C[Patient context]
     E --> C
-    C --> D[每个未来步持续输入上下文]
-    P[未来记录或指定事件 / 记录标记] --> D
-    T[未来时刻 / 预测步长] --> D
-    D --> Y[一次输出未来 48 步 / 12 小时]
+    C --> D[Context supplied at every future step]
+    P[Recorded or specified future events / indicators] --> D
+    T[Future clock / forecast lead] --> D
+    D --> Y[48 future steps / 12 hours]
 ```
 
-- 直接训练多步 CGM 轨迹，不依赖把自身预测血糖反复作为新观测。
-- 分开食物质量、皮下注射、静脉注射、泵 bolus、basal IU/h，保留事件记录标记。
-- 事件单独按时间对齐到下一 CGM，最多允许一个短间隔；不跨长时间缺口补事件，不插值伪造 CGM。
-- 静态分支默认包含性别、年龄、身高、体重、BMI、吸烟史、糖尿病病程 7 个字段，按完整病人记录 ID 精确关联。
-- 缺失值中位数、标准化和输出尺度仅在训练窗口拟合，保存到 checkpoint。身高等小量纲静态变量按实际标准差缩放。
-- 每个训练预测窗口的全部 48 个目标都在同一个训练／验证／测试区间内，避免目标跨越边界。
-- 部分训练样本隐藏未来事件计划，表示未知未来输入；不把“未知”标成已核实的“无进食／无药物”。
-- 通过前向解码结构确保未来事件不会改变事件发生前的预测步，已有测试覆盖。
+- Train directly on multi-step CGM trajectories instead of repeatedly feeding predicted glucose back as new observations.
+- Separate food mass, subcutaneous insulin, intravenous insulin, pump bolus and basal IU/h, retaining event-recording indicators.
+- Align events independently to the next CGM within a short permitted interval. Do not carry events across long gaps or interpolate synthetic CGM.
+- Use seven default static fields: gender, age, height, weight, BMI, smoking history and diabetes duration. Join using the exact full patient-record ID.
+- Fit missing-value medians, normalization and output scales on training windows only, and save them in the checkpoint. Static variables with small units, such as height in metres, use their actual standard deviations.
+- Keep all 48 targets of every training, validation or test trajectory inside the same split.
+- Hide future event plans for some training examples to represent unknown future inputs. Unknown plans are not labelled as verified fasting or no medication.
+- Use a forward decoder so future events cannot change predictions before their occurrence; tests cover this property.
 
-另有 `--include-undated-labs` 回顾性实验，共纳入 23 个数值字段，包括 HbA1c、空腹／餐后血糖、C 肽、胰岛素、血脂和肾功能。原 summary 没有检测日期；这些值是否在预测起点之前已经获得，需要另外核实。因此该实验不能当作已验证的前瞻预测结果。
+The separate `--include-undated-labs` retrospective experiment uses 23 numeric fields, including HbA1c, fasting/postprandial glucose, C-peptide, insulin, lipids and renal measurements. The summary lacks measurement dates. Availability before each forecast origin remains unverified, so this experiment is not validated prospective prediction.
 
-## 评估与结果
+## Evaluation and results
 
-具体数字见 [EXPERIMENT_RESULTS.md](../models/evaluation/t2dm/conditional_v2/EXPERIMENT_RESULTS.md)。
+See [EXPERIMENT_RESULTS.md](../models/evaluation/t2dm/conditional_v2/EXPERIMENT_RESULTS.md) for measurements.
 
 ![Matched comparison and static-context experiment](../models/evaluation/t2dm/conditional_v2/comparison.png)
 
 ![Scenario sensitivity diagnostic](../models/evaluation/t2dm/conditional_v2/scenario_sensitivity.png)
 
-评估分为两部分：
+- Legacy versus candidate: the same 108 fixed forecast origins, one per eligible record, evaluated against the same observed future trajectories. The legacy recursion alignment fix is applied.
+- Summary ablation: 1,422 test forecast windows, with models retrained under the same settings with and without summary inputs. Windows may overlap; these are not 1,422 independent patients, and unseen-patient generalization has not been evaluated.
 
-- 旧模型与候选模型：相同的 108 个预测起点，每份有足够数据的记录取一个固定测试起点，比较同一组真实未来轨迹。旧模型已应用递推错位修正。
-- summary 对照：1,422 个测试预测窗口，在相同设置下重新训练“有／无 summary”模型。窗口可能重叠，不是 1,422 名独立病人，也没有验证对未见病人的泛化能力。
+These are single-seed experiments on this dataset. Differences are not presented as statistically significant or clinically validated.
 
-只报告这批记录的一次固定种子实验；没有把差异包装成统计显著或临床有效。
+## Limits of what-if interpretation
 
-## What-if 的界限
+Predictive association and intervention effects are different tasks. The data include treatment selection, such as higher glucose prompting more insulin. A prediction network may learn a positive association between insulin and subsequent high glucose. Improved prediction error alone does not establish learned drug effects.
 
-预测关联与干预效果是两个任务。原数据含有“血糖高，所以增加胰岛素”这样的治疗选择过程。普通预测网络可能把它学成胰岛素与后续高血糖同向，即使短时血糖预测指标有所改善，也不能因此认定它学到了药效。
+The candidate does not artificially amplify event coefficients or force insulin curves downward to create an apparent effect. Neither meal nor insulin response direction is validated: the example shows an immediate meal-associated fall and a bolus-associated rise. At the fixed evaluation origins, approximately 80% of meal inputs have a negative signed peak change, while all bolus inputs have positive peak changes. These failures prevent deployment as a credible physiological what-if simulator. Oral medication text, insulin formulation-specific action durations, actual carbohydrate intake, exercise and other unrecorded factors also remain incompletely modelled.
 
-候选版本没有人为放大事件系数，也没有强制把所有胰岛素曲线向下调整来制造“有效”的视觉效果。进食和胰岛素响应方向均未通过验证：示例出现进食瞬间下降、bolus 输入后上升；固定起点实验中，约 80% 的进食输入最大变化为负，bolus 输入的最大变化全部为正。因此候选模型尚不能作为可信的生理 What-if 模拟器上线。口服降糖药文本、不同胰岛素制剂的作用持续时间、实际碳水摄入、运动和其他未记录因素也尚未完整建模。
+Credible fasting or medication-withholding simulations require established event-recording completeness, treatment types and action times, information availability at the forecast origin, and a research design or assumptions addressing treatment-selection confounding. Relevant sources include:
 
-可信的停药／禁食模拟需要明确事件记录的完整程度、治疗种类与作用时间、预测起点可用的信息，以及处理治疗选择混杂的研究设计／假设。可参考：
+- [Original Shanghai diabetes dataset paper](https://www.nature.com/articles/s41597-023-01940-7): self-reported dietary records and multiple insulin delivery modes.
+- [Counterfactual Recurrent Network paper](https://arxiv.org/abs/2002.04083): time-varying treatment selection and counterfactual estimation.
+- [G-Net paper](https://proceedings.mlr.press/v158/li21a.html): temporal g-computation for counterfactual prediction under dynamic treatment plans.
 
-- [上海糖尿病数据集原始论文](https://www.nature.com/articles/s41597-023-01940-7)：饮食为自报记录，含多种胰岛素给药方式。
-- [Counterfactual Recurrent Network 原论文](https://arxiv.org/abs/2002.04083)：针对随时间变化的治疗选择与反事实估计。
-- [G-Net 原论文](https://proceedings.mlr.press/v158/li21a.html)：通过时序 g-computation 进行动态治疗方案下的反事实预测。
+## Current status and reproduction
 
-## 当前状态与复现
+- The webpage still uses `models/weights/gru_t2dm_forecaster.pt`. Its recursive implementation is fixed; the original weights are unchanged.
+- Candidate weights are `models/weights/conditional_gru_v2.pt`; the retrospective candidate including laboratory measurements is `conditional_gru_v2_retrospective.pt`. They require the separate loader and cannot replace legacy checkpoints in the old interface.
+- The Supabase training entry point still uses legacy one-step training. The candidate trains from local raw records and summary data. Candidate outputs were not written to the production database during this experiment.
+- The webpage distinguishes maximum curve difference from endpoint difference and explains unknown event plans and causal limitations.
 
-- 现有网页仍使用 `models/weights/gru_t2dm_forecaster.pt`；本次修正它的递推实现，没有替换原权重。
-- 候选权重为 `models/weights/conditional_gru_v2.pt`，含化验值的回顾性候选为 `conditional_gru_v2_retrospective.pt`。它们使用独立 loader，不能当作旧 checkpoint 填入旧接口。
-- 当前 Supabase 训练入口仍是旧版单步训练；候选版本从本地原始记录与 summary 训练。候选结果本次没有写入线上数据库。
-- 网页增加曲线最大差异与末端差异的区分，并明确空事件计划和因果效果的区别。
-
-从仓库根目录运行：
+Run from the repository root:
 
 ```powershell
 python -m models.training.t2dm.audit_model
@@ -86,4 +84,4 @@ python -m models.training.t2dm.conditional_predict --record-id 2000_0_20201230 -
 python -m unittest discover -s models/tests -v
 ```
 
-训练依赖见 `models/training/requirements.txt`；生成图表另外需要 matplotlib（notebook 依赖中也已列出）。候选预测脚本输出 CSV，明确保留为模型输入敏感性示例，不推荐药量。
+Training dependencies are listed in `models/training/requirements.txt`. Figure generation additionally requires matplotlib, also listed in the notebook dependencies. The candidate prediction script exports CSV sensitivity examples and does not recommend insulin doses.

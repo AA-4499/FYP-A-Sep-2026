@@ -32,7 +32,7 @@ FEATURE_COLUMNS = (
 SAMPLE_INTERVAL = pd.Timedelta(minutes=15)
 MAX_SEQUENCE_GAP = pd.Timedelta(minutes=22.5)
 DEFAULT_TRAIN_WINDOW_STRIDE = 4
-MEAL_KEYWORDS = ("diet", "meal", "food", "carb", "飲食", "进食")
+MEAL_KEYWORDS = ("diet", "meal", "food", "carb", "\u98f2\u98df", "\u8fdb\u98df")
 INSULIN_KEYWORDS = ("insulin", "csii")
 
 
@@ -142,7 +142,7 @@ def _find_event_columns(columns: list[object]) -> tuple[list[object], list[objec
         None,
     )
     translated_meal = next(
-        (column for column in meal_columns if any(token in str(column) for token in ("饮食", "进食"))),
+        (column for column in meal_columns if any(token in str(column) for token in ("\u996e\u98df", "\u8fdb\u98df"))),
         None,
     )
     if english_meal is not None and translated_meal is not None:
@@ -161,7 +161,7 @@ def _parse_event_value(value: object, *, meal: bool) -> float:
 
     if meal:
         amounts = re.findall(
-            r"(\d+(?:\.\d+)?)\s*(?:g\b|grams?\b|克)",
+            r"(\d+(?:\.\d+)?)\s*(?:g\b|grams?\b|\u514b)",
             text,
             flags=re.IGNORECASE,
         )
@@ -222,7 +222,7 @@ def _prepare_workbook(frame: pd.DataFrame, file_path: Path) -> pd.DataFrame:
             None,
         )
         translated_meal = next(
-            (column for column in frame.columns if any(token in str(column) for token in ("饮食", "进食"))),
+            (column for column in frame.columns if any(token in str(column) for token in ("\u996e\u98df", "\u8fdb\u98df"))),
             None,
         )
         if english_meal is not None and translated_meal is not None:

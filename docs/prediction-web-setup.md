@@ -1,11 +1,11 @@
 # Prediction service setup: GitHub, Render, Supabase and Vercel
 
-GitHub stores the code and trained weights. Vercel serves the frontend. Render runs this repository's Python prediction API, which reads patient data from Supabase and saves completed forecasts back to Supabase.
+GitHub stores the code and trained weights. The frontend can run on Vercel or on the optional Render static site defined in this repository. Render runs the Python prediction API, which reads patient data from Supabase and saves completed forecasts back to Supabase.
 
 ```mermaid
 flowchart LR
     Repo[GitHub / TrainingModel branch] --> API[Render / Python prediction API]
-    Repo --> Web[Vercel / frontend]
+    Repo --> Web[Vercel or Render static site / frontend]
     Web --> API
     API --> DB[Supabase / patient data and forecast outputs]
     DB --> API
@@ -27,7 +27,7 @@ The static site also rewrites all routes to `index.html` so React client-side ro
 
 ### Frontend static-site settings
 
-For the Render static site, use the repository's `main` branch, set **Root Directory** to `web/frontend`, **Build Command** to `npm ci && npm run build`, and **Publish Directory** to `dist`. Add these frontend environment variables in the service's **Environment** settings:
+For the Render static site, use the repository's `TrainingModel` branch, set **Root Directory** to `web/frontend`, **Build Command** to `npm ci && npm run build`, and **Publish Directory** to `dist`. The Blueprint inherits its selected branch for both services because neither service overrides `branch`. Static sites use `type: web` with `runtime: static` in the Blueprint. Add these frontend environment variables in the service's **Environment** settings:
 
 | Frontend variable | Value |
 | --- | --- |
@@ -47,7 +47,7 @@ Do not put the Supabase service-role key in the static site. Vite embeds `VITE_*
 | --- | --- |
 | `SUPABASE_URL` | Your Supabase project URL, such as `https://your-project.supabase.co`. |
 | `SUPABASE_KEY` | A server-only Supabase secret or service-role key. The frontend publishable/anon key cannot save forecasts through the protected RPC. |
-| `ALLOWED_ORIGINS` | The exact Vercel frontend origin, such as `https://your-project.vercel.app`. Separate additional origins with commas; omit paths and trailing slashes. |
+| `ALLOWED_ORIGINS` | The exact frontend origin on Vercel or Render, such as `https://your-project.vercel.app` or `https://your-frontend.onrender.com`. Separate additional origins with commas; omit paths and trailing slashes. |
 
 The Blueprint prompts for these values because they use `sync: false`. Never commit the secret key or place it in a `VITE_*` variable. The backend also accepts `SUPABASE_SECRET_KEY` and `SUPABASE_SERVICE_ROLE_KEY`; those take precedence over `SUPABASE_KEY` if set.
 

@@ -20,8 +20,9 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false
 
-  - type: static_site
+  - type: web
     name: diabetes-digital-twin-frontend
+    runtime: static
     rootDir: web/frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist

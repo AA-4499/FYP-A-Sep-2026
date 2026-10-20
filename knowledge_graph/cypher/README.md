@@ -51,6 +51,14 @@ The shared ontology represents general diabetes concepts, so `Type 1 Diabetes` i
 - Concept relationships with `evidenceType = "Literature"` represent the research ontology, not a relationship measured in the selected patient's own data.
 - The page marks source nodes and source properties so patient observation, ontology concepts, and connections do not get confused.
 
+## Authentication and patient-scope dependency
+
+The endpoint deliberately requires a trusted backend role of `doctor`, `clinician`, or `admin`. The current backend `auth.py` resolves roles from trusted `app_metadata.role` or recognized signed token claims; it must not be weakened to trust a browser-editable `user_metadata.role` value.
+
+If sign-in succeeds but `/api/doctor/knowledge-graph` returns **403**, ask Member 3 to reconcile the token role claim with the role-assignment flow before weakening the endpoint. The frontend's visual mode alone is not authorization.
+
+This first integration also does not add a new clinician-to-patient assignment check. Before using it with real patient data, Member 3 and Member 5 must verify that existing server-side authorization/RLS actually restricts a clinician to their assigned records. The current UI selects one record, but selected-record presentation by itself is not an access-control boundary.
+
 ## Local verification
 
 From the repository root, install the existing backend dependencies if needed, set the Aura env variables in your local ignored environment, then run the Flask backend from `web/backend` and the Vite frontend from `web/frontend`.

@@ -179,7 +179,7 @@ function splitTerms(value: DetailValue): string[] {
   if (typeof value !== 'string') return [String(value)];
   if (NEGATIVE_CONDITION_VALUES.has(value.trim().toLowerCase())) return [];
   return value
-    .split(/[,;|\\n]+/)
+    .split(/[,;|\n]+/)
     .map((part) => part.trim())
     .filter((part) => !isEmpty(part) && !NEGATIVE_CONDITION_VALUES.has(part.toLowerCase()));
 }

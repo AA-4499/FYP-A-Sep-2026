@@ -42,7 +42,8 @@ LIMIT $limit
 
 _PATIENT_NEIGHBOURS_QUERY = """
 MATCH (p:Patient {patientId: $patient_id})-[r]-(n)
-WHERE NOT n:CGMReading
+WHERE (NOT n:Patient OR n.patientId = $patient_id)
+  AND NOT n:CGMReading
   AND NOT n:CBGReading
   AND NOT n:BloodKetoneReading
 RETURN p, r, n
@@ -51,7 +52,8 @@ LIMIT $limit
 
 _PATIENT_CONCEPT_PATHS_QUERY = """
 MATCH (p:Patient {patientId: $patient_id})-[r1]-(middle)-[r2]-(c:MedicalConcept)
-WHERE NOT middle:CGMReading
+WHERE NOT middle:Patient
+  AND NOT middle:CGMReading
   AND NOT middle:CBGReading
   AND NOT middle:BloodKetoneReading
 RETURN p, r1, middle, r2, c

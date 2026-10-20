@@ -40,7 +40,7 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
   const patientList = patients && patients.length > 0 ? patients : PATIENTS;
   const cohort = computeCohortStats(patientList);
   const [clinicFilter, setClinicFilter] = useState('All clinics');
-  const [hba1cPeriod, setHba1cPeriod] = useState('Last 6 months');
+  const [hba1cPeriod, setHba1cPeriod] = useState('Last 7 days');
   const [cgmPeriod, setCgmPeriod] = useState('Last 24 hours');
   const [showAlertModal, setShowAlertModal] = useState(false);
 
@@ -313,8 +313,8 @@ export const ClinicDashboardView: React.FC<ClinicDashboardViewProps> = ({
                 onChange={(e) => setHba1cPeriod(e.target.value)}
                 className="text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 pr-6 appearance-none focus:outline-hidden cursor-pointer"
               >
-                <option>Last 6 months</option>
-                <option>Last 12 months</option>
+                <option>Last 7 days</option>
+                <option>Last 14 days</option>
               </select>
               <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2 pointer-events-none" />
             </div>

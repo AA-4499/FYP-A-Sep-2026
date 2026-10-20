@@ -28,7 +28,13 @@ import { PatientsView } from './components/PatientsView';
 import { AuthView } from './components/AuthView';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { ClinicalDataView } from './components/ClinicalDataView';
-import type { NavigationModule, AuthFlow, Patient } from './types';
+import { AdminOverviewView } from './components/admin/AdminOverviewView';
+import { AdminPatientManagementView } from './components/admin/AdminPatientManagementView';
+import { AdminDataQualityView } from './components/admin/AdminDataQualityView';
+import { AdminTwinConfigView } from './components/admin/AdminTwinConfigView';
+import { DoctorOverviewView } from './components/doctor/DoctorOverviewView';
+import { DoctorPatientListView } from './components/doctor/DoctorPatientListView';
+import type { NavigationModule, AuthFlow, Patient, UserRole } from './types';
 import { PATIENTS, getPatientById } from './data/patientsData';
 import {
   getSupabaseClient,
@@ -39,12 +45,12 @@ import {
 
 export const App: React.FC = () => {
   // Navigation Mode: 'clinic' (Borneo Center) | 'patient' (DiabetesTwin P07) | 'auth' (Sign in / Registration)
-  const [appMode, setAppMode] = useState<'clinic' | 'patient' | 'auth'>('auth');
-  const [userRole, setUserRole] = useState<'patient' | 'clinician' | 'admin' | null>(null);
+  const [appMode, setAppMode] = useState<UserRole | 'clinic' | 'auth'>('auth');
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   // Currently active module in the sidebar
   const [clinicModule, setClinicModule] = useState<NavigationModule>('overview');
-  const [patientModule, setPatientModule] = useState<NavigationModule>('patient_dashboard');
+  const [patientModule, setPatientModule] = useState<NavigationModule>('patient_home');
 
   // Patients dataset: initialized with Figma replica, synchronized dynamically with Supabase
   const [patients, setPatients] = useState<Patient[]>(PATIENTS);
@@ -62,12 +68,12 @@ export const App: React.FC = () => {
     const client = getSupabaseClient();
     if (!client) return;
     client.auth.getSession().then(({ data }) => {
-      const role = data.session?.user.user_metadata?.role as 'patient' | 'clinician' | 'admin' | undefined;
+      const role = data.session?.user.user_metadata?.role as UserRole | undefined;
       setUserRole(role || null);
-      if (data.session) setAppMode(role === 'patient' ? 'patient' : 'clinic');
+      if (data.session) setAppMode(role || 'doctor');
     });
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
-      const role = session?.user.user_metadata?.role as 'patient' | 'clinician' | 'admin' | undefined;
+      const role = session?.user.user_metadata?.role as UserRole | undefined;
       setUserRole(role || null);
       if (!session) setAppMode('auth');
     });
@@ -120,7 +126,7 @@ export const App: React.FC = () => {
   const handleSelectPatient = async (patientId: string) => {
     setCurrentPatientId(patientId);
     setAppMode('patient');
-    setPatientModule('patient_dashboard');
+    setPatientModule('patient_home');
 
     // Fetch detail observations from Supabase if connected
     if (isSupabaseConnected) {
@@ -149,18 +155,25 @@ export const App: React.FC = () => {
         onSuccessLogin={() => {
           const client = getSupabaseClient();
           client?.auth.getUser().then(({ data }) => {
-            const role = data.user?.user_metadata?.role;
+            const role = data.user?.user_metadata?.role as UserRole | undefined;
             setUserRole(role || null);
             if (role === 'patient') {
               setAppMode('patient');
-              setPatientModule('patient_dashboard');
+              setPatientModule('patient_home');
+            } else if (role === 'admin') {
+              setAppMode('admin');
+              setClinicModule('admin_overview');
             } else {
-              setAppMode('clinic');
-              setClinicModule('overview');
+              setAppMode('doctor');
+              setClinicModule('doctor_overview');
             }
           });
         }}
-        onClose={() => setAppMode('auth')}
+        onClose={() => {
+          setUserRole('doctor');
+          setAppMode('doctor');
+          setClinicModule('doctor_overview');
+        }}
       />
     );
   }
@@ -170,18 +183,18 @@ export const App: React.FC = () => {
       <div className="max-w-[1400px] w-full flex flex-col md:flex-row gap-5 lg:gap-6 items-start">
         {/* 1. LEFT SIDEBAR */}
         <Sidebar
-          mode={appMode}
-          activeModule={appMode === 'clinic' ? clinicModule : patientModule}
+          mode={appMode === 'clinic' ? 'clinic' : appMode}
+          activeModule={appMode === 'patient' ? patientModule : clinicModule}
           onSelectModule={(mod) => {
-            if (appMode === 'clinic') {
-              setClinicModule(mod);
-            } else {
+            if (appMode === 'patient') {
               setPatientModule(mod);
+            } else {
+              setClinicModule(mod);
             }
           }}
           onSwitchToClinic={() => {
-            setAppMode('clinic');
-            setClinicModule('overview');
+            setAppMode('doctor');
+            setClinicModule('doctor_overview');
           }}
           currentPatientName={currentPatient.name}
         />
@@ -190,7 +203,7 @@ export const App: React.FC = () => {
         <main className="flex-1 w-full space-y-5 min-w-0">
           {/* Top Bar */}
           <TopBar
-            mode={appMode}
+            mode={appMode === 'clinic' ? 'clinic' : appMode}
             currentPatient={currentPatient}
             patientsList={patients}
             isSupabaseConnected={isSupabaseConnected}
@@ -203,8 +216,69 @@ export const App: React.FC = () => {
           {/* ========================================================= */}
           {/* A. CLINIC WORKSPACE (Borneo Center Kuching - Figma Image 1) */}
           {/* ========================================================= */}
-          {appMode === 'clinic' && (
+          {(appMode === 'clinic' || appMode === 'doctor' || appMode === 'admin') && (
             <>
+              {appMode === 'admin' && clinicModule === 'admin_overview' && (
+                <AdminOverviewView
+                  onNavigateToUsers={() => setClinicModule('admin_users')}
+                  onNavigateToDataQuality={() => setClinicModule('admin_data_quality')}
+                  onNavigateToTwinConfig={() => setClinicModule('admin_twin_config')}
+                />
+              )}
+              {appMode === 'admin' && clinicModule === 'admin_users' && <AdminPatientManagementView />}
+              {appMode === 'admin' && clinicModule === 'admin_data_quality' && <AdminDataQualityView />}
+              {appMode === 'admin' && clinicModule === 'admin_twin_config' && <AdminTwinConfigView />}
+              {appMode === 'admin' && clinicModule === 'admin_logs' && (
+                <AdminOverviewView
+                  onNavigateToUsers={() => setClinicModule('admin_users')}
+                  onNavigateToDataQuality={() => setClinicModule('admin_data_quality')}
+                  onNavigateToTwinConfig={() => setClinicModule('admin_twin_config')}
+                />
+              )}
+              {appMode === 'doctor' && clinicModule === 'doctor_overview' && (
+                <DoctorOverviewView
+                  patients={patients}
+                  onSelectPatient={handleSelectPatient}
+                  onOpenPatientTwin={handleSelectPatient}
+                  onViewAllPatients={() => setClinicModule('doctor_patients')}
+                  onViewMonitoring={() => setClinicModule('doctor_monitoring')}
+                />
+              )}
+              {appMode === 'doctor' && clinicModule === 'doctor_patients' && (
+                <DoctorPatientListView
+                  patients={patients}
+                  currentPatient={currentPatient}
+                  onSelectPatient={handleSelectPatient}
+                  onOpenDigitalTwin={handleSelectPatient}
+                />
+              )}
+              {appMode === 'doctor' && clinicModule === 'doctor_monitoring' && (
+                <LongitudinalMonitoringView
+                  patient={currentPatient}
+                  onNavigate={(mod) => setClinicModule(mod)}
+                />
+              )}
+              {appMode === 'doctor' && clinicModule === 'doctor_digital_twin' && (
+                <DigitalTwinView
+                  patient={currentPatient}
+                  onNavigate={(mod) => setClinicModule(mod)}
+                />
+              )}
+              {appMode === 'doctor' && clinicModule === 'doctor_reports' && (
+                <ReportView
+                  patient={currentPatient}
+                  onNavigate={(mod) => setClinicModule(mod)}
+                />
+              )}
+              {appMode === 'doctor' && clinicModule === 'doctor_settings' && (
+                <DoctorOverviewView
+                  patients={patients}
+                  onSelectPatient={handleSelectPatient}
+                  onOpenPatientTwin={handleSelectPatient}
+                  onViewAllPatients={() => setClinicModule('doctor_patients')}
+                  onViewMonitoring={() => setClinicModule('doctor_monitoring')}
+                />
+              )}
               {clinicModule === 'overview' && (
                 <ClinicDashboardView
                   patients={patients}
@@ -240,7 +314,7 @@ export const App: React.FC = () => {
                 />
               )}
 
-              {clinicModule !== 'overview' &&
+              {appMode === 'clinic' && clinicModule !== 'overview' &&
                 clinicModule !== 'patients' &&
                 clinicModule !== 'glucose_review' &&
                 clinicModule !== 'reports' && (
@@ -261,7 +335,7 @@ export const App: React.FC = () => {
           {appMode === 'patient' && (
             <>
               {/* 1. Patient Overview Dashboard (4 vitals + 2x2 grid) */}
-              {patientModule === 'patient_dashboard' && (
+              {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && (
                 <DashboardView
                   patient={currentPatient}
                   onNavigate={(mod) => {
@@ -271,10 +345,11 @@ export const App: React.FC = () => {
                   }}
                 />
               )}
-              {patientModule === 'patient_dashboard' && <ClinicalDataView patientId={currentPatientId} />}
+              {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && <ClinicalDataView patientId={currentPatientId} />}
+              {patientModule === 'patient_profile' && <ClinicalDataView patientId={currentPatientId} />}
 
               {/* 2. Longitudinal Monitoring */}
-              {patientModule === 'monitoring' && (
+              {(patientModule === 'monitoring' || patientModule === 'patient_monitoring') && (
                 <LongitudinalMonitoringView
                   patient={currentPatient}
                   onNavigate={(mod) => setPatientModule(mod)}
@@ -282,7 +357,7 @@ export const App: React.FC = () => {
               )}
 
               {/* 3. Risk Assessment & What-if Simulation */}
-              {patientModule === 'risk' && (
+              {(patientModule === 'risk' || patientModule === 'patient_insights') && (
                 <RiskSimulationView
                   patient={currentPatient}
                   onNavigate={(mod) => setPatientModule(mod)}
@@ -306,7 +381,7 @@ export const App: React.FC = () => {
               )}
 
               {/* 6. Physiological Digital Twin */}
-              {patientModule === 'digital_twin' && (
+              {(patientModule === 'digital_twin' || patientModule === 'patient_digital_twin') && (
                 <DigitalTwinView
                   patient={currentPatient}
                   onNavigate={(mod) => setPatientModule(mod)}
@@ -314,7 +389,7 @@ export const App: React.FC = () => {
               )}
 
               {/* 7. Clinical Health Dossier & Reports */}
-              {patientModule === 'reports' && (
+              {(patientModule === 'reports' || patientModule === 'patient_reports') && (
                 <ReportView
                   patient={currentPatient}
                   onNavigate={(mod) => setPatientModule(mod)}
@@ -336,7 +411,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-
-
-
-

@@ -19,3 +19,20 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false
+
+  - type: static_site
+    name: diabetes-digital-twin-frontend
+    rootDir: web/frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

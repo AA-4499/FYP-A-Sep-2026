@@ -14,7 +14,28 @@ flowchart LR
 
 The Supabase project URL, Vercel webpage URL and Python service URL are different addresses. A `Supabase: Live` badge confirms the frontend's data connection; it does not confirm that the Python model service is running. The previous live database verification used a local Python backend.
 
-## 1. Deploy the Python backend on Render
+## 1. Deploy the services on Render
+
+The repository-root `render.yaml` defines both production services:
+
+| Service | Render type | Root directory | Build command | Publish/start |
+| --- | --- | --- | --- | --- |
+| `diabetes-digital-twin-api` | Web service | `.` | CPU PyTorch plus `web/backend/requirements.txt` | Gunicorn on `$PORT` |
+| `diabetes-digital-twin-frontend` | Static site | `web/frontend` | `npm ci && npm run build` | `dist` |
+
+The static site also rewrites all routes to `index.html` so React client-side routes work after a refresh. If the services already exist in Render, update their settings to match this table or redeploy them from the Blueprint.
+
+### Frontend static-site settings
+
+For the Render static site, use the repository's `main` branch, set **Root Directory** to `web/frontend`, **Build Command** to `npm ci && npm run build`, and **Publish Directory** to `dist`. Add these frontend environment variables in the service's **Environment** settings:
+
+| Frontend variable | Value |
+| --- | --- |
+| `VITE_API_BASE_URL` | The deployed Python service origin, without `/api` or a trailing slash. |
+| `VITE_SUPABASE_URL` | The Supabase project URL. |
+| `VITE_SUPABASE_ANON_KEY` | The Supabase publishable/anon key. |
+
+Do not put the Supabase service-role key in the static site. Vite embeds `VITE_*` values into browser assets, so only the publishable/anon key belongs here.
 
 1. Open the [Render Dashboard](https://dashboard.render.com/) and select **New > Blueprint**.
 2. Connect the GitHub repository `AA-4499/FYP-A-Sep-2026`. Grant Render access to the repository if prompted.

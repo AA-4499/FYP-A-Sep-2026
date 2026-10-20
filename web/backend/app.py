@@ -16,6 +16,7 @@ except ImportError:
     CORS = None
 
 from auth import require_auth
+from services.doctor_knowledge_graph_service import get_doctor_knowledge_graph
 
 from services import (
     list_patients,
@@ -178,6 +179,27 @@ def patient_knowledge_graph(patient_id: str):
         return jsonify({"error": str(exc)}), 404
     except RuntimeError as exc:
         app.logger.warning("Patient KG unavailable: %s", exc)
+        return jsonify({"error": str(exc)}), 503
+
+
+# --------------------------------------------------------------------------
+# Doctor Knowledge Graph Endpoint
+# --------------------------------------------------------------------------
+
+@app.route("/api/doctor/knowledge-graph", methods=["GET"])
+@require_auth({"doctor", "clinician", "admin"})
+def doctor_knowledge_graph():
+    """Read the selected patient's Aura neighbourhood and the shared concept ontology."""
+    patient_id = request.args.get("patient_id", "").strip()
+    if not patient_id:
+        return jsonify({"error": "The patient_id query parameter is required."}), 400
+    try:
+        graph = get_doctor_knowledge_graph(patient_id)
+        return jsonify(graph)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except RuntimeError as exc:
+        app.logger.warning("Doctor knowledge graph is unavailable: %s", str(exc))
         return jsonify({"error": str(exc)}), 503
 
 

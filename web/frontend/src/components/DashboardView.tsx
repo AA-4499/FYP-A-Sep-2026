@@ -6,7 +6,7 @@
  *    1. Longitudinal timeline, HbA1c
  *    2. Why this risk? Key factors
  *    3. What-if simulation with working sliders
- *    4. Knowledge graph
+ *    4. Patient-friendly health summary
  * - Bottom action buttons: Digital twin view ↗, Report page ↗
  */
 import React, { useState } from 'react';

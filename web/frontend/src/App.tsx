@@ -297,7 +297,7 @@ export const App: React.FC = () => {
                   onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && <KnowledgeGraphView patient={currentPatient} patientId={currentPatientId} />}
+              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && <KnowledgeGraphView patient={currentPatient} patientId={currentPatientId} isSupabaseConnected={isSupabaseConnected} />}
               {appMode === 'doctor' && workspaceModule === 'doctor_reports' && (
                 <ReportView
                   patient={currentPatient}

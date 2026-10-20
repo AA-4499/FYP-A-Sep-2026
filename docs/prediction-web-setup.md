@@ -1,5 +1,21 @@
 # Prediction service setup: GitHub, Render, Supabase and Vercel
 
+## Temporary local chart preview
+
+The Risk Prediction page currently defaults to **Local data preview (no server)** while the Python deployment is being completed. Vercel serves precomputed chart snapshots from `web/frontend/public/forecast-preview/`. They contain baseline GRU predictions, observed CGM, training/validation/testing curves and evaluation metrics for the exact selected local record. The original model and workbook data are used; no synthetic curve is substituted.
+
+The preview supports 3-, 6- and 12-hour baseline views and CSV downloads. It does not perform browser-side training or new what-if inference, refresh cloud readings, or save outputs to Supabase. The simulator stays visible but is disabled. Records without a matching snapshot show an explicit unavailable message instead of another patient's data. Snapshot files are public static assets; they contain chart series and record IDs, without account credentials or patient summary fields.
+
+Regenerate the snapshots from the repository root after updating local data or weights:
+
+```powershell
+python -m models.training.export_forecast_preview
+```
+
+Generation uses the Python training dependencies, but Vercel builds only the frontend and copies the committed snapshots. No Python runtime or new environment variable is required for preview mode. Deploy the `TrainingModel` frontend branch to Vercel to receive this change.
+
+When the API is ready, use **Service connection** to connect and switch to Supabase, or select **Supabase Cloud (online service)** in Data source. Configure `VITE_API_BASE_URL` and `ALLOWED_ORIGINS` as described below for all visitors. Local preview remains an explicit selectable mode; failed online requests do not silently substitute preview data.
+
 GitHub stores the code and trained weights. The frontend can run on Vercel or on the optional Render static site defined in this repository. Render runs the Python prediction API, which reads patient data from Supabase and saves completed forecasts back to Supabase.
 
 ```mermaid

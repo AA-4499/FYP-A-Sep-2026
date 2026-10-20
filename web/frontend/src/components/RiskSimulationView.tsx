@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw, Activity, AlertCircle, SlidersHorizontal, Database, Download, Settings2, CheckCircle2 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from 'recharts';
 import type { Patient, NavigationModule } from '../types';
-import { fetchGlucoseForecast, getForecastApiUrl, saveForecastApiUrl, type ForecastPoint, type ForecastEvent, type GlucoseForecast } from '../lib/forecast';
+import { fetchGlucoseForecast, getForecastApiUrl, saveForecastApiUrl, type ForecastSource, type ForecastPoint, type ForecastEvent, type GlucoseForecast } from '../lib/forecast';
 
 type Props = { patient: Patient; onNavigate: (module: NavigationModule) => void };
 type Series = { key: string; label: string; color: string; points: ForecastPoint[] };
@@ -52,7 +52,8 @@ function GlucoseChart({ series, loading, history = false }: { series: Series[]; 
 }
 
 function ForecastPanel({ patient, onNavigate }: Props) {
-  const [source, setSource] = useState<'local' | 'supabase'>('supabase');
+  const [source, setSource] = useState<ForecastSource>('preview');
+  const preview = source === 'preview';
   const [horizon, setHorizon] = useState(3);
   const [mealEnabled, setMealEnabled] = useState(false);
   const [insulinEnabled, setInsulinEnabled] = useState(false);
@@ -97,7 +98,8 @@ function ForecastPanel({ patient, onNavigate }: Props) {
     try {
       saveForecastApiUrl(apiUrl);
       setConnectionError(''); setConnectionOpen(false);
-      setRequest(previous => ({ ...previous, revision: previous.revision + 1 }));
+      setSource('supabase'); setMealEnabled(false); setInsulinEnabled(false);
+      baselineRequest();
     } catch (err) {
       setConnectionError(err instanceof Error ? err.message : 'Enter a valid model service address.');
     }
@@ -139,6 +141,12 @@ function ForecastPanel({ patient, onNavigate }: Props) {
       <button type="button" onClick={() => setConnectionOpen(open => !open)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"><Settings2 size={14} />Service connection</button>
     </header>
 
+    {preview && <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900" data-testid="preview-notice">
+      <p className="font-semibold">Local data preview</p>
+      <p className="mt-1 text-xs leading-relaxed">Charts use precomputed predictions from the local Excel records and the saved GRU model. No Python service is required. These results do not update from Supabase and are not saved to Supabase. Interactive what-if simulation becomes available when you switch to the online service.</p>
+      {current?.generated_at && <p className="mt-2 text-xs">Snapshot generated: {displayTime(current.generated_at)} UTC</p>}
+    </div>}
+
     {connectionOpen && <form onSubmit={connect} className={`${card} space-y-3`}>
       <h2 className="text-sm font-semibold">Connect the prediction service</h2>
       <p className="text-xs leading-relaxed text-slate-500">Enter the public address of the Python service that runs the GRU model. This is separate from your Supabase project and your Vercel webpage.</p>
@@ -153,8 +161,8 @@ function ForecastPanel({ patient, onNavigate }: Props) {
     <div className={`${card} flex flex-wrap items-center gap-4 !py-3`}>
       <span className="inline-flex items-center gap-2 text-sm font-semibold"><Activity size={17} className="text-blue-600" />Forecast settings</span>
       <label className="flex items-center gap-2 text-xs font-medium text-slate-500">Data source
-        <select aria-label="Data source" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800" value={source} onChange={event => { setSource(event.target.value as typeof source); baselineRequest(); }}>
-          <option value="supabase">Supabase Cloud (Live DB)</option><option value="local">Local Excel workbooks</option>
+        <select aria-label="Data source" className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800" value={source} onChange={event => { setSource(event.target.value as ForecastSource); setMealEnabled(false); setInsulinEnabled(false); baselineRequest(); }}>
+          <option value="preview">Local data preview (no server)</option><option value="supabase">Supabase Cloud (online service)</option><option value="local">Local Excel (online service)</option>
         </select>
       </label>
       <label className="flex items-center gap-2 text-xs font-medium text-slate-500">Forecast horizon
@@ -183,12 +191,12 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               {current && <p className="mt-2 text-xs">The charts below show the last completed forecast.</p>}
             </div>
           </div>}
-          {loading && <p className="flex items-center gap-2 text-xs text-blue-600"><RefreshCw size={14} className="animate-spin" />{current ? 'Updating forecast; showing the last completed result.' : 'Loading CGM history and running the GRU model...'}</p>}
-          {!loading && !error && current && <p className="flex items-center gap-2 text-xs text-emerald-700"><CheckCircle2 size={14} />Saved to Supabase &middot; {current.storage.test_predictions_saved} held-out predictions and full forecast curves</p>}
+          {loading && <p className="flex items-center gap-2 text-xs text-blue-600"><RefreshCw size={14} className="animate-spin" />{preview ? 'Loading local chart snapshot...' : current ? 'Updating forecast; showing the last completed result.' : 'Loading CGM history and running the GRU model...'}</p>}
+          {!loading && !error && current && <p className="flex items-center gap-2 text-xs text-emerald-700"><CheckCircle2 size={14} />{preview ? 'Local snapshot loaded; no database write' : current.storage?.saved ? `Saved to Supabase · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves` : 'Forecast loaded; no storage receipt'}</p>}
         </div>
 
         <section className={card} data-testid="prediction-panel">
-          <div className="flex items-start justify-between gap-2"><div><h2 className="text-sm font-bold text-slate-900">Glucose prediction</h2><p className="mt-1 text-xs text-slate-500">{horizon}-hour baseline and what-if comparison</p></div><span className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-600">CGM &middot; mg/dL</span></div>
+          <div className="flex items-start justify-between gap-2"><div><h2 className="text-sm font-bold text-slate-900">Glucose prediction</h2><p className="mt-1 text-xs text-slate-500">{horizon}-hour {preview ? 'precomputed baseline forecast' : 'baseline and what-if comparison'}</p></div><span className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-600">CGM &middot; mg/dL</span></div>
           <GlucoseChart series={forecastSeries} loading={loading} />
           <p className="mt-2 text-xs leading-relaxed text-slate-400">{current ? `Forecast begins ${displayTime(current.forecast_start)}. Future points use recursive 15-minute predictions.` : 'Connect the prediction service to load the selected patient\'s model results.'}</p>
         </section>
@@ -234,7 +242,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               ['Data source', current?.source ?? source], ['Observed readings', current?.observed.length.toLocaleString() ?? '\u2014'],
               ['Model lookback', current ? `${current.sequence_length} readings / ${current.sequence_length * 15} minutes` : '\u2014'],
               ['Forecast begins', displayTime(current?.forecast_start)],
-              ['Supabase run ID', current?.storage.run_id ?? 'No completed run'],
+              ['Supabase run ID', preview ? 'Not saved (local preview)' : current?.storage?.run_id ?? 'No completed run'],
             ].map(([label, value]) => <div key={label}><dt className="text-slate-400">{label}</dt><dd className="mt-1 break-all font-medium text-slate-700">{value}</dd></div>)}
           </dl>
           <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-400">Research and education only; not for diagnosis, treatment, or insulin dosing. Meal and insulin effects are learned from sparse historical events. Reference lines are shown at 70, 140, 180 and 250 mg/dL.</p>
@@ -243,28 +251,28 @@ function ForecastPanel({ patient, onNavigate }: Props) {
 
       <aside className={`${card} xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto`} data-testid="simulator-panel">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><SlidersHorizontal size={17} className="text-blue-600" />What-if simulator</div>
-        <p className="mt-2 text-xs leading-relaxed text-slate-500">Add hypothetical events to compare their projected effect with the baseline prediction.</p>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500">{preview ? 'Unavailable in the precomputed preview. Connect the online prediction service to calculate new event scenarios.' : 'Add hypothetical events to compare their projected effect with the baseline prediction.'}</p>
         {current?.scenario_enabled && <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
           <p className="text-slate-600">Largest curve difference</p><p className="mt-1 font-semibold text-blue-800">{Math.abs(peakDifference).toFixed(2)} mg/dL</p>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-500">At the forecast end: {delta !== undefined && delta >= 0 ? '+' : ''}{delta?.toFixed(2)} mg/dL. Earlier changes can disappear before the final step.</p>
         </div>}
         <form onSubmit={run} className="mt-5 space-y-5">
-          <fieldset className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+          <fieldset disabled={preview} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 disabled:opacity-50">
             <legend className="px-1 text-xs font-semibold text-slate-700">Meal event</legend>
             <label className="flex items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={mealEnabled} onChange={event => setMealEnabled(event.target.checked)} />Include a meal event</label>
             <label className="block text-xs text-slate-500">Food mass (g)<input className={input} type="number" min="0.1" step="0.1" required disabled={!mealEnabled} value={mealAmount} onChange={event => setMealAmount(event.target.valueAsNumber)} /></label>
             <label className="block text-xs text-slate-500">Minutes after latest CGM<input className={input} type="number" min="15" max={horizon * 60 - 15} step="15" required disabled={!mealEnabled} value={mealMinutes} onChange={event => setMealMinutes(event.target.valueAsNumber)} /></label>
           </fieldset>
-          <fieldset className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+          <fieldset disabled={preview} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 disabled:opacity-50">
             <legend className="px-1 text-xs font-semibold text-slate-700">Insulin event</legend>
             <label className="flex items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={insulinEnabled} onChange={event => setInsulinEnabled(event.target.checked)} />Include an insulin event</label>
             <label className="block text-xs text-slate-500">Insulin amount (units)<input className={input} type="number" min="0.1" step="0.1" required disabled={!insulinEnabled} value={insulinAmount} onChange={event => setInsulinAmount(event.target.valueAsNumber)} /></label>
             <label className="block text-xs text-slate-500">Minutes after latest CGM<input className={input} type="number" min="15" max={horizon * 60 - 15} step="15" required disabled={!insulinEnabled} value={insulinMinutes} onChange={event => setInsulinMinutes(event.target.valueAsNumber)} /></label>
           </fieldset>
-          <p className="text-[11px] leading-relaxed text-slate-400">Use 15-minute intervals within the selected {horizon}-hour horizon. Changes apply when you run the simulation.</p>
-          <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />{loading ? 'Running model...' : 'Run what-if simulation'}</button>
+          <p className="text-[11px] leading-relaxed text-slate-400">{preview ? 'The local preview contains baseline results only. Online inference is required to calculate a new scenario.' : `Use 15-minute intervals within the selected ${horizon}-hour horizon. Changes apply when you run the simulation.`}</p>
+          <button type="submit" disabled={loading || preview} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />{preview ? 'Online service required' : loading ? 'Running model...' : 'Run what-if simulation'}</button>
           <button type="button" className="w-full text-xs font-medium text-slate-500 hover:text-blue-600" onClick={() => { setMealEnabled(false); setInsulinEnabled(false); baselineRequest(); }}>Reset to baseline</button>
-          <p className="border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-400">Baseline means no future events were supplied, not confirmed fasting or no insulin. Food mass is not carbohydrate mass. These curves show model sensitivity, not validated treatment effects. Completed forecasts are saved to Supabase.</p>
+          <p className="border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-400">Baseline means no future events were supplied, not confirmed fasting or no insulin. Food mass is not carbohydrate mass. These curves show model sensitivity, not validated treatment effects. {preview ? 'Local previews are not saved to Supabase.' : 'Completed online forecasts are saved to Supabase.'}</p>
         </form>
       </aside>
     </div>

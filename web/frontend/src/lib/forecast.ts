@@ -1,11 +1,15 @@
 import { getSupabaseClient } from './supabase';
+import { loadForecastPreview } from './forecastPreview';
+
+export type ForecastSource = 'preview' | 'local' | 'supabase';
 
 export interface ForecastPoint { timestamp: string; value: number }
 export interface ForecastEvent { kind: 'meal' | 'insulin'; amount: number; minutes_ahead: number }
 export interface GlucoseForecast {
   patient_id: string; record_id: string; source: string; horizon_hours: number;
   model_sha256: string;
-  storage: { saved: boolean; run_id: string; patient_id: string; created_at: string; test_predictions_saved: number; metrics_saved: number; timeline_splits_saved: number };
+  delivery?: 'precomputed'; generated_at?: string;
+  storage?: { saved: boolean; run_id: string; patient_id: string; created_at: string; test_predictions_saved: number; metrics_saved: number; timeline_splits_saved: number };
   sequence_length: number; forecast_start: string; latest_glucose: number;
   baseline_end: number; scenario_end: number; scenario_enabled: boolean;
   metrics: { mae_mg_dl: number; rmse_mg_dl: number; test_windows: number } | null;
@@ -33,8 +37,12 @@ export function saveForecastApiUrl(value: string): void {
 }
 
 export async function fetchGlucoseForecast(patientId: string, options: {
-  source: 'local' | 'supabase'; horizon_hours: number; events: ForecastEvent[]; run_id: string;
+  source: ForecastSource; horizon_hours: number; events: ForecastEvent[]; run_id: string;
 }, signal: AbortSignal): Promise<GlucoseForecast> {
+  if (options.source === 'preview') {
+    if (options.events.length) throw new Error('Interactive what-if simulation requires the online prediction service.');
+    return loadForecastPreview(patientId, options.horizon_hours, signal);
+  }
   const base = getForecastApiUrl();
   if (!base && !import.meta.env.DEV) throw new Error('The model service is not connected. Open Service connection and enter the Python prediction service address.');
   const client = getSupabaseClient();

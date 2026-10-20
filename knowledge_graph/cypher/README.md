@@ -39,6 +39,8 @@ The URI format above is a template, not a verified live Aura endpoint. This deve
 6. Re-run the audit and compare the results. Confirm expected types, duplicate checks, and that patient nodes still have their observations/relationships.
 7. Only after the duplicate `Patient.patientId` and `MedicalConcept.name` checks both return zero rows, consider running `doctor_kg_constraints.cypher` statement by statement.
 
+An optional selected-patient repair example is in `doctor_kg_selected_patient_link.cypher`. Run its read-only preview first and edit the hardcoded Patient Number to the selected record. Only run the subsequent `MERGE` after confirming the patient's stored `diabetesType` matches the returned `MedicalConcept.name`. It repairs that one `HAS_CONDITION` edge only; it is not a bulk re-import and it does not create/delete nodes. Skip the mutation if the preview returns no row or a mismatch.
+
 ## Type 1 Diabetes is not a cleanup target by default
 
 The shared ontology represents general diabetes concepts, so `Type 1 Diabetes` is retained as a reusable `MedicalConcept`. A specific patient who is not Type 1 should simply not have a patient-specific `HAS_CONDITION` relationship to it. Do **not** run `DETACH DELETE` on the Type 1 concept merely to remove it from one patient's visualisation. If the audit finds a wrong patient-condition edge, review that one edge and its patient identifier first, then agree on a narrowly scoped correction with the team before modifying Aura.

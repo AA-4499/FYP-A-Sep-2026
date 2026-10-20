@@ -3,6 +3,38 @@
  * Grounded in Figma specifications across Clinic, Patient Twin, and Auth modules.
  */
 
+export type UserRole = 'admin' | 'doctor' | 'patient';
+
+export type AdminModule =
+  | 'admin_overview'
+  | 'admin_users'
+  | 'admin_data_quality'
+  | 'admin_twin_config'
+  | 'admin_logs';
+
+export type DoctorModule =
+  | 'doctor_overview'
+  | 'doctor_patients'
+  | 'doctor_monitoring'
+  | 'doctor_digital_twin'
+  | 'doctor_reports'
+  | 'doctor_settings';
+
+export type PatientModule =
+  | 'patient_dashboard'
+  | 'monitoring'
+  | 'risk'
+  | 'explain_ai'
+  | 'knowledge_graph'
+  | 'digital_twin'
+  | 'reports'
+  | 'patient_home'
+  | 'patient_profile'
+  | 'patient_monitoring'
+  | 'patient_digital_twin'
+  | 'patient_insights'
+  | 'patient_reports';
+
 export type ClinicModule =
   | 'overview'
   | 'patients'
@@ -15,16 +47,7 @@ export type ClinicModule =
   | 'settings'
   | 'clinical_support';
 
-export type PatientModule =
-  | 'patient_dashboard'
-  | 'monitoring'
-  | 'risk'
-  | 'explain_ai'
-  | 'knowledge_graph'
-  | 'digital_twin'
-  | 'reports';
-
-export type NavigationModule = ClinicModule | PatientModule;
+export type NavigationModule = ClinicModule | PatientModule | AdminModule | DoctorModule;
 
 export type AuthFlow =
   | 'signin'
@@ -117,4 +140,75 @@ export interface KnowledgeGraphEdge {
   source: string;
   target: string;
   label?: string;
+}
+
+export interface ServiceHealthItem {
+  id: string;
+  name: string;
+  status: 'Operational' | 'Degraded' | 'Down';
+  latencyMs: number;
+  uptimePct: number;
+  endpoint: string;
+  lastChecked: string;
+}
+
+export interface ROCPoint {
+  fpr: number;
+  tpr: number;
+  threshold: number;
+}
+
+export interface DataCoverageItem {
+  indicator: string;
+  category: string;
+  coveragePct: number;
+  totalRecords: number;
+  validRecords: number;
+  missingRecords: number;
+  status: 'Excellent' | 'Good' | 'Needs Attention';
+}
+
+export interface AdminUserRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'doctor' | 'patient';
+  status: 'Active' | 'Inactive';
+  assignedCohort?: string;
+  lastLogin: string;
+  createdAt: string;
+  permissions: string[];
+}
+
+// New interface for admin dashboard key performance indicators
+export interface AdminKPIs {
+  totalUsers: number;
+  totalPatients: number;
+  totalDoctors: number;
+  totalDatasets: number;
+  serviceHealth: ServiceHealthItem[]; // Reuse ServiceHealthItem defined earlier
+  aiModelSummary: {
+    auc: number;
+    rocPoints: ROCPoint[];
+  };
+  dataCoverage: DataCoverageItem[]; // Reuse DataCoverageItem
+}
+
+export interface TwinIndicatorRule {
+  id: string;
+  indicator: string;
+  sourceDataset: string;
+  timeWindow: 'Hourly' | 'Daily' | 'Per-Visit' | 'Continuous (CGM)';
+  weight: number;
+  enabled: boolean;
+  algorithm: string;
+}
+
+export interface QuickLogEntry {
+  id: string;
+  type: 'meal' | 'activity';
+  timestamp: string;
+  title: string;
+  carbsOrMinutes: number;
+  notes?: string;
 }

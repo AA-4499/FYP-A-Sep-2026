@@ -6,8 +6,8 @@ import type { KnowledgeGraphNode, KnowledgeGraphEdge } from '../types';
 
 export const KG_NODES: KnowledgeGraphNode[] = [
   // Core Patient Node
-  /**
-   * The central node representing the patient
+
+   // The central node representing the patient
    
   {
     id: '2000_0_20201230',
@@ -289,7 +289,7 @@ export const KG_NODES: KnowledgeGraphNode[] = [
     x: 400,
     y: 370,
   },
-  */
+
 ];
 
 export const KG_EDGES: KnowledgeGraphEdge[] = [

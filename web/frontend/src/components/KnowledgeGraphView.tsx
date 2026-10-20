@@ -161,10 +161,27 @@ function normaliseConcept(value: string): string {
   const cleaned = value.trim().toLowerCase().replace(/\s+/g, ' ');
   return CONCEPT_ALIASES[cleaned] ?? cleaned;
 }
+const NEGATIVE_CONDITION_VALUES = new Set([
+  'no',
+  'negative',
+  'absent',
+  'not present',
+  'no complication',
+  'no complications',
+  'no comorbidity',
+  'no comorbidities',
+  'no acute complication',
+  'no acute complications',
+]);
+
 function splitTerms(value: DetailValue): string[] {
   if (isEmpty(value)) return [];
   if (typeof value !== 'string') return [String(value)];
-  return value.split(/[,;|\n]+/).map((part) => part.trim()).filter((part) => !isEmpty(part));
+  if (NEGATIVE_CONDITION_VALUES.has(value.trim().toLowerCase())) return [];
+  return value
+    .split(/[,;|\\n]+/)
+    .map((part) => part.trim())
+    .filter((part) => !isEmpty(part) && !NEGATIVE_CONDITION_VALUES.has(part.toLowerCase()));
 }
 function formatNodeProperties(properties?: Record<string, unknown>): Array<[string, string]> {
   if (!properties) return [];

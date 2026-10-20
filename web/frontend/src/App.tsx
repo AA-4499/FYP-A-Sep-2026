@@ -307,7 +307,7 @@ export const App: React.FC = () => {
               {appMode === 'doctor' && workspaceModule === 'doctor_settings' && (
                 <DoctorOverviewView
                   patients={patients}
-                  onSelectPatient={handleSelectPatient}
+                  onSelectPatient={handleWorkspacePatientSelect}
                   onOpenPatientTwin={handleSelectPatient}
                   onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
                   onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}

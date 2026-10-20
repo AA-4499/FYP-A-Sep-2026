@@ -119,21 +119,34 @@ export const App: React.FC = () => {
         getPatientById(currentPatientId) ||
         patients[0];
 
-  // Navigate to a specific patient and switch to Patient Twin view
+  // A patient signing in sees their own Patient Twin workspace.
   const handleSelectPatient = async (patientId: string) => {
     setCurrentPatientId(patientId);
+    setActivePatientOverride(null);
     setAppMode('patient');
     setPatientModule('patient_home');
 
-    // Fetch detail observations from Supabase if connected
     if (isSupabaseConnected) {
       try {
         const detailResult = await fetchSupabasePatientDetail(patientId);
-        if (detailResult?.patient) {
-          setActivePatientOverride(detailResult.patient);
-        }
+        if (detailResult?.patient) setActivePatientOverride(detailResult.patient);
       } catch (err) {
         console.error('Error fetching patient detail:', err);
+      }
+    }
+  };
+
+  // Doctors/admins can select a record without leaving their workspace.
+  // This is important for reviewing the selected patient's Knowledge Graph.
+  const handleWorkspacePatientSelect = async (patientId: string) => {
+    setCurrentPatientId(patientId);
+    setActivePatientOverride(null);
+    if (isSupabaseConnected) {
+      try {
+        const detailResult = await fetchSupabasePatientDetail(patientId);
+        if (detailResult?.patient) setActivePatientOverride(detailResult.patient);
+      } catch (err) {
+        console.error('Error fetching selected patient detail:', err);
       }
     }
   };
@@ -224,7 +237,7 @@ export const App: React.FC = () => {
             currentPatient={currentPatient}
             patientsList={patients}
             isSupabaseConnected={isSupabaseConnected}
-            onSelectPatient={handleSelectPatient}
+            onSelectPatient={appMode === 'patient' ? handleSelectPatient : handleWorkspacePatientSelect}
             onSwitchMode={(mode) => {
               setAppMode(mode);
               if (mode !== 'patient') setWorkspaceModule(mode === 'admin' ? 'admin_overview' : 'doctor_overview');
@@ -258,7 +271,7 @@ export const App: React.FC = () => {
               {appMode === 'doctor' && workspaceModule === 'doctor_overview' && (
                 <DoctorOverviewView
                   patients={patients}
-                  onSelectPatient={handleSelectPatient}
+                  onSelectPatient={handleWorkspacePatientSelect}
                   onOpenPatientTwin={handleSelectPatient}
                   onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
                   onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
@@ -268,7 +281,7 @@ export const App: React.FC = () => {
                 <DoctorPatientListView
                   patients={patients}
                   currentPatient={currentPatient}
-                  onSelectPatient={handleSelectPatient}
+                  onSelectPatient={handleWorkspacePatientSelect}
                   onOpenDigitalTwin={handleSelectPatient}
                 />
               )}
@@ -284,7 +297,7 @@ export const App: React.FC = () => {
                   onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && <KnowledgeGraphView />}
+              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && <KnowledgeGraphView patient={currentPatient} patientId={currentPatientId} />}
               {appMode === 'doctor' && workspaceModule === 'doctor_reports' && (
                 <ReportView
                   patient={currentPatient}
@@ -340,11 +353,6 @@ export const App: React.FC = () => {
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
-              )}
-
-              {/* 5. Knowledge Graph */}
-              {patientModule === 'knowledge_graph' && (
-                <KnowledgeGraphView />
               )}
 
               {/* 6. Physiological Digital Twin */}

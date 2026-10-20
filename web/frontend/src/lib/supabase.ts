@@ -381,7 +381,15 @@ export async function fetchSupabasePatients(): Promise<Patient[]> {
     const { data: detailData, error: detailError } = await client.from('patient_detail').select('*').limit(100000);
     if (detailError) console.warn('Supabase query error on patient_detail:', detailError.message);
     cachedRawDetails = (detailData || []) as SupabasePatientDetail[];
-    return cachedRawSummaries.map((row) => mapSupabaseToPatient(row));
+    return cachedRawSummaries.map((row) => {
+      const patientNumber = row['Patient Number'];
+
+      const patientDetails = cachedRawDetails.filter(
+        (detail) => detail['Patient Number'] === patientNumber
+      );
+
+      return mapSupabaseToPatient(row, patientDetails);
+    });
   } catch (err) {
     console.error('Error fetching patients from Supabase:', err);
     return PATIENTS;

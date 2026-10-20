@@ -81,7 +81,10 @@ export const App: React.FC = () => {
     client.auth.getSession().then(({ data }) => {
       const role = normalizeUserRole(data.session?.user);
       setUserRole(role || null);
-      if (data.session) setAppMode(role || 'doctor');
+      if (data.session) {
+        setAppMode(role || 'doctor');
+        setClinicModule(role === 'admin' ? 'admin_overview' : 'doctor_overview');
+      }
     });
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
       const role = normalizeUserRole(session?.user);
@@ -158,6 +161,17 @@ export const App: React.FC = () => {
     setAppMode('auth');
   };
 
+  const navigateDoctorView = (module: NavigationModule) => {
+    if (module === 'patients') {
+      setClinicModule('doctor_patients');
+    } else if (module.startsWith('doctor_')) {
+      setClinicModule(module);
+    } else {
+      setAppMode('patient');
+      setPatientModule(module);
+    }
+  };
+
   // If in Auth mode, render full-screen AuthView
   if (appMode === 'auth') {
     return (
@@ -189,6 +203,13 @@ export const App: React.FC = () => {
     );
   }
 
+  if (appMode === 'patient' && !currentPatient) {
+    return <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 p-6 text-slate-600">
+      <p>Waiting for patient records.</p>
+      <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" onClick={() => syncSupabaseData()}>Retry loading records</button>
+    </div>;
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans p-3 sm:p-5 lg:p-7 flex justify-center selection:bg-blue-600 selection:text-white">
       <div className="max-w-[1400px] w-full flex flex-col md:flex-row gap-5 lg:gap-6 items-start">
@@ -207,7 +228,7 @@ export const App: React.FC = () => {
             setAppMode('doctor');
             setClinicModule('doctor_overview');
           }}
-          currentPatientName={currentPatient.name}
+          currentPatientName={currentPatient?.name}
         />
 
         {/* 2. MAIN WORKSPACE */}
@@ -219,7 +240,10 @@ export const App: React.FC = () => {
             patientsList={patients}
             isSupabaseConnected={isSupabaseConnected}
             onSelectPatient={handleSelectPatient}
-            onSwitchMode={(mode) => setAppMode(mode)}
+            onSwitchMode={(mode) => {
+              setAppMode(mode);
+              if (mode !== 'patient') setClinicModule(mode === 'admin' ? 'admin_overview' : mode === 'doctor' ? 'doctor_overview' : 'overview');
+            }}
             onOpenAuth={() => handleOpenAuth('signin')}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
@@ -266,19 +290,19 @@ export const App: React.FC = () => {
               {appMode === 'doctor' && clinicModule === 'doctor_monitoring' && (
                 <LongitudinalMonitoringView
                   patient={currentPatient}
-                  onNavigate={(mod) => setClinicModule(mod)}
+                  onNavigate={navigateDoctorView}
                 />
               )}
               {appMode === 'doctor' && clinicModule === 'doctor_digital_twin' && (
                 <DigitalTwinView
                   patient={currentPatient}
-                  onNavigate={(mod) => setClinicModule(mod)}
+                  onNavigate={navigateDoctorView}
                 />
               )}
               {appMode === 'doctor' && clinicModule === 'doctor_reports' && (
                 <ReportView
                   patient={currentPatient}
-                  onNavigate={(mod) => setClinicModule(mod)}
+                  onNavigate={navigateDoctorView}
                 />
               )}
               {appMode === 'doctor' && clinicModule === 'doctor_settings' && (

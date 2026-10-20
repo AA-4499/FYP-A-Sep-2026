@@ -36,19 +36,7 @@ export type PatientModule =
   | 'patient_insights'
   | 'patient_reports';
 
-export type ClinicModule =
-  | 'overview'
-  | 'patients'
-  | 'glucose_review'
-  | 'clinical_analytics'
-  | 'alerts_tasks'
-  | 'care_team'
-  | 'devices'
-  | 'reports'
-  | 'settings'
-  | 'clinical_support';
-
-export type NavigationModule = ClinicModule | PatientModule | AdminModule | DoctorModule;
+export type NavigationModule = PatientModule | AdminModule | DoctorModule;
 
 export type AuthFlow =
   | 'signin'

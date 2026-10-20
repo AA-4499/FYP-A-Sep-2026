@@ -21,7 +21,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
       {/* Top Action Bar (hidden when printing) */}
       <div className="flex items-center justify-between print:hidden">
         <button
-          onClick={() => onNavigate('patients')}
+          onClick={() => onNavigate('patient_dashboard')}
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-blue-600 transition"
         >
           <ArrowLeft className="w-4 h-4" />

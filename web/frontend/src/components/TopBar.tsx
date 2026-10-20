@@ -20,12 +20,12 @@ import {
 import type { Patient } from '../types';
 
 interface TopBarProps {
-  mode: 'clinic' | 'patient' | 'admin' | 'doctor';
+  mode: 'patient' | 'admin' | 'doctor';
   currentPatient: Patient;
   patientsList: Patient[];
   isSupabaseConnected: boolean;
   onSelectPatient: (patientId: string) => void;
-  onSwitchMode: (mode: 'clinic' | 'patient' | 'admin' | 'doctor') => void;
+  onSwitchMode: (mode: 'patient' | 'admin' | 'doctor') => void;
   onOpenAuth: () => void;
   onOpenSupabaseModal: () => void;
 }
@@ -54,7 +54,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Left: Mode Context */}
-      {mode === 'clinic' || mode === 'admin' || mode === 'doctor' ? (
+      {mode === 'admin' || mode === 'doctor' ? (
         <div className="flex items-center gap-3">
           <div className="relative w-64 sm:w-80">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
@@ -121,9 +121,9 @@ export const TopBar: React.FC<TopBarProps> = ({
         /* Patient Mode Left Profile */
         <div className="flex items-center gap-3.5">
           <button
-            onClick={() => onSwitchMode('clinic')}
+            onClick={() => onSwitchMode('doctor')}
             className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
-            title="Back to Clinic Overview"
+            title="Back to care team workspace"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -178,11 +178,11 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {mode === 'patient' && (
           <button
-            onClick={() => onSwitchMode('clinic')}
+            onClick={() => onSwitchMode('doctor')}
             className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5"
           >
             <Hospital className="w-3.5 h-3.5 text-blue-600" />
-            <span>Clinic Overview</span>
+            <span>Care team workspace</span>
           </button>
         )}
 
@@ -243,13 +243,13 @@ export const TopBar: React.FC<TopBarProps> = ({
               </button>
               <button
                 onClick={() => {
-                  onSwitchMode(mode === 'clinic' ? 'patient' : 'clinic');
+                  onSwitchMode(mode === 'patient' ? 'doctor' : 'patient');
                   setIsProfileMenuOpen(false);
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
               >
                 <User className="w-3.5 h-3.5 text-blue-600" />
-                <span>Switch to {mode === 'clinic' ? 'Patient Twin' : 'Clinic Overview'}</span>
+                <span>Switch to {mode === 'patient' ? 'care team workspace' : 'patient workspace'}</span>
               </button>
             </div>
           )}

@@ -1,22 +1,7 @@
-/**
- * Main Application Shell for Smart Diabetes Digital Twin & Health Management Platform
- * Seamlessly integrates all Figma designs:
- * 1. Clinic Overview Dashboard (Borneo Center Kuching, Malaysia - Image 1)
- * 2. Patient Digital Twin Suite (Patient P07 / Elena Morales - Image 3):
- *    - Patient Overview Dashboard (4 Key Metrics + 2x2 Grid)
- *    - Longitudinal Monitoring (Timeline + Past 7 days distribution)
- *    - Risk Prediction and What-if Simulation
- *    - Explainable AI & Interactive Model Insights Chat
- *    - Knowledge Graph (14 entities, 4 categories, node inspector, clinical chart)
- *    - Physiological Digital Twin (Multi-organ metabolic mapping)
- *    - Clinical Health Dossier / Reports (Printable PDF)
- * 3. Complete Authentication & Onboarding Suite (All 5 screens - Image 2)
- * 4. Supabase Live Integration (public.patient_summary & public.patient_detail)
- */
+/** Application shell for doctor, administrator and patient workspaces. */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
-import { ClinicDashboardView } from './components/ClinicDashboardView';
 import { DashboardView } from './components/DashboardView';
 import { LongitudinalMonitoringView } from './components/LongitudinalMonitoringView';
 import { RiskSimulationView } from './components/RiskSimulationView';
@@ -24,7 +9,6 @@ import { AIChatView } from './components/AIChatView';
 import { KnowledgeGraphView } from './components/KnowledgeGraphView';
 import { DigitalTwinView } from './components/DigitalTwinView';
 import { ReportView } from './components/ReportView';
-import { PatientsView } from './components/PatientsView';
 import { AuthView } from './components/AuthView';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { ClinicalDataView } from './components/ClinicalDataView';
@@ -55,12 +39,11 @@ function normalizeUserRole(user: { app_metadata?: Record<string, unknown>; user_
 }
 
 export const App: React.FC = () => {
-  // Navigation Mode: 'clinic' (Borneo Center) | 'patient' (DiabetesTwin P07) | 'auth' (Sign in / Registration)
-  const [appMode, setAppMode] = useState<UserRole | 'clinic' | 'auth'>('auth');
+  const [appMode, setAppMode] = useState<UserRole | 'auth'>('auth');
   const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   // Currently active module in the sidebar
-  const [clinicModule, setClinicModule] = useState<NavigationModule>('overview');
+  const [workspaceModule, setWorkspaceModule] = useState<NavigationModule>('doctor_overview');
   const [patientModule, setPatientModule] = useState<NavigationModule>('patient_home');
 
   // Patients dataset: initialized with Figma replica, synchronized dynamically with Supabase
@@ -83,7 +66,7 @@ export const App: React.FC = () => {
       setUserRole(role || null);
       if (data.session) {
         setAppMode(role || 'doctor');
-        setClinicModule(role === 'admin' ? 'admin_overview' : 'doctor_overview');
+        setWorkspaceModule(role === 'admin' ? 'admin_overview' : 'doctor_overview');
       }
     });
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
@@ -161,11 +144,13 @@ export const App: React.FC = () => {
     setAppMode('auth');
   };
 
-  const navigateDoctorView = (module: NavigationModule) => {
-    if (module === 'patients') {
-      setClinicModule('doctor_patients');
-    } else if (module.startsWith('doctor_')) {
-      setClinicModule(module);
+  const navigateWorkspace = (module: NavigationModule) => {
+    if (module.startsWith('doctor_')) {
+      setAppMode('doctor');
+      setWorkspaceModule(module);
+    } else if (module.startsWith('admin_')) {
+      setAppMode('admin');
+      setWorkspaceModule(module);
     } else {
       setAppMode('patient');
       setPatientModule(module);
@@ -187,17 +172,17 @@ export const App: React.FC = () => {
               setPatientModule('patient_home');
             } else if (role === 'admin') {
               setAppMode('admin');
-              setClinicModule('admin_overview');
+              setWorkspaceModule('admin_overview');
             } else {
               setAppMode('doctor');
-              setClinicModule('doctor_overview');
+              setWorkspaceModule('doctor_overview');
             }
           });
         }}
         onClose={() => {
           setUserRole('doctor');
           setAppMode('doctor');
-          setClinicModule('doctor_overview');
+          setWorkspaceModule('doctor_overview');
         }}
       />
     );
@@ -215,18 +200,18 @@ export const App: React.FC = () => {
       <div className="max-w-[1400px] w-full flex flex-col md:flex-row gap-5 lg:gap-6 items-start">
         {/* 1. LEFT SIDEBAR */}
         <Sidebar
-          mode={appMode === 'clinic' ? 'clinic' : appMode}
-          activeModule={appMode === 'patient' ? patientModule : clinicModule}
+          mode={appMode}
+          activeModule={appMode === 'patient' ? patientModule : workspaceModule}
           onSelectModule={(mod) => {
             if (appMode === 'patient') {
               setPatientModule(mod);
             } else {
-              setClinicModule(mod);
+              setWorkspaceModule(mod);
             }
           }}
-          onSwitchToClinic={() => {
+          onReturnToCareTeam={() => {
             setAppMode('doctor');
-            setClinicModule('doctor_overview');
+            setWorkspaceModule('doctor_overview');
           }}
           currentPatientName={currentPatient?.name}
         />
@@ -235,51 +220,51 @@ export const App: React.FC = () => {
         <main className="flex-1 w-full space-y-5 min-w-0">
           {/* Top Bar */}
           <TopBar
-            mode={appMode === 'clinic' ? 'clinic' : appMode}
+            mode={appMode}
             currentPatient={currentPatient}
             patientsList={patients}
             isSupabaseConnected={isSupabaseConnected}
             onSelectPatient={handleSelectPatient}
             onSwitchMode={(mode) => {
               setAppMode(mode);
-              if (mode !== 'patient') setClinicModule(mode === 'admin' ? 'admin_overview' : mode === 'doctor' ? 'doctor_overview' : 'overview');
+              if (mode !== 'patient') setWorkspaceModule(mode === 'admin' ? 'admin_overview' : 'doctor_overview');
             }}
             onOpenAuth={() => handleOpenAuth('signin')}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
 
           {/* ========================================================= */}
-          {/* A. CLINIC WORKSPACE (Borneo Center Kuching - Figma Image 1) */}
+          {/* A. DOCTOR AND ADMINISTRATOR WORKSPACES */}
           {/* ========================================================= */}
-          {(appMode === 'clinic' || appMode === 'doctor' || appMode === 'admin') && (
+          {(appMode === 'doctor' || appMode === 'admin') && (
             <>
-              {appMode === 'admin' && clinicModule === 'admin_overview' && (
+              {appMode === 'admin' && workspaceModule === 'admin_overview' && (
                 <AdminOverviewView
-                  onNavigateToUsers={() => setClinicModule('admin_users')}
-                  onNavigateToDataQuality={() => setClinicModule('admin_data_quality')}
-                  onNavigateToTwinConfig={() => setClinicModule('admin_twin_config')}
+                  onNavigateToUsers={() => setWorkspaceModule('admin_users')}
+                  onNavigateToDataQuality={() => setWorkspaceModule('admin_data_quality')}
+                  onNavigateToTwinConfig={() => setWorkspaceModule('admin_twin_config')}
                 />
               )}
-              {appMode === 'admin' && clinicModule === 'admin_users' && <AdminPatientManagementView />}
-              {appMode === 'admin' && clinicModule === 'admin_data_quality' && <AdminDataQualityView />}
-              {appMode === 'admin' && clinicModule === 'admin_twin_config' && <AdminTwinConfigView />}
-              {appMode === 'admin' && clinicModule === 'admin_logs' && (
+              {appMode === 'admin' && workspaceModule === 'admin_users' && <AdminPatientManagementView />}
+              {appMode === 'admin' && workspaceModule === 'admin_data_quality' && <AdminDataQualityView />}
+              {appMode === 'admin' && workspaceModule === 'admin_twin_config' && <AdminTwinConfigView />}
+              {appMode === 'admin' && workspaceModule === 'admin_logs' && (
                 <AdminOverviewView
-                  onNavigateToUsers={() => setClinicModule('admin_users')}
-                  onNavigateToDataQuality={() => setClinicModule('admin_data_quality')}
-                  onNavigateToTwinConfig={() => setClinicModule('admin_twin_config')}
+                  onNavigateToUsers={() => setWorkspaceModule('admin_users')}
+                  onNavigateToDataQuality={() => setWorkspaceModule('admin_data_quality')}
+                  onNavigateToTwinConfig={() => setWorkspaceModule('admin_twin_config')}
                 />
               )}
-              {appMode === 'doctor' && clinicModule === 'doctor_overview' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_overview' && (
                 <DoctorOverviewView
                   patients={patients}
                   onSelectPatient={handleSelectPatient}
                   onOpenPatientTwin={handleSelectPatient}
-                  onViewAllPatients={() => setClinicModule('doctor_patients')}
-                  onViewMonitoring={() => setClinicModule('doctor_monitoring')}
+                  onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
+                  onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
                 />
               )}
-              {appMode === 'doctor' && clinicModule === 'doctor_patients' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_patients' && (
                 <DoctorPatientListView
                   patients={patients}
                   currentPatient={currentPatient}
@@ -287,81 +272,34 @@ export const App: React.FC = () => {
                   onOpenDigitalTwin={handleSelectPatient}
                 />
               )}
-              {appMode === 'doctor' && clinicModule === 'doctor_monitoring' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_monitoring' && (
                 <LongitudinalMonitoringView
                   patient={currentPatient}
-                  onNavigate={navigateDoctorView}
+                  onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && clinicModule === 'doctor_digital_twin' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_digital_twin' && (
                 <DigitalTwinView
                   patient={currentPatient}
-                  onNavigate={navigateDoctorView}
+                  onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && clinicModule === 'doctor_knowledge_graph' && <KnowledgeGraphView />}
-              {appMode === 'doctor' && clinicModule === 'doctor_reports' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && <KnowledgeGraphView />}
+              {appMode === 'doctor' && workspaceModule === 'doctor_reports' && (
                 <ReportView
                   patient={currentPatient}
-                  onNavigate={navigateDoctorView}
+                  onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && clinicModule === 'doctor_settings' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_settings' && (
                 <DoctorOverviewView
                   patients={patients}
                   onSelectPatient={handleSelectPatient}
                   onOpenPatientTwin={handleSelectPatient}
-                  onViewAllPatients={() => setClinicModule('doctor_patients')}
-                  onViewMonitoring={() => setClinicModule('doctor_monitoring')}
+                  onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
+                  onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
                 />
               )}
-              {clinicModule === 'overview' && (
-                <ClinicDashboardView
-                  patients={patients}
-                  isSupabaseLive={isSupabaseConnected}
-                  onSelectPatient={handleSelectPatient}
-                  onViewAllPatients={() => setClinicModule('patients')}
-                  onViewAlerts={() => setClinicModule('alerts_tasks')}
-                />
-              )}
-
-              {clinicModule === 'patients' && (
-                <PatientsView
-                  currentPatient={currentPatient}
-                  patients={patients}
-                  onSelectPatient={handleSelectPatient}
-                  onNavigate={(mod) => setClinicModule(mod)}
-                />
-              )}
-
-              {clinicModule === 'glucose_review' && (
-                <PatientsView
-                  currentPatient={currentPatient}
-                  patients={patients}
-                  onSelectPatient={handleSelectPatient}
-                  onNavigate={(mod) => setClinicModule(mod)}
-                />
-              )}
-
-              {clinicModule === 'reports' && (
-                <ReportView
-                  patient={currentPatient}
-                  onNavigate={(mod) => setClinicModule(mod)}
-                />
-              )}
-
-              {appMode === 'clinic' && clinicModule !== 'overview' &&
-                clinicModule !== 'patients' &&
-                clinicModule !== 'glucose_review' &&
-                clinicModule !== 'reports' && (
-                  <ClinicDashboardView
-                    patients={patients}
-                    isSupabaseLive={isSupabaseConnected}
-                    onSelectPatient={handleSelectPatient}
-                    onViewAllPatients={() => setClinicModule('patients')}
-                    onViewAlerts={() => setClinicModule('alerts_tasks')}
-                  />
-                )}
             </>
           )}
 
@@ -374,11 +312,7 @@ export const App: React.FC = () => {
               {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && (
                 <DashboardView
                   patient={currentPatient}
-                  onNavigate={(mod) => {
-                    if (mod === 'digital_twin') setPatientModule('digital_twin');
-                    else if (mod === 'reports') setPatientModule('reports');
-                    else setPatientModule(mod);
-                  }}
+                  onNavigate={navigateWorkspace}
                 />
               )}
               {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && <ClinicalDataView patientId={currentPatientId} />}
@@ -388,7 +322,7 @@ export const App: React.FC = () => {
               {(patientModule === 'monitoring' || patientModule === 'patient_monitoring') && (
                 <LongitudinalMonitoringView
                   patient={currentPatient}
-                  onNavigate={(mod) => setPatientModule(mod)}
+                  onNavigate={navigateWorkspace}
                 />
               )}
 
@@ -396,7 +330,7 @@ export const App: React.FC = () => {
               {(patientModule === 'risk' || patientModule === 'patient_insights') && (
                 <RiskSimulationView
                   patient={currentPatient}
-                  onNavigate={(mod) => setPatientModule(mod)}
+                  onNavigate={navigateWorkspace}
                 />
               )}
 
@@ -404,7 +338,7 @@ export const App: React.FC = () => {
               {patientModule === 'explain_ai' && (
                 <AIChatView
                   patient={currentPatient}
-                  onNavigate={(mod) => setPatientModule(mod)}
+                  onNavigate={navigateWorkspace}
                 />
               )}
 
@@ -417,7 +351,7 @@ export const App: React.FC = () => {
               {(patientModule === 'digital_twin' || patientModule === 'patient_digital_twin') && (
                 <DigitalTwinView
                   patient={currentPatient}
-                  onNavigate={(mod) => setPatientModule(mod)}
+                  onNavigate={navigateWorkspace}
                 />
               )}
 
@@ -425,7 +359,7 @@ export const App: React.FC = () => {
               {(patientModule === 'reports' || patientModule === 'patient_reports') && (
                 <ReportView
                   patient={currentPatient}
-                  onNavigate={(mod) => setPatientModule(mod)}
+                  onNavigate={navigateWorkspace}
                 />
               )}
             </>

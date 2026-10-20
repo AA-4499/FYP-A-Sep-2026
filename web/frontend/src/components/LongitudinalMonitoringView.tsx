@@ -1621,7 +1621,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
 
             {!hasCGM && (
               <button
-                onClick={() => onNavigate("patients")}
+                onClick={() => onNavigate("doctor_patients")}
                 className="mt-4 px-3 py-2 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold transition"
               >
                 Switch to another patient

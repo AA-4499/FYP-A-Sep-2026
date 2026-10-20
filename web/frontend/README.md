@@ -1,133 +1,59 @@
-# DiabeTwin Frontend Structure
+# DiaTwin frontend
 
-This folder contains the React/Vite frontend for the Smart Diabetes Digital Twin platform. The interface has three main application modes:
+This folder contains the React/Vite frontend. `App.tsx` coordinates authentication, patient selection, Supabase synchronization and three role workspaces:
 
-1. **Authentication** – sign-in and registration screens.
-2. **Clinic workspace** – cohort-level monitoring for clinicians.
-3. **Patient workspace** – an individual patient's digital twin, monitoring, risk, explainable AI, knowledge graph, and reports.
+- **Doctor:** the teal clinical workspace, with overview, patient management, health monitoring, digital twin, knowledge graph, reports and settings.
+- **Administrator:** platform overview, user management, data quality and twin configuration.
+- **Patient:** personal dashboard, clinical profile, monitoring, digital twin, knowledge graph, risk prediction and reports.
 
-## Runtime flow
+The former blue clinic workspace and its separate sidebar have been removed. Its overview, patient/glucose-review pages, clinical analytics, alerts/tasks, care team, devices, settings and support routes are no longer available. The shared patient monitoring, reports and digital-twin components remain available through the current workspaces.
+
+## Application structure
 
 ```text
 main.tsx
-  └── App.tsx
-       ├── AuthView                 (auth mode)
-       └── Application shell
-            ├── Sidebar             (navigation)
-            ├── TopBar              (patient/mode controls)
-            ├── Clinic workspace
-            │    ├── ClinicDashboardView
-            │    ├── PatientsView
-            │    └── ReportView
-            └── Patient workspace
-                 ├── DashboardView
-                 ├── ClinicalDataView
-                 ├── LongitudinalMonitoringView
-                 ├── RiskSimulationView
-                 ├── AIChatView
-                 ├── KnowledgeGraphView
-                 ├── DigitalTwinView
-                 └── ReportView
+  App.tsx
+    AuthView
+    Sidebar / TopBar
+    DoctorOverviewView / DoctorPatientListView
+    AdminOverviewView / AdminPatientManagementView
+    AdminDataQualityView / AdminTwinConfigView
+    DashboardView / ClinicalDataView
+    LongitudinalMonitoringView
+    RiskSimulationView
+    KnowledgeGraphView
+    AIChatView / DigitalTwinView / ReportView
 ```
 
-`App.tsx` owns the main UI state: application mode, selected module, current patient, authentication role, patient data, and Supabase connection status. It also coordinates patient selection and navigation between modules.
-
-## Directory structure
-
-```text
-src/
-├── main.tsx                         # React entry point
-├── App.tsx                          # Application shell and route-like rendering
-├── index.css                        # Global styles and Tailwind-related styles
-├── components/                      # Page views and reusable UI sections
-├── data/                            # Local demo and chart data
-├── lib/                             # External-service and utility logic
-└── types/                           # Shared TypeScript types
-```
-
-## Components
-
-### Application shell and navigation
-
-| Component | Responsibility |
-| --- | --- |
-| `App.tsx` | Central state, mode switching, module rendering, patient selection, and Supabase synchronization. |
-| `Sidebar.tsx` | Main navigation for clinic and patient workspaces. |
-| `TopBar.tsx` | Current patient, workspace controls, connection status, and authentication actions. |
-| `AuthView.tsx` | Sign-in and registration UI. |
-| `SupabaseConfigModal.tsx` | Configure or update the Supabase connection. |
-
-### Clinic workspace
-
-| Component | Responsibility |
-| --- | --- |
-| `ClinicDashboardView.tsx` | Cohort overview: active patients, glucose/HbA1c metrics, patient distribution, trends, glycemic control, clinical snapshot, and priority patient activity. |
-| `PatientsView.tsx` | Browse patients and select a patient for the digital-twin workspace. |
-| `ClinicalDataView.tsx` | Shared clinical-data section used by both clinic and patient views. |
-| `ReportView.tsx` | Clinical health dossier/report view and printable report output. |
-
-`ClinicDashboardView` receives patient data and callbacks from `App.tsx`. It calculates cohort statistics through `computeCohortStats` and falls back to local `PATIENTS` data when no patient list is supplied.
-
-### Patient digital-twin workspace
-
-| Component | Responsibility |
-| --- | --- |
-| `DashboardView.tsx` | Patient overview dashboard with key vitals and summary cards. |
-| `LongitudinalMonitoringView.tsx` | Historical monitoring and recent glucose distribution. |
-| `RiskSimulationView.tsx` | Risk assessment and what-if scenario simulation. |
-| `AIChatView.tsx` | Explainable AI and model-insights conversation interface. |
-| `KnowledgeGraphView.tsx` | Interactive clinical knowledge graph and entity inspection. |
-| `DigitalTwinView.tsx` | Physiological/metabolic digital-twin visualization. |
-| `ReportView.tsx` | Patient clinical dossier and report output. |
+`appMode` is `auth`, `doctor`, `admin` or `patient`. `workspaceModule` identifies the active doctor or administrator page; `patientModule` identifies the active patient page. Returning to the care team from a patient opens the teal doctor workspace. No `clinic` mode or legacy clinic module types remain.
 
 ## Data and services
 
 | Location | Purpose |
 | --- | --- |
-| `src/data/patientsData.ts` | Local patient records and patient lookup helpers. |
-| `src/data/clinicData.ts` | Clinic dashboard chart, trend, and snapshot data. |
-| `src/data/knowledgeGraphData.ts` | Knowledge graph entities and relationships. |
-| `src/lib/supabase.ts` | Supabase client, connection testing, patient-list loading, patient-detail loading, and cohort-stat calculations. |
-| `src/types/index.ts` | Shared `Patient`, navigation, authentication, and related TypeScript definitions. |
+| `src/lib/supabase.ts` | Supabase client, patient list, detail observations and cohort calculations. |
+| `src/lib/forecast.ts` | Online forecasting and explicit local-preview selection. |
+| `src/lib/forecastPreview.ts` | Load an exact patient's static chart snapshot without a Python service. |
+| `public/forecast-preview/` | Local precomputed GRU chart snapshots; not live database results. |
+| `src/data/adminData.ts` | Administrator demonstration data. |
+| `src/data/patientsData.ts` | Patient fallback data and lookup helpers. |
+| `src/types/index.ts` | Shared patient, role and navigation definitions. |
 
-## Supabase data behavior
+The patient list and observations load from Supabase when available. Forecasting currently defaults to the clearly labelled local data preview while the Python service is being deployed. Online forecasting is selectable separately and requires an authenticated API connection. See [prediction service setup](../../docs/prediction-web-setup.md).
 
-The frontend starts with local demo data from `src/data/patientsData.ts`. On startup, `App.tsx` tests the Supabase connection. If the connection is available and returns patients, the remote data replaces the local list. Selecting a patient can then load detailed observations from Supabase. If Supabase is unavailable, the application continues using the local fallback data.
+The knowledge graph is a fixed demonstration record with node inspection, not the currently selected patient's live graph. Its optional Neo4j backend is documented in [patient KG setup](../../knowledge_graph/patient_kg/README.md).
 
-## Important navigation state
+## Development
 
-- `appMode`: `auth`, `clinic`, or `patient`.
-- `clinicModule`: active clinic section, such as `overview`, `patients`, `glucose_review`, or `reports`.
-- `patientModule`: active patient section, such as `patient_dashboard`, `monitoring`, `risk`, `explain_ai`, `knowledge_graph`, `digital_twin`, or `reports`.
-- `currentPatientId`: identifier of the patient currently displayed.
-- `isSupabaseConnected`: whether live Supabase data is available.
-
-## Technology stack
-
-- React 18 with TypeScript
-- Vite
-- Tailwind CSS
-- Supabase JavaScript client
-- Recharts and SVG charts for clinical trends
-- Cytoscape for knowledge-graph visualization
-- Lucide React for icons
-- Google Model Viewer for 3D model content
-
-## Development commands
-
-Run these commands from `web/frontend`:
+From `web/frontend`:
 
 ```bash
-npm install
-npm run dev       # Start the Vite development server
-npm run build     # Type-check and create a production build
-npm run preview   # Preview the production build locally
+npm ci
+npm run dev
+npm run build
+npm run preview
 ```
 
-## Where to start when changing the UI
+The frontend uses React, TypeScript, Vite, Tailwind CSS, Supabase, Recharts, Cytoscape, React Day Picker and Lucide icons. Builds type-check the application before producing `dist/`.
 
-- Change global navigation or data loading in `src/App.tsx`.
-- Change clinic overview cards, charts, or tables in `src/components/ClinicDashboardView.tsx`.
-- Change patient navigation in `Sidebar.tsx` and the `patientModule` rendering section of `App.tsx`.
-- Change local sample values in `src/data/`.
-- Change live database behavior in `src/lib/supabase.ts`.
+Update navigation in `App.tsx`, `Sidebar.tsx` and `TopBar.tsx`. Doctor pages live in `components/doctor/`; administrator pages live in `components/admin/`. Shared patient pages remain in `components/`.

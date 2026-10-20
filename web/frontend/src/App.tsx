@@ -43,6 +43,17 @@ import {
   testSupabaseConnection,
 } from './lib/supabase';
 
+function normalizeUserRole(user: { app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> } | null | undefined): UserRole | null {
+  const rawRole =
+    user?.app_metadata?.role ||
+    user?.user_metadata?.role;
+
+  if (rawRole === 'admin') return 'admin';
+  if (rawRole === 'patient') return 'patient';
+  if (rawRole === 'doctor' || rawRole === 'clinician') return 'doctor';
+  return null;
+}
+
 export const App: React.FC = () => {
   // Navigation Mode: 'clinic' (Borneo Center) | 'patient' (DiabetesTwin P07) | 'auth' (Sign in / Registration)
   const [appMode, setAppMode] = useState<UserRole | 'clinic' | 'auth'>('auth');
@@ -68,12 +79,12 @@ export const App: React.FC = () => {
     const client = getSupabaseClient();
     if (!client) return;
     client.auth.getSession().then(({ data }) => {
-      const role = data.session?.user.user_metadata?.role as UserRole | undefined;
+      const role = normalizeUserRole(data.session?.user);
       setUserRole(role || null);
       if (data.session) setAppMode(role || 'doctor');
     });
     const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
-      const role = session?.user.user_metadata?.role as UserRole | undefined;
+      const role = normalizeUserRole(session?.user);
       setUserRole(role || null);
       if (!session) setAppMode('auth');
     });
@@ -155,7 +166,7 @@ export const App: React.FC = () => {
         onSuccessLogin={() => {
           const client = getSupabaseClient();
           client?.auth.getUser().then(({ data }) => {
-            const role = data.user?.user_metadata?.role as UserRole | undefined;
+            const role = normalizeUserRole(data.user);
             setUserRole(role || null);
             if (role === 'patient') {
               setAppMode('patient');

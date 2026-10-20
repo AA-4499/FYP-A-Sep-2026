@@ -686,11 +686,26 @@ export const KnowledgeGraphView: React.FC<Props> = ({ patient, patientId, isSupa
     return [...visibleNodes, ...visibleEdges];
   }, [graph, filter]);
 
+  const visibleNodeList = visibleElements
+    .filter((element) => {
+      const data = element.data as KGNodeData & Partial<KGEdgeData>;
+      return !(typeof data.source === 'string' && typeof data.target === 'string');
+    })
+    .map((element) => element.data as KGNodeData);
+  const visibleNodeIds = new Set(visibleNodeList.map((node) => node.id));
   const nodeList = graph.nodes.map((element) => element.data as KGNodeData);
-  const selectedNode = nodeList.find((node) => node.id === selectedNodeId) ?? nodeList.find((node) => node.kind === 'Patient') ?? null;
+  const selectedNode =
+    visibleNodeList.find((node) => node.id === selectedNodeId) ??
+    visibleNodeList.find((node) => node.kind === 'Patient') ??
+    visibleNodeList[0] ??
+    null;
   const selectedEdges = selectedNode
     ? graph.edges.map((element) => element.data as KGEdgeData)
-      .filter((edge) => edge.source === selectedNode.id || edge.target === selectedNode.id)
+      .filter((edge) =>
+        (edge.source === selectedNode.id || edge.target === selectedNode.id) &&
+        visibleNodeIds.has(edge.source) &&
+        visibleNodeIds.has(edge.target),
+      )
       .slice(0, 20)
     : [];
   const conditionsCount = nodeList.filter((node) => node.category === 'condition' || node.kind === 'SupabaseCondition').length;
@@ -827,9 +842,9 @@ export const KnowledgeGraphView: React.FC<Props> = ({ patient, patientId, isSupa
     const cy = cyRef.current;
     if (!cy) return;
     cy.nodes().removeClass('selected');
-    const id = selectedNodeId ?? selectedPatientNodeId;
+    const id = selectedNode?.id ?? selectedPatientNodeId;
     cy.$id(id).addClass('selected');
-  }, [selectedNodeId, visibleElements, selectedPatientNodeId]);
+  }, [selectedNode?.id, visibleElements, selectedPatientNodeId]);
 
   const focusNode = (nodeId: string) => {
     setSelectedNodeId(nodeId);

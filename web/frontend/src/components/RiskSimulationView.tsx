@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw, Activity, AlertCircle, SlidersHorizontal, Database, Download, Settings2, CheckCircle2 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from 'recharts';
 import type { Patient, NavigationModule } from '../types';
@@ -125,6 +125,8 @@ function ForecastPanel({ patient, onNavigate }: Props) {
     { key: 'actual', label: 'Real testing CGM', color: '#8b5cf6', points: current?.testing_actual ?? [] },
   ];
   const delta = current ? current.scenario_end - current.baseline_end : undefined;
+  const differences = current?.scenario_enabled ? current.scenario.map((point, index) => point.value - (current.baseline[index]?.value ?? point.value)) : [];
+  const peakDifference = differences.reduce((peak, value) => Math.abs(value) > Math.abs(peak) ? value : peak, 0);
   const forecastRows = current?.baseline.slice(1) ?? [];
 
   return <div className="space-y-5 pb-10 animate-fadeIn">
@@ -168,7 +170,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
         ['Latest observed CGM', current ? `${displayNumber(current.latest_glucose)} mg/dL` : '\u2014'],
         ['Held-out test MAE', current?.metrics ? `${displayNumber(current.metrics.mae_mg_dl)} mg/dL` : '\u2014'],
         [`Prediction after ${horizon} hours`, current ? `${displayNumber(current.scenario_end)} mg/dL` : '\u2014'],
-        ['What-if change', delta !== undefined && current?.scenario_enabled ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} mg/dL` : current ? 'No event applied' : '\u2014'],
+        ['What-if at forecast end', delta !== undefined && current?.scenario_enabled ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} mg/dL` : current ? 'No event applied' : '\u2014'],
       ].map(([label, value]) => <div key={label} className={`${card} !p-4`}><p className="text-xs text-slate-500">{label}</p><p className="mt-2 text-lg font-bold text-slate-900">{value}</p></div>)}
     </div>
 
@@ -228,7 +230,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900"><Database size={15} className="text-blue-500" />Model and data details</h2>
           <dl className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
             {[
-              ['Model', 'Chronological GRU'], ['Patient record', patient.id],
+              ['Model', 'One-step GRU (legacy)'], ['Patient record', patient.id],
               ['Data source', current?.source ?? source], ['Observed readings', current?.observed.length.toLocaleString() ?? '\u2014'],
               ['Model lookback', current ? `${current.sequence_length} readings / ${current.sequence_length * 15} minutes` : '\u2014'],
               ['Forecast begins', displayTime(current?.forecast_start)],
@@ -239,9 +241,13 @@ function ForecastPanel({ patient, onNavigate }: Props) {
         </section>
       </div>
 
-      <aside className={`${card} xl:sticky xl:top-5`} data-testid="simulator-panel">
+      <aside className={`${card} xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto`} data-testid="simulator-panel">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-900"><SlidersHorizontal size={17} className="text-blue-600" />What-if simulator</div>
         <p className="mt-2 text-xs leading-relaxed text-slate-500">Add hypothetical events to compare their projected effect with the baseline prediction.</p>
+        {current?.scenario_enabled && <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
+          <p className="text-slate-600">Largest curve difference</p><p className="mt-1 font-semibold text-blue-800">{Math.abs(peakDifference).toFixed(2)} mg/dL</p>
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">At the forecast end: {delta !== undefined && delta >= 0 ? '+' : ''}{delta?.toFixed(2)} mg/dL. Earlier changes can disappear before the final step.</p>
+        </div>}
         <form onSubmit={run} className="mt-5 space-y-5">
           <fieldset className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
             <legend className="px-1 text-xs font-semibold text-slate-700">Meal event</legend>
@@ -258,7 +264,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           <p className="text-[11px] leading-relaxed text-slate-400">Use 15-minute intervals within the selected {horizon}-hour horizon. Changes apply when you run the simulation.</p>
           <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} />{loading ? 'Running model...' : 'Run what-if simulation'}</button>
           <button type="button" className="w-full text-xs font-medium text-slate-500 hover:text-blue-600" onClick={() => { setMealEnabled(false); setInsulinEnabled(false); baselineRequest(); }}>Reset to baseline</button>
-          <p className="border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-400">Each completed forecast is saved to Supabase. Scenario inputs are for research and do not recommend an insulin dose.</p>
+          <p className="border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-400">Baseline means no future events were supplied, not confirmed fasting or no insulin. Food mass is not carbohydrate mass. These curves show model sensitivity, not validated treatment effects. Completed forecasts are saved to Supabase.</p>
         </form>
       </aside>
     </div>

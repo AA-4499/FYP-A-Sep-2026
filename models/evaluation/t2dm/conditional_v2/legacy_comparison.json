@@ -1,0 +1,55 @@
+{
+  "comparison": "Same fixed origin per eligible record, after legacy recursion timestamp fix; no future event plan supplied.",
+  "origins": 108,
+  "legacy_recursive": {
+    "3h": {
+      "trajectory_mae_mg_dl": 22.223004072011452,
+      "endpoint_mae_mg_dl": 29.86646950004083,
+      "endpoint_rmse_mg_dl": 40.54380992413122
+    },
+    "6h": {
+      "trajectory_mae_mg_dl": 27.661744087745767,
+      "endpoint_mae_mg_dl": 30.87251200491582,
+      "endpoint_rmse_mg_dl": 40.76927771929107
+    },
+    "12h": {
+      "trajectory_mae_mg_dl": 29.696531396776887,
+      "endpoint_mae_mg_dl": 29.2275055348322,
+      "endpoint_rmse_mg_dl": 36.387677453835074
+    }
+  },
+  "conditional_v2": {
+    "3h": {
+      "trajectory_mae_mg_dl": 20.549455385902366,
+      "endpoint_mae_mg_dl": 24.312841346970313,
+      "endpoint_rmse_mg_dl": 30.999168678057742
+    },
+    "6h": {
+      "trajectory_mae_mg_dl": 22.981445367876972,
+      "endpoint_mae_mg_dl": 24.80094200913553,
+      "endpoint_rmse_mg_dl": 34.58480221564003
+    },
+    "12h": {
+      "trajectory_mae_mg_dl": 24.771379596304495,
+      "endpoint_mae_mg_dl": 24.6022504856741,
+      "endpoint_rmse_mg_dl": 31.606672454442833
+    }
+  },
+  "persistence": {
+    "3h": {
+      "trajectory_mae_mg_dl": 22.90972229168739,
+      "endpoint_mae_mg_dl": 31.64999925118906,
+      "endpoint_rmse_mg_dl": 44.05916383981622
+    },
+    "6h": {
+      "trajectory_mae_mg_dl": 29.767361166447767,
+      "endpoint_mae_mg_dl": 36.449999816329395,
+      "endpoint_rmse_mg_dl": 48.86317630929884
+    },
+    "12h": {
+      "trajectory_mae_mg_dl": 34.636458340839106,
+      "endpoint_mae_mg_dl": 38.50000028257016,
+      "endpoint_rmse_mg_dl": 49.22072751638728
+    }
+  }
+}

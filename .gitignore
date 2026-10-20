@@ -38,3 +38,9 @@ artifacts_notebook/twin_cache/
 
 # Local UI verification artifacts
 .ui-check/
+
+# Versioned experimental models; not the legacy production checkpoint
+!models/weights/conditional_gru_v2.pt
+!models/weights/conditional_gru_v2_retrospective.pt
+models/evaluation/t2dm/conditional_v2/*_test.npz
+models/evaluation/t2dm/conditional_v2/retrospective_labs/*_test.npz

@@ -13,3 +13,7 @@ Reports are written to `models/evaluation/t2dm/` and the inference checkpoint to
 The notebook is in `t2dm/t2dm_training.ipynb`; install `requirements-notebook.txt` to use it. Personal training data is in `data/raw/t2dm_training/Shanghai_T2DM/`, and the cleaned summary is in `data/processed/t2dm/`. Local credentials are loaded from `models/training/.env` (ignored by Git), with the root `.env` as fallback.
 
 Apply `supabase_forecast_outputs.sql` to the existing database to install the run/patient relationships and atomic forecast save RPC. The dashboard defaults to Supabase data and saves all successful forecasts; `web/backend/verify_supabase_forecast.py` verifies live read, prediction, save, readback and FK joins.
+
+## Conditional multi-horizon research candidate
+
+`python -m models.training.t2dm.conditional_pipeline --epochs 30 --ablate-static` trains the separate 12-hour conditional model using CGM, typed events, time and patient summary. It does not overwrite the legacy production checkpoint. See [model audit and experiment](../../docs/conditional-model-audit.md) for causal limitations, undated laboratory features, measured comparisons and the separate prediction CLI.

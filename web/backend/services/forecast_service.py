@@ -150,6 +150,7 @@ def forecast_patient(patient_id: str, payload: dict):
         "baseline_end": float(baseline["predicted_glucose_mg_dl"].iloc[-1]),
         "scenario_end": float(scenario["predicted_glucose_mg_dl"].iloc[-1]),
         "scenario_enabled": bool(events), "metrics": metrics,
+        "forecast_semantics": "No supplied future events means unknown future inputs, not verified fasting or withheld insulin; scenario differences are predictive sensitivity, not identified causal effects.",
         "timeline_split": {
             "timeline_start": boundary.start.isoformat(), "timeline_end": boundary.end.isoformat(),
             "train_target_end_exclusive": boundary.train_end.isoformat(),

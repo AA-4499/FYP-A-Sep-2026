@@ -257,6 +257,17 @@ class ChronologicalSplitTests(unittest.TestCase):
             forecast.loc[0, "predicted_glucose_mg_dl"],
         )
 
+    def test_recursive_history_uses_glucose_at_its_own_timestamp(self) -> None:
+        class EchoGlucose(nn.Module):
+            def forward(self, history):
+                return history[:, -1, FEATURE_COLUMNS.index("glucose")]
+        history = make_timeline("2024-01-01", 4)
+        checkpoint = {"sequence_length": 4, "feature_mean": [0.] * len(FEATURE_COLUMNS),
+                      "feature_scale": [1.] * len(FEATURE_COLUMNS),
+                      "target_delta_mean": 0., "target_delta_scale": 1.}
+        forecast = forecast_from_history(EchoGlucose(), checkpoint, history, horizon_steps=3)
+        self.assertEqual([206., 412., 824.], forecast["predicted_glucose_mg_dl"].tolist())
+
     def test_scenario_amounts_must_be_nonnegative(self) -> None:
         model = GRUGlucoseForecaster(input_dim=len(FEATURE_COLUMNS), hidden_dim=4)
         history = make_timeline("2024-01-01", 4)

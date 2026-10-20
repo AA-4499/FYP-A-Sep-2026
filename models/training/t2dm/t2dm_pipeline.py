@@ -810,6 +810,9 @@ def forecast_from_history(
             }
         )
         current_glucose = predicted_glucose
+        # The appended row is stamped at next_timestamp, so its glucose must be
+        # the prediction for that timestamp, not the previous glucose value.
+        next_feature[feature_index["glucose"]] = predicted_glucose
         window = np.concatenate((window[1:], next_feature[None, :]), axis=0)
         timestamps = pd.Series(recent_timestamps[1:])
     return pd.DataFrame(forecast_rows)

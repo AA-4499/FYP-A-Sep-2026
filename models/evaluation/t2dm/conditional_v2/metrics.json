@@ -1,0 +1,164 @@
+{
+  "windows": {
+    "train": 5378,
+    "validation": 1078,
+    "test": 1422
+  },
+  "records": 109,
+  "static_columns": [
+    "Gender (Female=1, Male=2)",
+    "Age (years)",
+    "Height (m)",
+    "Weight (kg)",
+    "BMI (kg/m\u00b2)",
+    "Smoking History (pack year)",
+    "Duration of diabetes (years)"
+  ],
+  "undated_labs_included": false,
+  "evaluation": "Within-record chronological split; all 48 target steps inside one split. Not unseen-patient validation.",
+  "with_static": {
+    "unknown_future_plan": {
+      "3h": {
+        "trajectory_mae_mg_dl": 19.89810023644844,
+        "endpoint_mae_mg_dl": 25.47724158326386,
+        "endpoint_rmse_mg_dl": 33.78509909876941
+      },
+      "6h": {
+        "trajectory_mae_mg_dl": 23.1609910390344,
+        "endpoint_mae_mg_dl": 26.347444062290187,
+        "endpoint_rmse_mg_dl": 35.087246115857454
+      },
+      "12h": {
+        "trajectory_mae_mg_dl": 25.16410758828439,
+        "endpoint_mae_mg_dl": 27.076862459824426,
+        "endpoint_rmse_mg_dl": 36.24360271747341
+      }
+    },
+    "recorded_future_events_assumed_known": {
+      "3h": {
+        "trajectory_mae_mg_dl": 19.780499756931633,
+        "endpoint_mae_mg_dl": 24.99338812809359,
+        "endpoint_rmse_mg_dl": 33.16407218572801
+      },
+      "6h": {
+        "trajectory_mae_mg_dl": 23.058508190709492,
+        "endpoint_mae_mg_dl": 26.004129469470396,
+        "endpoint_rmse_mg_dl": 34.566696018386004
+      },
+      "12h": {
+        "trajectory_mae_mg_dl": 25.067667753032882,
+        "endpoint_mae_mg_dl": 26.549489049098437,
+        "endpoint_rmse_mg_dl": 35.410537650733275
+      }
+    },
+    "sensitivity_on_fixed_origins": {
+      "meal_60g_at_60min": {
+        "median_max_abs_difference_mg_dl": 12.333725690841675,
+        "median_signed_peak_difference_mg_dl": -11.147874683141708,
+        "fraction_negative_peak": 0.7962962962962963,
+        "median_endpoint_difference_mg_dl": 0.0027713775634765625,
+        "fraction_endpoint_increased": 0.6574074074074074
+      },
+      "meal_60g_at_120min": {
+        "median_max_abs_difference_mg_dl": 12.504230499267578,
+        "median_signed_peak_difference_mg_dl": -11.659493207931519,
+        "fraction_negative_peak": 0.8425925925925926,
+        "median_endpoint_difference_mg_dl": 0.007964134216308594,
+        "fraction_endpoint_increased": 0.7129629629629629
+      },
+      "bolus_2iu_at_60min": {
+        "median_max_abs_difference_mg_dl": 5.395362675189972,
+        "median_signed_peak_difference_mg_dl": 5.395362675189972,
+        "fraction_negative_peak": 0.0,
+        "median_endpoint_difference_mg_dl": 0.0025853514671325684,
+        "fraction_endpoint_increased": 0.6574074074074074
+      },
+      "clock_phase_shift_12h": {
+        "median_max_abs_difference_mg_dl": 38.94663977622986,
+        "note": "Input sensitivity with CGM held fixed; not a causal estimate of changing time."
+      }
+    }
+  },
+  "without_static": {
+    "unknown_future_plan": {
+      "3h": {
+        "trajectory_mae_mg_dl": 19.905555512713505,
+        "endpoint_mae_mg_dl": 25.980270265472093,
+        "endpoint_rmse_mg_dl": 34.49953707203476
+      },
+      "6h": {
+        "trajectory_mae_mg_dl": 23.492753977011937,
+        "endpoint_mae_mg_dl": 27.04051150141267,
+        "endpoint_rmse_mg_dl": 36.14444308859623
+      },
+      "12h": {
+        "trajectory_mae_mg_dl": 25.80320776816169,
+        "endpoint_mae_mg_dl": 28.19521741698144,
+        "endpoint_rmse_mg_dl": 37.63589895410095
+      }
+    },
+    "recorded_future_events_assumed_known": {
+      "3h": {
+        "trajectory_mae_mg_dl": 19.86170434372336,
+        "endpoint_mae_mg_dl": 25.568098584205924,
+        "endpoint_rmse_mg_dl": 33.93733502780691
+      },
+      "6h": {
+        "trajectory_mae_mg_dl": 23.45542645269985,
+        "endpoint_mae_mg_dl": 26.72484255768097,
+        "endpoint_rmse_mg_dl": 35.68216310850138
+      },
+      "12h": {
+        "trajectory_mae_mg_dl": 25.73071120893529,
+        "endpoint_mae_mg_dl": 27.643590304883176,
+        "endpoint_rmse_mg_dl": 36.737760887749076
+      }
+    },
+    "sensitivity_on_fixed_origins": {
+      "meal_60g_at_60min": {
+        "median_max_abs_difference_mg_dl": 12.1546271443367,
+        "median_signed_peak_difference_mg_dl": -11.501774311065674,
+        "fraction_negative_peak": 0.7314814814814815,
+        "median_endpoint_difference_mg_dl": 0.0003376007080078125,
+        "fraction_endpoint_increased": 0.5648148148148148
+      },
+      "meal_60g_at_120min": {
+        "median_max_abs_difference_mg_dl": 12.423168957233429,
+        "median_signed_peak_difference_mg_dl": -11.938527941703796,
+        "fraction_negative_peak": 0.75,
+        "median_endpoint_difference_mg_dl": 0.0016050338745117188,
+        "fraction_endpoint_increased": 0.6388888888888888
+      },
+      "bolus_2iu_at_60min": {
+        "median_max_abs_difference_mg_dl": 4.8381004333496165,
+        "median_signed_peak_difference_mg_dl": 4.8381004333496165,
+        "fraction_negative_peak": 0.0,
+        "median_endpoint_difference_mg_dl": 0.0001087188720703125,
+        "fraction_endpoint_increased": 0.5277777777777778
+      },
+      "clock_phase_shift_12h": {
+        "median_max_abs_difference_mg_dl": 39.3543267250061,
+        "note": "Input sensitivity with CGM held fixed; not a causal estimate of changing time."
+      }
+    }
+  },
+  "persistence": {
+    "3h": {
+      "trajectory_mae_mg_dl": 22.69989463843709,
+      "endpoint_mae_mg_dl": 33.146835453231965,
+      "endpoint_rmse_mg_dl": 45.150583430041735
+    },
+    "6h": {
+      "trajectory_mae_mg_dl": 29.12584399544349,
+      "endpoint_mae_mg_dl": 35.479746939529015,
+      "endpoint_rmse_mg_dl": 47.930384716608586
+    },
+    "12h": {
+      "trajectory_mae_mg_dl": 33.91627120864375,
+      "endpoint_mae_mg_dl": 38.75443055948293,
+      "endpoint_rmse_mg_dl": 52.350155177779
+    }
+  },
+  "promotion_status": "Experimental only. Wrong-direction meal/insulin responses observed; not validated as a causal what-if simulator.",
+  "summary_assumption": "Undated record-level snapshot. Baseline demographics assumed available; laboratory availability at prediction time is unverified."
+}

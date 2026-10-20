@@ -1,0 +1,111 @@
+{
+  "workbooks": 109,
+  "raw_rows": 112379,
+  "valid_cgm_rows": 112287,
+  "meal_rows": 2999,
+  "insulin_rows": 2366,
+  "meal_rows_without_cgm": 0,
+  "insulin_rows_without_cgm": 1,
+  "parsed_meal_mass": 857844.19,
+  "retained_meal_mass": 857844.19,
+  "insulin_columns": {
+    "Insulin dose - s.c.": {
+      "rows": 827,
+      "rows_without_cgm": 0
+    },
+    "CSII - bolus insulin (Novolin R, IU)": {
+      "rows": 531,
+      "rows_without_cgm": 0
+    },
+    "CSII - basal insulin (Novolin R, IU / H)": {
+      "rows": 1007,
+      "rows_without_cgm": 1
+    },
+    "Insulin dose - i.v.": {
+      "rows": 9,
+      "rows_without_cgm": 0
+    },
+    "CSII - bolus insulin (Novolin R  IU)": {
+      "rows": 0,
+      "rows_without_cgm": 0
+    },
+    "CSII - basal insulin (Novolin R  IU / H)": {
+      "rows": 0,
+      "rows_without_cgm": 0
+    },
+    "CSII - bolus insulin ": {
+      "rows": 0,
+      "rows_without_cgm": 0
+    },
+    "CSII - basal insulin ": {
+      "rows": 0,
+      "rows_without_cgm": 0
+    }
+  },
+  "meal_text_examples": [
+    "Rice 150 g\nVegetable 100 g\nSliced lotus root 50 g",
+    "Fried rice 100 g",
+    "Boiled egg 40 g \nCucumber 100 g",
+    "Vegetable stuffed steamed dumpling 50 g\nWax gourd and corn soup 200 g",
+    "Buckwheat bread 50 g\nShrimp 100 g\nGarlic and bean curd 100 g",
+    "Boiled shrimp 50 g\nSteamed hairtail 30 g\nGarlic and bean curd 50 g"
+  ],
+  "insulin_text_examples": [
+    "Gansulin 40R, 6 IU",
+    "Gansulin 40R, 10 IU",
+    "Humulin 70/30  8 IU",
+    "Humulin 70/30  8 IU",
+    "Humulin 70/30, 4 IU",
+    "Humulin 70/30, 10 IU"
+  ],
+  "summary_rows": 109,
+  "summary_missing_fraction": {
+    "Patient Number": 0.0,
+    "Gender (Female=1, Male=2)": 0.0,
+    "Age (years)": 0.0,
+    "Height (m)": 0.0,
+    "Weight (kg)": 0.0,
+    "BMI (kg/m\u00b2)": 0.0,
+    "Smoking History (pack year)": 0.0,
+    "Alcohol Drinking History (drinker/non-drinker)": 0.0,
+    "Type of Diabetes": 0.0,
+    "Duration of diabetes (years)": 0.0,
+    "Acute Diabetic Complications": 0.0,
+    "Diabetic Macrovascular Complications": 0.0,
+    "Diabetic Microvascular Complications": 0.0,
+    "Comorbidities": 0.0,
+    "Hypoglycemic Agents": 0.0,
+    "Other Agents": 0.0,
+    "Fasting Plasma Glucose (mg/dl)": 0.0,
+    "2-hour Postprandial Plasma Glucose (mg/dl)": 0.0,
+    "Fasting C-peptide (nmol/L)": 0.0,
+    "2-hour Postprandial C-peptide (nmol/L)": 0.0,
+    "Fasting Insulin (pmol/L)": 0.0,
+    "2-hour Postprandial insulin (pmol/L)": 0.0,
+    "HbA1c (mmol/mol)": 0.0,
+    "Glycated Albumin (%)": 0.0,
+    "Total Cholesterol (mmol/L)": 0.0,
+    "Triglyceride (mmol/L)": 0.0,
+    "High-Density Lipoprotein Cholesterol (mmol/L)": 0.0,
+    "Low-Density Lipoprotein Cholesterol (mmol/L)": 0.0,
+    "Creatinine (umol/L)": 0.0,
+    "Estimated Glomerular Filtration Rate  (ml/min/1.73m\u00b2)": 0.0,
+    "Uric Acid (mmol/L)": 0.0,
+    "Blood Urea Nitrogen (mmol/L)": 0.0,
+    "Hypoglycemia (yes/no)": 0.0
+  },
+  "summary_has_measurement_dates": false,
+  "legacy_feature_columns": [
+    "glucose",
+    "meal",
+    "insulin",
+    "meal_recent_1h",
+    "meal_recent_3h",
+    "insulin_recent_1h",
+    "insulin_recent_3h",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "legacy_uses_summary": false,
+  "interpretation": "Parsed numeric event counts; blank values do not establish verified absence of food or medication."
+}

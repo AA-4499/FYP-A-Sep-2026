@@ -168,7 +168,7 @@ function splitTerms(value: DetailValue): string[] {
 }
 function formatNodeProperties(properties?: Record<string, unknown>): Array<[string, string]> {
   if (!properties) return [];
-  const hiddenKeys = new Set(['sourceRefs', 'details']);
+  const hiddenKeys = new Set(['details']);
   return Object.entries(properties)
     .filter(([key, value]) => !hiddenKeys.has(key) && value !== null && value !== undefined && value !== '')
     .map(([key, value]) => {

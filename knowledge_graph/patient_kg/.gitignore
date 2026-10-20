@@ -1,0 +1,4 @@
+# Local Neo4j database files and logs for the isolated Patient KG
+/data/
+/logs/
+/.env

@@ -17,6 +17,7 @@ export type DoctorModule =
   | 'doctor_patients'
   | 'doctor_monitoring'
   | 'doctor_digital_twin'
+  | 'doctor_knowledge_graph'
   | 'doctor_reports'
   | 'doctor_settings';
 

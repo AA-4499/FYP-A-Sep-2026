@@ -1,422 +1,397 @@
-/**
- * Dedicated Knowledge Graph View matching Figma Image 3
- * Features:
- * - 3 top metric cards (Patient ID, Graph entities: 14, Data categories: 4)
- * - Interactive node-link graph with categories: Demographics, Clinical Data, Medical Data, Lifestyle
- * - Interactive Node Information inspector panel
- * - Category filter pills
- * - Longitudinal clinical data (CGM vs CBG) chart
- */
-import React, { useState } from 'react';
-import {
-  Share2,
-  Database,
-  Layers,
-  Info,
-  Activity,
-  ArrowLeft,
-  CheckCircle2,
-  Filter,
-} from 'lucide-react';
-import {
-  KG_NODES,
-  KG_EDGES,
-  KG_LONGITUDINAL_CLINICAL_DATA,
-} from '../data/knowledgeGraphData';
-import type { Patient, KnowledgeGraphNode } from '../types';
+import React, { useEffect, useRef, useState } from 'react';
+import cytoscape, { type Core, type ElementDefinition } from 'cytoscape';
 
-interface KnowledgeGraphViewProps {
-  patient: Patient;
-  onNavigate: (module: any) => void;
+interface DemoNodeDetail {
+  id: string;
+  label: string;
+  kind: 'Patient' | 'Condition';
+  category: string;
+  shortDescription: string;
+  sourceField?: string;
+  recordedValue?: string;
+  relationship?: string;
+  note: string;
 }
 
-export const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
-  patient,
-  onNavigate,
-}) => {
-  const [selectedNodeId, setSelectedNodeId] = useState<string>('2000_0_20201230');
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('All');
+const DEMO_RECORD = {
+  patientId: '2000',
+  displayName: 'Patient 2000',
+  sourceRecordId: '2000_0_20201230',
+  sourceTable: 'patient_summary',
+  dataset: 'ShanghaiT2DM',
+};
 
-  const selectedNode: KnowledgeGraphNode =
-    KG_NODES.find((n) => n.id === selectedNodeId) || KG_NODES[0];
+const DEMO_NODES: DemoNodeDetail[] = [
+  {
+    id: 'patient-2000',
+    label: 'Patient',
+    kind: 'Patient',
+    category: 'patient',
+    shortDescription: 'Central patient node for this demonstration.',
+    note: 'This is a hardcoded demonstration profile. The graph is intentionally limited to one patient and one source record; it is not connected to login or the shared patient selector yet.',
+  },
+  {
+    id: 'condition-type-2-diabetes',
+    label: 'Type 2 Diabetes',
+    kind: 'Condition',
+    category: 'diabetes_type',
+    shortDescription: 'Recorded diabetes diagnosis.',
+    sourceField: 'Type of Diabetes',
+    recordedValue: 'T2DM',
+    relationship: 'has diabetes',
+    note: 'The condition label is normalised for display. The recorded source value is shown alongside it.',
+  },
+  {
+    id: 'condition-hypertension',
+    label: 'Hypertension',
+    kind: 'Condition',
+    category: 'comorbidity',
+    shortDescription: 'Recorded comorbidity.',
+    sourceField: 'Comorbidities',
+    recordedValue: 'hypertension',
+    relationship: 'has comorbidity',
+    note: 'This relationship represents a comorbidity recorded in the source row; it does not claim that diabetes caused the condition.',
+  },
+  {
+    id: 'condition-nephropathy',
+    label: 'Diabetic Nephropathy',
+    kind: 'Condition',
+    category: 'microvascular_complication',
+    shortDescription: 'Recorded microvascular complication.',
+    sourceField: 'Diabetic Microvascular Complications',
+    recordedValue: 'nephropathy',
+    relationship: 'has microvascular complication',
+    note: 'The display label is normalised to Diabetic Nephropathy. The source entry itself is nephropathy.',
+  },
+  {
+    id: 'condition-hypoglycemia',
+    label: 'Hypoglycemia',
+    kind: 'Condition',
+    category: 'acute_complication',
+    shortDescription: 'Hypoglycemia recorded as present.',
+    sourceField: 'Hypoglycemia (yes/no)',
+    recordedValue: 'yes',
+    relationship: 'has acute complication',
+    note: 'This represents the source field value yes. It does not indicate severity, timing, or current status.',
+  },
+];
 
-  const categories = [
-    'All',
-    'Patient',
-    'Demographics',
-    'Clinical Data',
-    'Medical Data',
-    'Lifestyle',
-  ];
+const DEMO_RELATIONSHIPS = [
+  { id: 'edge-diabetes', source: 'patient-2000', target: 'condition-type-2-diabetes', label: 'has diabetes' },
+  { id: 'edge-comorbidity', source: 'patient-2000', target: 'condition-hypertension', label: 'has comorbidity' },
+  { id: 'edge-microvascular', source: 'patient-2000', target: 'condition-nephropathy', label: 'has microvascular complication' },
+  { id: 'edge-acute', source: 'patient-2000', target: 'condition-hypoglycemia', label: 'has acute complication' },
+];
 
-  const categoryColors: Record<string, { bg: string; border: string; text: string; fill: string }> = {
-    'Patient': { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-700', fill: '#3b82f6' },
-    'Demographics': { bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-700', fill: '#10b981' },
-    'Clinical Data': { bg: 'bg-sky-50', border: 'border-sky-400', text: 'text-sky-700', fill: '#0284c7' },
-    'Medical Data': { bg: 'bg-indigo-50', border: 'border-indigo-400', text: 'text-indigo-700', fill: '#6366f1' },
-    'Lifestyle': { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-700', fill: '#f59e0b' },
+const GRAPH_ELEMENTS: ElementDefinition[] = [
+  ...DEMO_NODES.map((node) => ({
+    data: {
+      id: node.id,
+      label: node.label,
+      kind: node.kind,
+      category: node.category,
+    },
+  })),
+  ...DEMO_RELATIONSHIPS.map((relationship) => ({ data: relationship })),
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  patient: 'Patient',
+  diabetes_type: 'Diabetes diagnosis',
+  comorbidity: 'Comorbidity',
+  acute_complication: 'Acute complication',
+  microvascular_complication: 'Microvascular complication',
+};
+
+export const KnowledgeGraphView: React.FC = () => {
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const cyRef = useRef<Core | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>('patient-2000');
+
+  const selectedNode = DEMO_NODES.find((node) => node.id === selectedNodeId) ?? DEMO_NODES[0];
+  const selectedRelationships = selectedNode.kind === 'Patient'
+    ? DEMO_RELATIONSHIPS
+    : DEMO_RELATIONSHIPS.filter((relationship) => relationship.target === selectedNode.id);
+
+  const selectedBadgeClass = selectedNode.kind === 'Patient'
+    ? 'bg-blue-50 text-blue-700'
+    : selectedNode.category === 'comorbidity'
+      ? 'bg-green-50 text-green-700'
+      : selectedNode.category === 'acute_complication' || selectedNode.category === 'microvascular_complication'
+        ? 'bg-amber-50 text-amber-700'
+        : 'bg-sky-50 text-sky-700';
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const cy = cytoscape({
+      container: canvasRef.current,
+      elements: GRAPH_ELEMENTS,
+      layout: {
+        name: 'cose',
+        animate: false,
+        padding: 38,
+        nodeRepulsion: () => 9000,
+        idealEdgeLength: () => 145,
+        componentSpacing: 80,
+      },
+      minZoom: 0.45,
+      maxZoom: 2.25,
+      style: [
+        {
+          selector: 'node',
+          style: {
+            label: 'data(label)',
+            'font-size': 12,
+            'font-weight': 600,
+            color: '#0f172a',
+            'text-wrap': 'wrap',
+            'text-max-width': '150px',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'background-color': '#e0f2fe',
+            'border-width': 2,
+            'border-color': '#0284c7',
+            width: 148,
+            height: 58,
+            shape: 'round-rectangle',
+            padding: '7px',
+          },
+        },
+        {
+          selector: 'node[kind = "Patient"]',
+          style: {
+            label: 'Patient 2000',
+            shape: 'ellipse',
+            'background-color': '#1d4ed8',
+            'border-color': '#1e40af',
+            color: '#ffffff',
+            width: 116,
+            height: 116,
+            'font-size': 15,
+            'font-weight': 700,
+          },
+        },
+        {
+          selector: 'node[category = "comorbidity"]',
+          style: { 'background-color': '#dcfce7', 'border-color': '#16a34a' },
+        },
+        {
+          selector: 'node[category = "microvascular_complication"]',
+          style: { 'background-color': '#fef3c7', 'border-color': '#d97706' },
+        },
+        {
+          selector: 'node[category = "acute_complication"]',
+          style: { 'background-color': '#fee2e2', 'border-color': '#dc2626' },
+        },
+        {
+          selector: 'node.selected',
+          style: { 'border-width': 5, 'border-color': '#7c3aed', 'overlay-opacity': 0.08, 'overlay-color': '#7c3aed' },
+        },
+        {
+          selector: 'edge',
+          style: {
+            width: 2,
+            'line-color': '#94a3b8',
+            'target-arrow-color': '#64748b',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            label: 'data(label)',
+            'font-size': 9,
+            color: '#475569',
+            'text-background-color': '#ffffff',
+            'text-background-opacity': 1,
+            'text-background-padding': '3px',
+            'text-wrap': 'wrap',
+            'text-max-width': '120px',
+          },
+        },
+      ],
+    });
+
+    cy.nodes().removeClass('selected');
+    cy.$id(selectedNodeId).addClass('selected');
+    cy.on('tap', 'node', (event) => {
+      const nodeId = event.target.id();
+      cy.nodes().removeClass('selected');
+      event.target.addClass('selected');
+      setSelectedNodeId(nodeId);
+    });
+    cyRef.current = cy;
+
+    return () => {
+      cy.off('tap');
+      cy.destroy();
+      cyRef.current = null;
+    };
+  }, []);
+
+  const selectNode = (nodeId: string) => {
+    setSelectedNodeId(nodeId);
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.nodes().removeClass('selected');
+    cy.$id(nodeId).addClass('selected');
+  };
+
+  const resetGraph = () => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.fit(undefined, 35);
+    selectNode('patient-2000');
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-12">
-      {/* 1. Header & Back button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <section className="space-y-5 pb-12" aria-labelledby="patient-kg-title">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <button
-            onClick={() => onNavigate('patient_dashboard')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-blue-600 transition mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Patient Dashboard</span>
-          </button>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Knowledge graph
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Explore relationships between patient information, clinical measurements and medical data.
-          </p>
-        </div>
-      </div>
-
-      {/* 2. Three Top Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Metric 1: Patient ID */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5">
-          <span className="text-xs text-slate-500 font-medium block">
-            Your Patient ID
-          </span>
-          <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
-            {patient.id}
-          </p>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            {patient.name} · {patient.condition}
-          </span>
-        </div>
-
-        {/* Metric 2: Graph Entities */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5">
-          <span className="text-xs text-slate-500 font-medium block">
-            Graph entities
-          </span>
-          <p className="text-3xl font-bold text-slate-900 mt-1">
-            14
-          </p>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            Nodes shown in prototype
-          </span>
-        </div>
-
-        {/* Metric 3: Data Categories */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5">
-          <span className="text-xs text-slate-500 font-medium block">
-            Data categories
-          </span>
-          <p className="text-3xl font-bold text-slate-900 mt-1">
-            4
-          </p>
-          <span className="text-[11px] text-slate-400 mt-1 block">
-            Demographics, clinical, medical, lifestyle
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Main Graph + Inspector Panel (2 columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left 2 Cols: Interactive Graph Canvas */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">
-                  Patient knowledge graph
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Click a node to inspect its information
-                </p>
-              </div>
-
-              {/* Filter pills */}
-              <div className="flex flex-wrap gap-1">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategoryFilter(cat)}
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-md transition ${
-                      activeCategoryFilter === cat
-                        ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* SVG Interactive Knowledge Graph */}
-            <div className="w-full h-[420px] bg-[#f8fafc] rounded-xl mt-4 border border-slate-100 relative overflow-hidden flex items-center justify-center select-none">
-              <svg viewBox="0 0 800 420" className="w-full h-full">
-                {/* Edges */}
-                {KG_EDGES.map((edge, idx) => {
-                  const sourceNode = KG_NODES.find((n) => n.id === edge.source);
-                  const targetNode = KG_NODES.find((n) => n.id === edge.target);
-                  if (!sourceNode || !targetNode) return null;
-
-                  const isEdgeActive =
-                    sourceNode.id === selectedNodeId ||
-                    targetNode.id === selectedNodeId;
-
-                  return (
-                    <line
-                      key={`edge-${idx}`}
-                      x1={sourceNode.x || 0}
-                      y1={sourceNode.y || 0}
-                      x2={targetNode.x || 0}
-                      y2={targetNode.y || 0}
-                      stroke={isEdgeActive ? '#2563eb' : '#cbd5e1'}
-                      strokeWidth={isEdgeActive ? 2.5 : 1.5}
-                      strokeDasharray={edge.source.startsWith('cat_') ? '3 3' : undefined}
-                      className="transition-all duration-300"
-                    />
-                  );
-                })}
-
-                {/* Nodes */}
-                {KG_NODES.map((node) => {
-                  const isSelected = node.id === selectedNodeId;
-                  const isFiltered =
-                    activeCategoryFilter !== 'All' &&
-                    node.category !== activeCategoryFilter;
-
-                  const colors = categoryColors[node.category] || categoryColors['Clinical Data'];
-
-                  // Node layout based on type
-                  const isCore = node.id === '2000_0_20201230';
-                  const isCategoryHub = node.id.startsWith('cat_');
-
-                  return (
-                    <g
-                      key={node.id}
-                      transform={`translate(${node.x || 0}, ${node.y || 0})`}
-                      onClick={() => setSelectedNodeId(node.id)}
-                      className={`cursor-pointer transition transform ${
-                        isFiltered ? 'opacity-30' : 'opacity-100 hover:scale-105'
-                      }`}
-                    >
-                      {/* Node Circle or Rounded Card */}
-                      {isCore ? (
-                        <>
-                          <rect
-                            x="-65"
-                            y="-24"
-                            width="130"
-                            height="48"
-                            rx="12"
-                            fill="#ffffff"
-                            stroke={isSelected ? '#2563eb' : '#94a3b8'}
-                            strokeWidth={isSelected ? 3 : 2}
-                            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.08))"
-                          />
-                          <text
-                            x="0"
-                            y="-4"
-                            textAnchor="middle"
-                            fontSize="11"
-                            fontWeight="bold"
-                            fill="#1e293b"
-                          >
-                            {node.label}
-                          </text>
-                          <text
-                            x="0"
-                            y="14"
-                            textAnchor="middle"
-                            fontSize="9"
-                            fill="#64748b"
-                          >
-                            Patient · Type 2 diabetes
-                          </text>
-                        </>
-                      ) : isCategoryHub ? (
-                        <>
-                          <rect
-                            x="-50"
-                            y="-18"
-                            width="100"
-                            height="36"
-                            rx="8"
-                            fill="#ffffff"
-                            stroke={isSelected ? '#2563eb' : colors.fill}
-                            strokeWidth={isSelected ? 2.5 : 1.5}
-                          />
-                          <text
-                            x="0"
-                            y="-2"
-                            textAnchor="middle"
-                            fontSize="10"
-                            fontWeight="bold"
-                            fill="#1e293b"
-                          >
-                            {node.label}
-                          </text>
-                          <text
-                            x="0"
-                            y="11"
-                            textAnchor="middle"
-                            fontSize="8"
-                            fill="#94a3b8"
-                          >
-                            {node.value}
-                          </text>
-                        </>
-                      ) : (
-                        <>
-                          <circle
-                            cx="0"
-                            cy="0"
-                            r="18"
-                            fill="#ffffff"
-                            stroke={isSelected ? '#2563eb' : colors.fill}
-                            strokeWidth={isSelected ? 2.5 : 1.5}
-                          />
-                          <text
-                            x="0"
-                            y="3"
-                            textAnchor="middle"
-                            fontSize="9"
-                            fontWeight="semibold"
-                            fill="#1e293b"
-                          >
-                            {node.label}
-                          </text>
-                        </>
-                      )}
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Col: Node Information Panel */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between space-y-4">
-          <div className="space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                Node information
-              </span>
-              <h2 className="text-base font-bold text-slate-900 mt-2">
-                {selectedNode.label}
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {selectedNode.description}
-              </p>
-            </div>
-
-            {/* Property list */}
-            <div className="space-y-2.5 text-xs">
-              {Object.entries(selectedNode.details).map(([key, val]) => (
-                <div key={key} className="flex items-start justify-between gap-2">
-                  <span className="text-slate-400 font-medium shrink-0">{key}</span>
-                  <strong className="text-slate-800 text-right font-medium">{val}</strong>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Category Filter Pills at bottom of inspector */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-              Recorded data
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-700">
+              Demonstration profile
             </span>
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {['Patient', 'Demographics', 'Clinical', 'Medical', 'Lifestyle'].map((t) => (
-                <span
-                  key={t}
-                  className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+            <span className="text-xs text-slate-400">Static sample · No authentication connection</span>
           </div>
-        </div>
-      </div>
-
-      {/* 4. Bottom Panel: Longitudinal Clinical Data Chart */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
-        <div>
-          <h2 className="text-sm font-bold text-slate-900">
-            Longitudinal clinical data
+          <h2 id="patient-kg-title" className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Patient Knowledge Graph
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Example glucose measurements associated with the selected patient
+          <p className="mt-1 max-w-2xl text-sm text-slate-500">
+            Explore one patient&apos;s recorded diabetes diagnosis, comorbidity, and complications. Select a node to inspect its source information.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={resetGraph}
+          className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <span aria-hidden="true">↺</span> Reset graph
+        </button>
+      </header>
 
-        {/* Line chart with CGM and CBG series */}
-        <div className="w-full h-48 flex flex-col justify-end pt-2">
-          <svg viewBox="0 0 700 130" className="w-full h-36 overflow-visible">
-            {/* Grid lines */}
-            <line x1="40" y1="10" x2="680" y2="10" stroke="#f1f5f9" strokeWidth="1" />
-            <line x1="40" y1="40" x2="680" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-            <line x1="40" y1="70" x2="680" y2="70" stroke="#f1f5f9" strokeWidth="1" />
-            <line x1="40" y1="100" x2="680" y2="100" stroke="#f1f5f9" strokeWidth="1" />
-            <line x1="40" y1="125" x2="680" y2="125" stroke="#e2e8f0" strokeWidth="1" />
-
-            {/* Y axis numbers: 10, 8, 6, 4, 2 */}
-            <text x="30" y="14" fontSize="9" fill="#94a3b8" textAnchor="end">10</text>
-            <text x="30" y="44" fontSize="9" fill="#94a3b8" textAnchor="end">8</text>
-            <text x="30" y="74" fontSize="9" fill="#94a3b8" textAnchor="end">6</text>
-            <text x="30" y="104" fontSize="9" fill="#94a3b8" textAnchor="end">4</text>
-            <text x="30" y="128" fontSize="9" fill="#94a3b8" textAnchor="end">2</text>
-
-            {/* Path CGM (Blue): 8.8 -> 7.2 -> 8.4 -> 6.9 -> 7.8 */}
-            {/* Y mapping: 10 is y=10, 2 is y=125 => height = 115 => per unit = 115/8 = 14.375. y = 10 + (10 - val)*14.375 */}
-            <path
-              d="M 100 27 L 240 50 L 380 33 L 520 54 L 660 41"
-              fill="none"
-              stroke="#2563eb"
-              strokeWidth="2.5"
-            />
-            <circle cx="100" cy="27" r="3.5" fill="#2563eb" />
-            <circle cx="240" cy="50" r="3.5" fill="#2563eb" />
-            <circle cx="380" cy="33" r="3.5" fill="#2563eb" />
-            <circle cx="520" cy="54" r="3.5" fill="#2563eb" />
-            <circle cx="660" cy="41" r="3.5" fill="#2563eb" />
-
-            {/* Path CBG (Teal/Green): 9.1 -> 7.6 -> 8.9 -> 7.1 -> 8.0 */}
-            <path
-              d="M 100 23 L 240 44 L 380 26 L 520 51 L 660 38"
-              fill="none"
-              stroke="#0d9488"
-              strokeWidth="2"
-              strokeDasharray="4 3"
-            />
-            <circle cx="100" cy="23" r="3" fill="#0d9488" />
-            <circle cx="240" cy="44" r="3" fill="#0d9488" />
-            <circle cx="380" cy="26" r="3" fill="#0d9488" />
-            <circle cx="520" cy="51" r="3" fill="#0d9488" />
-            <circle cx="660" cy="38" r="3" fill="#0d9488" />
-          </svg>
-
-          {/* X axis labels & Legend */}
-          <div className="flex justify-between pl-16 pr-6 text-xs text-slate-500 pt-2 font-medium">
-            <div className="flex items-center gap-1.5">
-              <span>30 Dec</span>
-              <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded-sm">CGM</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span>05 Jan</span>
-              <span className="text-[10px] text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded-sm">CBG</span>
-            </div>
-            <span>12 Jan</span>
-            <span>20 Jan</span>
-            <span>28 Jan</span>
-          </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Selected patient</p>
+          <p className="mt-2 text-lg font-bold text-slate-900">{DEMO_RECORD.displayName}</p>
+          <p className="mt-1 text-xs text-slate-500">Patient ID: {DEMO_RECORD.patientId}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Graph nodes</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{DEMO_NODES.length}</p>
+          <p className="mt-1 text-xs text-slate-500">1 patient + 4 conditions</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Relationships</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{DEMO_RELATIONSHIPS.length}</p>
+          <p className="mt-1 text-xs text-slate-500">Recorded associations</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Source record</p>
+          <p className="mt-2 break-all text-sm font-bold text-slate-900">{DEMO_RECORD.sourceRecordId}</p>
+          <p className="mt-1 text-xs text-slate-500">{DEMO_RECORD.dataset} · {DEMO_RECORD.sourceTable}</p>
         </div>
       </div>
-    </div>
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)]">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Interactive graph">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Condition relationships</h3>
+              <p className="mt-0.5 text-xs text-slate-500">Click a node to view its details.</p>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-slate-600">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-700" />Patient</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-sky-100 ring-1 ring-sky-600" />Diabetes</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-green-100 ring-1 ring-green-600" />Comorbidity</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-amber-100 ring-1 ring-amber-600" />Complication</span>
+            </div>
+          </div>
+          <div ref={canvasRef} className="h-[440px] w-full bg-slate-50 sm:h-[540px]" aria-label="Graph of Patient 2000 and four recorded conditions" />
+          <p className="border-t border-slate-100 px-4 py-3 text-xs leading-5 text-slate-500 sm:px-5">
+            Edges represent recorded associations, not medical causation. This graph uses a fixed demonstration record and does not yet follow the signed-in user.
+          </p>
+        </section>
+
+        <aside className="space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-live="polite" aria-labelledby="selected-node-title">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Selected node</p>
+                <h3 id="selected-node-title" className="mt-1 break-words text-xl font-bold text-slate-900">{selectedNode.label}</h3>
+              </div>
+              <span className={'shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ' + selectedBadgeClass}>
+                {CATEGORY_LABELS[selectedNode.category] ?? selectedNode.category}
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{selectedNode.shortDescription}</p>
+            <div className="mt-4 space-y-3">
+              {selectedNode.kind === 'Patient' ? (
+                <>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">Patient identifier</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{DEMO_RECORD.patientId}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">Source record</p>
+                    <p className="mt-1 break-all text-sm font-semibold text-slate-800">{DEMO_RECORD.sourceRecordId}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">Connected conditions</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{DEMO_RELATIONSHIPS.length} recorded relationships</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">Recorded source value</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{selectedNode.recordedValue}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">Source field</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{selectedNode.sourceField}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-xs font-medium text-slate-500">Patient relationship</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{selectedNode.relationship}</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <p className="mt-4 text-xs leading-5 text-slate-500">{selectedNode.note}</p>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-slate-900">Connected information</h3>
+              <span className="text-xs text-slate-400">{selectedRelationships.length} {selectedRelationships.length === 1 ? 'relationship' : 'relationships'}</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {selectedRelationships.map((relationship) => {
+                const relatedId = selectedNode.kind === 'Patient' ? relationship.target : selectedNode.id;
+                const target = DEMO_NODES.find((node) => node.id === relatedId);
+                return (
+                  <button
+                    key={relationship.id}
+                    type="button"
+                    onClick={() => selectNode(target?.id ?? relationship.target)}
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-100 px-3 py-3 text-left transition hover:border-indigo-200 hover:bg-indigo-50/60"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-800">{target?.label ?? relationship.label}</span>
+                      <span className="mt-1 block text-xs text-slate-500">{relationship.label}</span>
+                    </span>
+                    <span aria-hidden="true" className="text-slate-400">→</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-sm leading-6 text-indigo-950">
+        <span className="font-semibold">Demo boundary:</span> the patient and condition details above are hardcoded from one example record for presentation. Authentication, live patient selection, and Supabase fetching are intentionally left for the team&apos;s later integration task.
+      </div>
+    </section>
   );
 };
+
+export default KnowledgeGraphView;

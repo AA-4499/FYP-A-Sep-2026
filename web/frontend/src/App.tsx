@@ -299,6 +299,7 @@ export const App: React.FC = () => {
                   onNavigate={navigateDoctorView}
                 />
               )}
+              {appMode === 'doctor' && clinicModule === 'doctor_knowledge_graph' && <KnowledgeGraphView />}
               {appMode === 'doctor' && clinicModule === 'doctor_reports' && (
                 <ReportView
                   patient={currentPatient}
@@ -409,10 +410,7 @@ export const App: React.FC = () => {
 
               {/* 5. Knowledge Graph */}
               {patientModule === 'knowledge_graph' && (
-                <KnowledgeGraphView
-                  patient={currentPatient}
-                  onNavigate={(mod) => setPatientModule(mod)}
-                />
+                <KnowledgeGraphView />
               )}
 
               {/* 6. Physiological Digital Twin */}

@@ -56,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { id: 'doctor_patients', label: 'Patient management', icon: Users },
           { id: 'doctor_monitoring', label: 'Health monitoring', icon: Activity },
           { id: 'doctor_digital_twin', label: 'Digital twin', icon: Sparkles },
+          { id: 'doctor_knowledge_graph', label: 'Knowledge graph', icon: Share2 },
           { id: 'doctor_reports', label: 'Reports', icon: FileText },
           { id: 'doctor_settings', label: 'Settings', icon: Settings },
         ];
@@ -341,6 +342,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: 'patient_profile', label: 'My profile' },
             { id: 'patient_monitoring', label: 'My health' },
             { id: 'patient_digital_twin', label: 'My digital twin' },
+            { id: 'knowledge_graph', label: 'Knowledge graph' },
             { id: 'patient_insights', label: 'Risk prediction & what-if' },
             { id: 'patient_reports', label: 'Reports' },
           ].map((item) => {

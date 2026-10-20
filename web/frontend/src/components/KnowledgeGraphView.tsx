@@ -45,7 +45,7 @@ interface GraphModel {
   edges: ElementDefinition[];
   meta?: GraphResponse['meta'];
 }
-interface Props { patient: Patient; patientId: string; }
+interface Props { patient: Patient; patientId: string; isSupabaseConnected: boolean; }
 type ViewFilter = 'all' | 'patient' | 'ontology';
 type DetailValue = string | number | boolean | null | undefined;
 
@@ -566,7 +566,7 @@ function nodeProperties(node?: KGNodeData): Array<[string, string]> {
   return result.slice(0, 18);
 }
 
-export const KnowledgeGraphView: React.FC<Props> = ({ patient, patientId }) => {
+export const KnowledgeGraphView: React.FC<Props> = ({ patient, patientId, isSupabaseConnected }) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
   const [summary, setSummary] = useState<SupabasePatientSummary | null>(null);
@@ -658,7 +658,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({ patient, patientId }) => {
     };
     void load();
     return () => { cancelled = true; };
-  }, [patientId]);
+  }, [patientId, isSupabaseConnected]);
 
   const graph = useMemo(
     () => buildGraph(patientId, summary, detailRows, auraGraph),

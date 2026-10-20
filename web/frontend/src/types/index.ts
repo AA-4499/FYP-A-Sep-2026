@@ -26,7 +26,6 @@ export type PatientModule =
   | 'monitoring'
   | 'risk'
   | 'explain_ai'
-  | 'knowledge_graph'
   | 'digital_twin'
   | 'reports'
   | 'patient_home'

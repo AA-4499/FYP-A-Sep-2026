@@ -85,7 +85,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                       key={p.id}
                       onClick={() => {
                         onSelectPatient(p.id);
-                        onSwitchMode('patient');
                         setIsDropdownOpen(false);
                         setSearchQuery('');
                       }}

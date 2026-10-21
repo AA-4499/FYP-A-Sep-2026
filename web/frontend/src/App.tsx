@@ -20,6 +20,8 @@ import { DoctorOverviewView } from './components/doctor/DoctorOverviewView';
 import { DoctorPatientListView } from './components/doctor/DoctorPatientListView';
 import type { NavigationModule, AuthFlow, Patient, UserRole } from './types';
 import { PATIENTS, getPatientById } from './data/patientsData';
+import { createDemoRecommendations } from './data/knowledgeGraphDemoData';
+import type { ClinicalRecommendation, RecommendationStatus } from './data/knowledgeGraphDemoData';
 import {
   getSupabaseClient,
   fetchSupabasePatients,
@@ -54,6 +56,9 @@ export const App: React.FC = () => {
   // Supabase connection state
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
+
+  // Session-only prototype state for doctor-reviewed recommendations shared to the patient view.
+  const [recommendationsByPatient, setRecommendationsByPatient] = useState<Record<string, ClinicalRecommendation[]>>({});
 
   // Auth flow to display when auth mode is opened
   const [authFlow, setAuthFlow] = useState<AuthFlow>('signin');
@@ -119,21 +124,65 @@ export const App: React.FC = () => {
         getPatientById(currentPatientId) ||
         patients[0];
 
-  // Navigate to a specific patient and switch to Patient Twin view
+  // The recommendation review and patient sharing flow use mock data until the AI and database connections are implemented.
+  const currentRecommendations = recommendationsByPatient[currentPatientId] ?? createDemoRecommendations(currentPatientId);
+  const publishedRecommendations = currentRecommendations.filter((item) => item.status === 'published');
+
+  const handleRecommendationStatusChange = (recommendationId: string, status: RecommendationStatus) => {
+    const targetPatientId = currentPatientId;
+    setRecommendationsByPatient((previous) => {
+      const items = previous[targetPatientId] ?? createDemoRecommendations(targetPatientId);
+      return {
+        ...previous,
+        [targetPatientId]: items.map((item) => item.id === recommendationId
+          ? { ...item, status, publishedAt: status === 'published' ? new Date().toISOString() : undefined }
+          : item),
+      };
+    });
+  };
+
+  const handlePublishRecommendations = (recommendationIds: string[]) => {
+    const targetPatientId = currentPatientId;
+    const publishSet = new Set(recommendationIds);
+    setRecommendationsByPatient((previous) => {
+      const items = previous[targetPatientId] ?? createDemoRecommendations(targetPatientId);
+      return {
+        ...previous,
+        [targetPatientId]: items.map((item) => item.status === 'approved' && publishSet.has(item.id)
+          ? { ...item, status: 'published', publishedAt: new Date().toISOString() }
+          : item),
+      };
+    });
+  };
+
+  // A patient signing in sees their own Patient Twin workspace.
   const handleSelectPatient = async (patientId: string) => {
     setCurrentPatientId(patientId);
+    setActivePatientOverride(null);
     setAppMode('patient');
     setPatientModule('patient_home');
 
-    // Fetch detail observations from Supabase if connected
     if (isSupabaseConnected) {
       try {
         const detailResult = await fetchSupabasePatientDetail(patientId);
-        if (detailResult?.patient) {
-          setActivePatientOverride(detailResult.patient);
-        }
+        if (detailResult?.patient) setActivePatientOverride(detailResult.patient);
       } catch (err) {
         console.error('Error fetching patient detail:', err);
+      }
+    }
+  };
+
+  // Doctors/admins can select a record without leaving their workspace.
+  // This is important for reviewing the selected patient's Knowledge Graph.
+  const handleWorkspacePatientSelect = async (patientId: string) => {
+    setCurrentPatientId(patientId);
+    setActivePatientOverride(null);
+    if (isSupabaseConnected) {
+      try {
+        const detailResult = await fetchSupabasePatientDetail(patientId);
+        if (detailResult?.patient) setActivePatientOverride(detailResult.patient);
+      } catch (err) {
+        console.error('Error fetching selected patient detail:', err);
       }
     }
   };
@@ -224,7 +273,7 @@ export const App: React.FC = () => {
             currentPatient={currentPatient}
             patientsList={patients}
             isSupabaseConnected={isSupabaseConnected}
-            onSelectPatient={handleSelectPatient}
+            onSelectPatient={appMode === 'patient' ? handleSelectPatient : handleWorkspacePatientSelect}
             onSwitchMode={(mode) => {
               setAppMode(mode);
               if (mode !== 'patient') setWorkspaceModule(mode === 'admin' ? 'admin_overview' : 'doctor_overview');
@@ -258,7 +307,7 @@ export const App: React.FC = () => {
               {appMode === 'doctor' && workspaceModule === 'doctor_overview' && (
                 <DoctorOverviewView
                   patients={patients}
-                  onSelectPatient={handleSelectPatient}
+                  onSelectPatient={handleWorkspacePatientSelect}
                   onOpenPatientTwin={handleSelectPatient}
                   onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
                   onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
@@ -268,7 +317,7 @@ export const App: React.FC = () => {
                 <DoctorPatientListView
                   patients={patients}
                   currentPatient={currentPatient}
-                  onSelectPatient={handleSelectPatient}
+                  onSelectPatient={handleWorkspacePatientSelect}
                   onOpenDigitalTwin={handleSelectPatient}
                 />
               )}
@@ -284,7 +333,19 @@ export const App: React.FC = () => {
                   onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && <KnowledgeGraphView />}
+              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && (
+                <KnowledgeGraphView
+                  patient={currentPatient}
+                  patientId={currentPatientId}
+                  recommendations={currentRecommendations}
+                  onRecommendationStatusChange={handleRecommendationStatusChange}
+                  onPublishRecommendations={handlePublishRecommendations}
+                  onPreviewPatientView={() => {
+                    setAppMode('patient');
+                    setPatientModule('patient_home');
+                  }}
+                />
+              )}
               {appMode === 'doctor' && workspaceModule === 'doctor_reports' && (
                 <ReportView
                   patient={currentPatient}
@@ -294,7 +355,7 @@ export const App: React.FC = () => {
               {appMode === 'doctor' && workspaceModule === 'doctor_settings' && (
                 <DoctorOverviewView
                   patients={patients}
-                  onSelectPatient={handleSelectPatient}
+                  onSelectPatient={handleWorkspacePatientSelect}
                   onOpenPatientTwin={handleSelectPatient}
                   onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
                   onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
@@ -313,6 +374,7 @@ export const App: React.FC = () => {
                 <DashboardView
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
+                  sharedRecommendations={publishedRecommendations}
                 />
               )}
               {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && <ClinicalDataView patientId={currentPatientId} />}
@@ -340,11 +402,6 @@ export const App: React.FC = () => {
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
-              )}
-
-              {/* 5. Knowledge Graph */}
-              {patientModule === 'knowledge_graph' && (
-                <KnowledgeGraphView />
               )}
 
               {/* 6. Physiological Digital Twin */}

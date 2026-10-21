@@ -124,7 +124,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: 'patient_profile', label: 'My profile' },
             { id: 'patient_monitoring', label: 'My health' },
             { id: 'patient_digital_twin', label: 'My digital twin' },
-            { id: 'knowledge_graph', label: 'Knowledge graph' },
             { id: 'patient_insights', label: 'Risk prediction & what-if' },
             { id: 'patient_reports', label: 'Reports' },
           ].map((item) => {

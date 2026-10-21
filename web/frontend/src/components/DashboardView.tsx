@@ -6,19 +6,21 @@
  *    1. Longitudinal timeline, HbA1c
  *    2. Why this risk? Key factors
  *    3. What-if simulation with working sliders
- *    4. Knowledge graph
+ *    4. Patient-friendly health summary
  * - Bottom action buttons: Digital twin view ↗, Report page ↗
  */
 import React, { useState } from 'react';
 import { Activity, Radio, AlertCircle, ArrowRight, Gauge, CheckCircle2 } from 'lucide-react';
 import type { Patient, NavigationModule } from '../types';
+import type { ClinicalRecommendation } from '../data/knowledgeGraphDemoData';
 
 interface DashboardViewProps {
   patient: Patient;
   onNavigate: (module: NavigationModule) => void;
+  sharedRecommendations?: ClinicalRecommendation[];
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate, sharedRecommendations = [] }) => {
   // What-if sliders state (initialized to simulate 43% as in mockup)
   const [whatIfHbA1c, setWhatIfHbA1c] = useState<number>(7.0);
   const [whatIfFbg, setWhatIfFbg] = useState<number>(7.5);
@@ -312,68 +314,107 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
           </p>
         </div>
 
-        {/* CARD 4: Knowledge graph */}
+        {/* CARD 4: Patient-friendly health summary (knowledge graph is clinician-only) */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between min-h-[290px]">
           <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-              Knowledge graph
-            </h3>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-slate-900">Your health at a glance</h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  A simple summary of the measurements in your current record.
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-semibold text-teal-700">
+                Health summary
+              </span>
+            </div>
 
-            {/* Radial Graph Diagram matching mockup */}
-            <div className="mt-2 w-full h-52 flex items-center justify-center">
-              <svg className="w-full h-full max-w-[280px]" viewBox="0 0 240 180">
-                {/* Connecting Lines from Center P07 to surrounding nodes */}
-                {/* To Risk (top) */}
-                <line x1="120" y1="100" x2="120" y2="40" stroke="#cbd5e1" strokeWidth="1.5" />
-                {/* To HbA1c (top left) */}
-                <line x1="120" y1="100" x2="55" y2="50" stroke="#cbd5e1" strokeWidth="1.5" />
-                {/* To BMI (top right) */}
-                <line x1="120" y1="100" x2="185" y2="50" stroke="#cbd5e1" strokeWidth="1.5" />
-                {/* To Age (bottom left) */}
-                <line x1="120" y1="100" x2="55" y2="150" stroke="#cbd5e1" strokeWidth="1.5" />
-                {/* To Lipids (bottom right) */}
-                <line x1="120" y1="100" x2="185" y2="150" stroke="#cbd5e1" strokeWidth="1.5" />
-
-                {/* Center Node: P07 */}
-                <circle cx="120" cy="100" r="18" fill="#ffffff" stroke="#2563eb" strokeWidth="2" />
-                <text x="120" y="104" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#1e293b">
-                  {patient.id}
-                </text>
-
-                {/* Top Node: Risk */}
-                <circle cx="120" cy="40" r="12" fill="#f0fdf4" stroke="#059669" strokeWidth="1.5" />
-                <text x="120" y="44" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#065f46">
-                  Risk
-                </text>
-
-                {/* Top Left Node: HbA1c */}
-                <circle cx="55" cy="50" r="13" fill="#fef2f2" stroke="#dc2626" strokeWidth="1.5" />
-                <text x="55" y="54" textAnchor="middle" fontSize="8.5" fontWeight="bold" fill="#7f1d1d">
-                  HbA1c
-                </text>
-
-                {/* Top Right Node: BMI */}
-                <circle cx="185" cy="50" r="13" fill="#fffbeb" stroke="#d97706" strokeWidth="1.5" />
-                <text x="185" y="54" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#78350f">
-                  BMI
-                </text>
-
-                {/* Bottom Left Node: Age */}
-                <circle cx="55" cy="150" r="13" fill="#f0fdf4" stroke="#10b981" strokeWidth="1.5" />
-                <text x="55" y="154" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#065f46">
-                  Age
-                </text>
-
-                {/* Bottom Right Node: Lipids */}
-                <circle cx="185" cy="150" r="13" fill="#f0fdfa" stroke="#0d9488" strokeWidth="1.5" />
-                <text x="185" y="154" textAnchor="middle" fontSize="8.5" fontWeight="bold" fill="#134e4a">
-                  Lipids
-                </text>
-              </svg>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-500">HbA1c</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">
+                  {Number.isFinite(patient.hba1c) ? patient.hba1c.toFixed(1) + '%' : '—'}
+                </p>
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">Longer-term glucose indicator</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-500">Fasting glucose</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">
+                  {Number.isFinite(patient.fastingGlucose) ? patient.fastingGlucose.toFixed(1) : '—'}
+                  <span className="ml-1 text-xs font-medium text-slate-500">mmol/L</span>
+                </p>
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">Recorded fasting value</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-500">BMI</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">
+                  {Number.isFinite(patient.bmi) && patient.bmi > 0 ? patient.bmi.toFixed(1) : '—'}
+                </p>
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">Body mass index</p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-500">Time in range</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">
+                  {Number.isFinite(patient.timeInRangePct) ? Math.round(patient.timeInRangePct) + '%' : '—'}
+                </p>
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">When monitoring data is available</p>
+              </div>
             </div>
           </div>
+          <p className="mt-4 text-[11px] leading-5 text-slate-400">
+            These values summarise the selected record and are not a diagnosis. Discuss their meaning with your healthcare professional.
+          </p>
         </div>
       </div>
+
+      {/* Recommendations are patient-friendly text only; the KG itself is never rendered in the patient workspace. */}
+      <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Recommendations from your care team</h3>
+                <p className="mt-0.5 text-[11px] text-slate-500">Guidance your clinician has chosen to share with you</p>
+              </div>
+            </div>
+          </div>
+          {sharedRecommendations.length > 0 && (
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-800">
+              <CheckCircle2 className="h-3 w-3" />
+              {sharedRecommendations.length} shared
+            </span>
+          )}
+        </div>
+
+        {sharedRecommendations.length > 0 ? (
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {sharedRecommendations.map((recommendation) => (
+              <article key={recommendation.id} className="rounded-xl border border-teal-100 bg-teal-50/40 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-teal-800">{recommendation.category}</span>
+                  <span className="text-[10px] font-semibold text-slate-400">Shared by your care team</span>
+                </div>
+                <h4 className="mt-3 text-sm font-bold text-slate-900">{recommendation.title}</h4>
+                <p className="mt-2 text-xs leading-5 text-slate-700">{recommendation.patientMessage}</p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-slate-400">
+              <Activity className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-800">No new recommendations have been shared</p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-500">When your clinician shares guidance with you, it will appear here in plain language. Only clinician-approved items are shown.</p>
+            </div>
+          </div>
+        )}
+        <p className="mt-4 text-[10px] leading-4 text-slate-400">Prototype: shared items are temporary demo data and are not saved to a medical record or notification service.</p>
+      </section>
 
       {/* 3. BOTTOM ACTION BUTTONS */}
       <div className="flex items-center justify-end gap-3 pt-2">

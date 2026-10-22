@@ -209,7 +209,6 @@ export const App: React.FC = () => {
     return (
       <AuthView
         initialFlow={authFlow}
-        onPreviewAdmin={() => setAppMode('admin')}
         onSuccessLogin={() => {
           const client = getSupabaseClient();
           client?.auth.getUser().then(({ data }) => {
@@ -282,6 +281,7 @@ export const App: React.FC = () => {
               if (mode === 'doctor') setWorkspaceModule('doctor_overview');
             }}
             onOpenAuth={() => handleOpenAuth('signin')}
+            onOpenAdmin={() => setAppMode('admin')}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
 

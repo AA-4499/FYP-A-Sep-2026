@@ -28,14 +28,12 @@ interface AuthViewProps {
   initialFlow?: AuthFlow;
   onSuccessLogin: () => void;
   onClose?: () => void;
-  onPreviewAdmin?: () => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({
   initialFlow = 'signin',
   onSuccessLogin,
   onClose,
-  onPreviewAdmin,
 }) => {
   const [currentFlow, setCurrentFlow] = useState<AuthFlow>(initialFlow);
 
@@ -155,11 +153,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-3">
-        {onPreviewAdmin && (
-          <button type="button" onClick={onPreviewAdmin} className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
-            Preview Admin demo
-          </button>
-        )}
         {onClose && (
           <button
             onClick={onClose}

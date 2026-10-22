@@ -14,7 +14,7 @@ This platform establishes a **Smart Diabetes Digital Twin and Personalised Healt
 
 ### User roles
 
-The platform has three user roles: **Admin**, **Patient**, and **Doctor**, represented in code as `admin`, `patient`, and `doctor`. Doctor has a clinical dashboard; Patient has a personal workspace. Admin has a dedicated browser demo with an overview, user accounts, doctor approvals, patient assignments, and activity history. Open **Preview Admin demo** on the sign-in page to explore it. Admin changes use sample data saved in this browser and do not modify live Supabase accounts. Existing `clinician` accounts are treated as Doctor accounts for compatibility. See the [role configuration and database migration instructions](docs/training-model-migration.md#authentication).
+The platform has three user roles: **Admin**, **Patient**, and **Doctor**, represented in code as `admin`, `patient`, and `doctor`. Doctor has a clinical dashboard; Patient has a personal workspace. Admin has a dedicated browser demo with an overview, user accounts, doctor approvals, patient assignments, and activity history. Open **Admin dashboard (Demo)** from the workspace profile dropdown to explore it. Admin changes use sample data saved in this browser and do not modify live Supabase accounts. Existing `clinician` accounts are treated as Doctor accounts for compatibility. See the [role configuration and database migration instructions](docs/training-model-migration.md#authentication).
 
 ### The 9-Step Clinical Digital Twin Workflow
 The system orchestrates an end-to-end, patient-centric clinical journey:

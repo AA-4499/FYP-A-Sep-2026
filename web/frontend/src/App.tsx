@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { DashboardView } from './components/DashboardView';
+import { PatientRecommendationsView } from './components/PatientRecommendationsView';
 import { LongitudinalMonitoringView } from './components/LongitudinalMonitoringView';
 import { RiskSimulationView } from './components/RiskSimulationView';
 import { AIChatView } from './components/AIChatView';
@@ -379,6 +380,7 @@ export const App: React.FC = () => {
               )}
               {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && <ClinicalDataView patientId={currentPatientId} />}
               {patientModule === 'patient_profile' && <ClinicalDataView patientId={currentPatientId} />}
+              {patientModule === 'patient_recommendations' && <PatientRecommendationsView recommendations={publishedRecommendations} />}
 
               {/* 2. Longitudinal Monitoring */}
               {(patientModule === 'monitoring' || patientModule === 'patient_monitoring') && (

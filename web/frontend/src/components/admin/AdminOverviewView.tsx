@@ -202,7 +202,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Middle Row: Service Health & AI Model ROC Curve */}
+      {/* 3. Middle Row: Service Health & AI Model ROC Curvex */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Service Health Grid */}
         <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col justify-between">

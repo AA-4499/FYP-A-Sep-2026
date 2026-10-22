@@ -125,6 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: 'patient_monitoring', label: 'My health' },
             { id: 'patient_digital_twin', label: 'My digital twin' },
             { id: 'patient_insights', label: 'Risk prediction & what-if' },
+            { id: 'patient_recommendations', label: 'My recommendations' },
             { id: 'patient_reports', label: 'Reports' },
           ].map((item) => {
             const isActive = activeModule === item.id;

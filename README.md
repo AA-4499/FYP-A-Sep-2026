@@ -12,6 +12,10 @@ Diabetes is a chronic metabolic condition that demands continuous monitoring of 
 
 This platform establishes a **Smart Diabetes Digital Twin and Personalised Health Management Platform** utilizing the **ShanghaiT2DM longitudinal dataset**. In contrast to single-survey cross-sectional datasets (such as CDC BRFSS), ShanghaiT2DM provides high-frequency repeated measurements, continuous glucose monitoring (CGM) sensor streams (at 15-minute intervals across 14-day monitoring windows), diurnal glycemic excursion profiles, Time-in-Range (TIR) metrics, and historical laboratory trajectories.
 
+### User roles
+
+The platform has three user roles: **Admin**, **Patient**, and **Doctor**, represented in code as `admin`, `patient`, and `doctor`. The existing clinical dashboard belongs to Doctor; Patient has a personal workspace. The Admin dashboard has not been implemented yet, so Admin accounts see an availability notice. Existing `clinician` accounts are treated as Doctor accounts for compatibility. See the [role configuration and database migration instructions](docs/training-model-migration.md#authentication).
+
 ### The 9-Step Clinical Digital Twin Workflow
 The system orchestrates an end-to-end, patient-centric clinical journey:
 ```text

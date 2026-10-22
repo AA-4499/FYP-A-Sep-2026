@@ -49,7 +49,9 @@ For **Supabase Cloud**, set `SUPABASE_URL` and `SUPABASE_KEY` on the Python serv
 
 The API verifies access tokens with Supabase Auth when `SUPABASE_JWT_SECRET` is absent; this supports asymmetric signing keys without copying a JWT signing secret. An optional configured legacy HS256 secret enables the existing local verifier (audience `authenticated`). Authorization uses trusted `app_metadata` after verification.
 
-Configure the user's trusted `app_metadata` via the Supabase admin interface/API: `{"role":"clinician"}` (or `admin`) for cohort access; `{"role":"patient","patient_id":"2017_1_20201118"}` for access to one exact record. The generic Supabase JWT role `authenticated` is not a clinical role. Editable `user_metadata` does not grant server permissions. Reauthenticate after changing claims.
+The platform has three roles: **Admin**, **Patient**, and **Doctor**. Configure the user's trusted `app_metadata` via the Supabase admin interface/API: `{"role":"doctor"}` (or `admin`) for cohort access; `{"role":"patient","patient_id":"2017_1_20201118"}` for access to one exact record. The generic Supabase JWT role `authenticated` is not a platform role. Editable `user_metadata` does not grant server permissions. Reauthenticate after changing claims.
+
+For existing databases using the old `clinician` role, apply [supabase_doctor_role_migration.sql](supabase_doctor_role_migration.sql) to rename the enum value and update trusted Auth metadata. The frontend and API accept `clinician` as a legacy alias for `doctor`; it is not a separate platform role. Existing assignment table and column names are preserved. Fresh databases use [supabase_phase2.sql](supabase_phase2.sql).
 
 ## GitHub branch and Vercel
 

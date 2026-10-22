@@ -1,31 +1,24 @@
-/**
- * Upgraded TopBar Component
- * Matches Figma Image 1 (Clinic Header with Search patients..., Notifications, Admin profile)
- * and Figma Image 3 (Patient Profile with P07 details and search).
- * Plus live Supabase database connection badge.
- */
+/** Header for the Doctor dashboard and Patient workspace. */
 import React, { useState } from 'react';
 import {
   Search,
   Bell,
-  MessageSquare,
   User,
   ChevronDown,
   ArrowLeft,
   KeyRound,
-  LogOut,
   Hospital,
   Database,
 } from 'lucide-react';
 import type { Patient } from '../types';
 
 interface TopBarProps {
-  mode: 'patient' | 'admin' | 'doctor';
+  mode: 'patient' | 'doctor';
   currentPatient: Patient;
   patientsList: Patient[];
   isSupabaseConnected: boolean;
   onSelectPatient: (patientId: string) => void;
-  onSwitchMode: (mode: 'patient' | 'admin' | 'doctor') => void;
+  onSwitchMode: (mode: 'patient' | 'doctor') => void;
   onOpenAuth: () => void;
   onOpenSupabaseModal: () => void;
 }
@@ -43,6 +36,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const roleLabel = mode === 'doctor' ? 'Doctor' : 'Patient';
 
   const filtered = patientsList.filter(
     (p) =>
@@ -54,7 +48,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Left: Mode Context */}
-      {mode === 'admin' || mode === 'doctor' ? (
+      {mode === 'doctor' ? (
         <div className="flex items-center gap-3">
           <div className="relative w-64 sm:w-80">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
@@ -122,7 +116,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={() => onSwitchMode('doctor')}
             className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
-            title="Back to care team workspace"
+            title="Back to Doctor dashboard"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -181,7 +175,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5"
           >
             <Hospital className="w-3.5 h-3.5 text-blue-600" />
-            <span>Care team workspace</span>
+            <span>Doctor dashboard</span>
           </button>
         )}
 
@@ -194,21 +188,23 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="w-2 h-2 rounded-full bg-amber-500 absolute top-1.5 right-1.5 ring-2 ring-white" />
         </button>
 
-        {/* Admin / User Profile Menu */}
+        {/* Workspace profile menu */}
         <div className="relative">
           <button
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            aria-label={`${roleLabel} workspace menu`}
+            aria-expanded={isProfileMenuOpen}
             className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200"
           >
             <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
-              A
+              {roleLabel[0]}
             </div>
             <div className="text-left hidden sm:block">
               <span className="block text-xs font-bold text-slate-900 leading-tight">
-                Admin
+                {roleLabel}
               </span>
               <span className="block text-[10px] text-slate-400">
-                Clinical administrator
+                {mode === 'doctor' ? 'Clinical workspace' : 'Personal workspace'}
               </span>
             </div>
             <ChevronDown className="w-3 h-3 text-slate-400" />
@@ -217,7 +213,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {isProfileMenuOpen && (
             <div className="absolute right-0 top-10 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs space-y-1">
               <div className="px-3 py-1 border-b border-slate-100">
-                <strong className="block text-slate-900 font-bold">Admin Portal</strong>
+                <strong className="block text-slate-900 font-bold">{roleLabel} workspace</strong>
                 <span className="text-[10px] text-slate-400">Borneo Center Kuching</span>
               </div>
               <button
@@ -248,7 +244,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
               >
                 <User className="w-3.5 h-3.5 text-blue-600" />
-                <span>Switch to {mode === 'patient' ? 'care team workspace' : 'patient workspace'}</span>
+                <span>Switch to {mode === 'patient' ? 'Doctor dashboard' : 'Patient workspace'}</span>
               </button>
             </div>
           )}

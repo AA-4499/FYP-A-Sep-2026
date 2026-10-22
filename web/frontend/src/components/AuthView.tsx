@@ -38,8 +38,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [currentFlow, setCurrentFlow] = useState<AuthFlow>(initialFlow);
 
   // Form states
-  const [email, setEmail] = useState('admin@borneocenter.my');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [authError, setAuthError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -303,7 +303,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
               {/* Callout */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-600 leading-relaxed">
-                One sign-in for patients, doctors and administrators. Your account determines your workspace.
+                One sign-in for patients, doctors and administrators. Your account determines your workspace. The Admin dashboard is not yet available.
               </div>
 
               {/* Bottom links */}

@@ -70,13 +70,13 @@ class SupabaseForecastStorageTests(unittest.TestCase):
 
     def test_auth_uses_verified_supabase_user_for_asymmetric_tokens(self):
         response = Mock(status_code=200)
-        response.json.return_value = {'id': 'verified-user', 'app_metadata': {'role': 'clinician'}}
+        response.json.return_value = {'id': 'verified-user', 'app_metadata': {'role': 'doctor'}}
         with patch.dict(os.environ, {'SUPABASE_JWT_SECRET': ''}), \
              patch('models.training.supabase_io.supabase_config', return_value=('https://example.supabase.co', 'sb_secret_test')), \
              patch('requests.get', return_value=response) as get:
             claims = _decode_token('signed-access-token')
         self.assertEqual('verified-user', claims['sub'])
-        self.assertEqual('clinician', claims['app_metadata']['role'])
+        self.assertEqual('doctor', claims['app_metadata']['role'])
         self.assertEqual('Bearer signed-access-token', get.call_args.kwargs['headers']['Authorization'])
 
 

@@ -71,7 +71,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-200 text-xs font-semibold mb-3">
               <Stethoscope className="w-3.5 h-3.5" />
-              <span>Clinical & Cohort View · Healthcare Professional</span>
+              <span>Doctor dashboard · Clinical & Cohort View</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Clinical Population Health & Triage

@@ -3,7 +3,8 @@
 --
 -- IMPORTANT: Create the two users first in Supabase Dashboard > Authentication > Users
 -- (or with the Supabase Admin API). Do not store passwords in this repository.
--- Then run this SQL in the Supabase SQL Editor.
+-- Then run this SQL in the Supabase SQL Editor after the role schema/migration.
+-- The existing doctor demo email is retained for compatibility.
 
 insert into public.profiles (id, full_name, role, patient_id)
 select id, 'Elena Morales', 'patient'::public.app_role, '2000_0_20201230'
@@ -15,7 +16,7 @@ on conflict (id) do update set
   patient_id = excluded.patient_id;
 
 insert into public.profiles (id, full_name, role)
-select id, 'Dr. Andy Wong', 'clinician'::public.app_role
+select id, 'Dr. Andy Wong', 'doctor'::public.app_role
 from auth.users
 where lower(email) = lower('andy.clinician@example.com')
 on conflict (id) do update set

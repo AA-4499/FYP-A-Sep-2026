@@ -1,5 +1,6 @@
 -- Phase 2: Supabase Auth, roles, assignments, audit logs, and RLS.
-create type public.app_role as enum ('patient', 'clinician', 'admin');
+-- Fresh installations only. Existing installations use supabase_doctor_role_migration.sql.
+create type public.app_role as enum ('admin', 'patient', 'doctor');
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -9,6 +10,7 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+-- Retain the existing table/column names for compatibility; assigned users have the doctor role.
 create table if not exists public.clinician_patient_assignments (
   clinician_id uuid not null references public.profiles(id) on delete cascade,
   patient_id text not null,
@@ -48,7 +50,7 @@ alter table public.profiles enable row level security;
 alter table public.clinician_patient_assignments enable row level security;
 alter table public.audit_logs enable row level security;
 
-create policy profiles_self_read on public.profiles for select using (id = auth.uid() or public.my_role() in ('clinician','admin'));
+create policy profiles_self_read on public.profiles for select using (id = auth.uid() or public.my_role() in ('doctor','admin'));
 create policy profiles_admin_update on public.profiles for update using (public.my_role() = 'admin');
 create policy assignment_visible_to_owner on public.clinician_patient_assignments for select using (clinician_id = auth.uid() or public.my_role() = 'admin');
 create policy audit_insert_authenticated on public.audit_logs for insert with check (actor_id = auth.uid());
@@ -58,7 +60,7 @@ create policy audit_admin_read on public.audit_logs for select using (public.my_
 -- the patient identifier column name in the deployed schema.
 -- Example policy shape:
 -- using (public.my_role() = 'admin'
---   or (public.my_role() = 'clinician' and exists (select 1 from public.clinician_patient_assignments a where a.clinician_id = auth.uid() and a.patient_id = "Patient Number"))
+--   or (public.my_role() = 'doctor' and exists (select 1 from public.clinician_patient_assignments a where a.clinician_id = auth.uid() and a.patient_id = "Patient Number"))
 --   or (public.my_role() = 'patient' and "Patient Number" = auth.jwt()->>'patient_id'));
 
 

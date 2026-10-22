@@ -1,4 +1,4 @@
-/** Application shell for doctor, administrator and patient workspaces. */
+/** Doctor and patient workspaces, with an availability notice for Admin accounts. */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -13,10 +13,7 @@ import { ReportView } from './components/ReportView';
 import { AuthView } from './components/AuthView';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { ClinicalDataView } from './components/ClinicalDataView';
-import { AdminOverviewView } from './components/admin/AdminOverviewView';
-import { AdminPatientManagementView } from './components/admin/AdminPatientManagementView';
-import { AdminDataQualityView } from './components/admin/AdminDataQualityView';
-import { AdminTwinConfigView } from './components/admin/AdminTwinConfigView';
+import { AdminPendingView } from './components/admin/AdminPendingView';
 import { DoctorOverviewView } from './components/doctor/DoctorOverviewView';
 import { DoctorPatientListView } from './components/doctor/DoctorPatientListView';
 import type { NavigationModule, AuthFlow, Patient, UserRole } from './types';
@@ -173,7 +170,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Doctors/admins can select a record without leaving their workspace.
+  // Doctors can select a record without leaving their workspace.
   // This is important for reviewing the selected patient's Knowledge Graph.
   const handleWorkspacePatientSelect = async (patientId: string) => {
     setCurrentPatientId(patientId);
@@ -238,6 +235,10 @@ export const App: React.FC = () => {
     );
   }
 
+  if (appMode === 'admin') {
+    return <AdminPendingView onBackToSignIn={() => handleOpenAuth('signin')} />;
+  }
+
   if (appMode === 'patient' && !currentPatient) {
     return <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 p-6 text-slate-600">
       <p>Waiting for patient records.</p>
@@ -277,34 +278,17 @@ export const App: React.FC = () => {
             onSelectPatient={appMode === 'patient' ? handleSelectPatient : handleWorkspacePatientSelect}
             onSwitchMode={(mode) => {
               setAppMode(mode);
-              if (mode !== 'patient') setWorkspaceModule(mode === 'admin' ? 'admin_overview' : 'doctor_overview');
+              if (mode === 'doctor') setWorkspaceModule('doctor_overview');
             }}
             onOpenAuth={() => handleOpenAuth('signin')}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
 
           {/* ========================================================= */}
-          {/* A. DOCTOR AND ADMINISTRATOR WORKSPACES */}
+          {/* A. DOCTOR WORKSPACE */}
           {/* ========================================================= */}
-          {(appMode === 'doctor' || appMode === 'admin') && (
+          {appMode === 'doctor' && (
             <>
-              {appMode === 'admin' && workspaceModule === 'admin_overview' && (
-                <AdminOverviewView
-                  onNavigateToUsers={() => setWorkspaceModule('admin_users')}
-                  onNavigateToDataQuality={() => setWorkspaceModule('admin_data_quality')}
-                  onNavigateToTwinConfig={() => setWorkspaceModule('admin_twin_config')}
-                />
-              )}
-              {appMode === 'admin' && workspaceModule === 'admin_users' && <AdminPatientManagementView />}
-              {appMode === 'admin' && workspaceModule === 'admin_data_quality' && <AdminDataQualityView />}
-              {appMode === 'admin' && workspaceModule === 'admin_twin_config' && <AdminTwinConfigView />}
-              {appMode === 'admin' && workspaceModule === 'admin_logs' && (
-                <AdminOverviewView
-                  onNavigateToUsers={() => setWorkspaceModule('admin_users')}
-                  onNavigateToDataQuality={() => setWorkspaceModule('admin_data_quality')}
-                  onNavigateToTwinConfig={() => setWorkspaceModule('admin_twin_config')}
-                />
-              )}
               {appMode === 'doctor' && workspaceModule === 'doctor_overview' && (
                 <DoctorOverviewView
                   patients={patients}

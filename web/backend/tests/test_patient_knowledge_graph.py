@@ -18,7 +18,7 @@ SECRET = 'patient-kg-test-secret-at-least-32-characters'
 
 
 def headers(patient_id=None):
-    metadata = {'role': 'patient', 'patient_id': patient_id} if patient_id else {'role': 'clinician'}
+    metadata = {'role': 'patient', 'patient_id': patient_id} if patient_id else {'role': 'doctor'}
     token = jwt.encode({'sub': 'kg-test-user', 'exp': time.time() + 600, 'aud': 'authenticated',
                         'role': 'authenticated', 'app_metadata': metadata}, SECRET, algorithm='HS256')
     return {'Authorization': f'Bearer {token}'}

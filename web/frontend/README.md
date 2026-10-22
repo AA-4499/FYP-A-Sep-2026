@@ -1,9 +1,9 @@
 # DiaTwin frontend
 
-This folder contains the React/Vite frontend. `App.tsx` coordinates authentication, patient selection, Supabase synchronization and three role workspaces:
+This folder contains the React/Vite frontend. `App.tsx` coordinates authentication, patient selection and Supabase synchronization. The platform defines three roles, with the following implementation status:
 
 - **Doctor:** the teal clinical workspace, with overview, patient management, health monitoring, digital twin, knowledge graph, reports and settings.
-- **Administrator:** platform overview, user management, data quality and twin configuration.
+- **Admin:** dashboard not yet implemented. Admin accounts see an availability notice with a link back to sign in.
 - **Patient:** personal dashboard, clinical profile, monitoring, digital twin, knowledge graph, risk prediction and reports.
 
 The former blue clinic workspace and its separate sidebar have been removed. Its overview, patient/glucose-review pages, clinical analytics, alerts/tasks, care team, devices, settings and support routes are no longer available. The shared patient monitoring, reports and digital-twin components remain available through the current workspaces.
@@ -16,8 +16,7 @@ main.tsx
     AuthView
     Sidebar / TopBar
     DoctorOverviewView / DoctorPatientListView
-    AdminOverviewView / AdminPatientManagementView
-    AdminDataQualityView / AdminTwinConfigView
+    AdminPendingView (availability notice only)
     DashboardView / ClinicalDataView
     LongitudinalMonitoringView
     RiskSimulationView
@@ -25,7 +24,9 @@ main.tsx
     AIChatView / DigitalTwinView / ReportView
 ```
 
-`appMode` is `auth`, `doctor`, `admin` or `patient`. `workspaceModule` identifies the active doctor or administrator page; `patientModule` identifies the active patient page. Returning to the care team from a patient opens the teal doctor workspace. No `clinic` mode or legacy clinic module types remain.
+`appMode` is `auth`, `doctor`, `admin` or `patient`. `workspaceModule` identifies the active doctor page; `patientModule` identifies the active patient page. Admin mode renders only the availability notice. Returning from a patient opens the teal Doctor dashboard. The shared header identifies the current Doctor or Patient workspace; it does not label the clinical dashboard as Admin.
+
+The old administrator demonstration components remain in the repository as unused prototypes. They are not imported by the application or exposed in navigation and do not represent an implemented Admin dashboard.
 
 ## Data and services
 
@@ -35,7 +36,7 @@ main.tsx
 | `src/lib/forecast.ts` | Online forecasting and explicit local-preview selection. |
 | `src/lib/forecastPreview.ts` | Load an exact patient's static chart snapshot without a Python service. |
 | `public/forecast-preview/` | Local precomputed GRU chart snapshots; not live database results. |
-| `src/data/adminData.ts` | Administrator demonstration data. |
+| `src/data/adminData.ts` | Unused administrator prototype data. |
 | `src/data/patientsData.ts` | Patient fallback data and lookup helpers. |
 | `src/types/index.ts` | Shared patient, role and navigation definitions. |
 
@@ -56,4 +57,4 @@ npm run preview
 
 The frontend uses React, TypeScript, Vite, Tailwind CSS, Supabase, Recharts, Cytoscape, React Day Picker and Lucide icons. Builds type-check the application before producing `dist/`.
 
-Update navigation in `App.tsx`, `Sidebar.tsx` and `TopBar.tsx`. Doctor pages live in `components/doctor/`; administrator pages live in `components/admin/`. Shared patient pages remain in `components/`.
+Update navigation in `App.tsx`, `Sidebar.tsx` and `TopBar.tsx`. Doctor pages live in `components/doctor/`. `components/admin/AdminPendingView.tsx` is the Admin availability notice; the other files in that folder are unused prototypes. Shared patient pages remain in `components/`.

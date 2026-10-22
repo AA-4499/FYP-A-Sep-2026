@@ -15,7 +15,7 @@ try:
 except ImportError:
     CORS = None
 
-from auth import require_auth
+from auth import APP_ROLES, require_auth
 
 from services import (
     list_patients,
@@ -41,7 +41,7 @@ app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 def authorize_api_request():
     if not request.path.startswith("/api/patients"):
         return None
-    response = require_auth({"patient", "clinician", "admin"})(lambda: None)()
+    response = require_auth(APP_ROLES)(lambda: None)()
     if response is not None:
         return response
     user = getattr(g, "current_user", {})

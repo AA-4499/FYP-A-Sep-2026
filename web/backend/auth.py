@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import os
 from functools import wraps
-from typing import Callable
+from typing import AbstractSet, Callable
 
 import jwt
 from flask import g, jsonify, request
 
 ROLE_CLAIMS = ("role", "user_role")
+APP_ROLES = frozenset({"admin", "patient", "doctor"})
 
 
 def _token_from_request() -> str | None:
@@ -46,7 +47,7 @@ def current_user() -> dict | None:
     return getattr(g, "current_user", None)
 
 
-def require_auth(roles: set[str] | None = None) -> Callable:
+def require_auth(roles: AbstractSet[str] | None = None) -> Callable:
     def decorator(view: Callable) -> Callable:
         @wraps(view)
         def wrapped(*args, **kwargs):
@@ -58,7 +59,13 @@ def require_auth(roles: set[str] | None = None) -> Callable:
             except (jwt.InvalidTokenError, RuntimeError) as exc:
                 return jsonify({"error": "Invalid or expired access token.", "detail": str(exc)}), 401
             metadata = claims.get("app_metadata") or {}
-            role = metadata.get("role") or next((claims.get(key) for key in ROLE_CLAIMS if claims.get(key) in {"patient", "clinician", "admin"}), "patient")
+            role = metadata.get("role") or next(
+                (claims.get(key) for key in ROLE_CLAIMS if claims.get(key) in APP_ROLES | {"clinician"}),
+                "patient",
+            )
+            # Accept existing accounts/tokens while exposing only the three platform roles.
+            if role == "clinician":
+                role = "doctor"
             if metadata.get("patient_id"):
                 claims["patient_id"] = metadata["patient_id"]
             if roles and role not in roles:

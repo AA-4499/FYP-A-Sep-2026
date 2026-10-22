@@ -19,7 +19,7 @@ from models.training.supabase_io import SupabaseStorageError
 SECRET = 'forecast-test-secret-at-least-32-characters'
 
 
-def token(role='clinician', patient_id=None):
+def token(role='doctor', patient_id=None):
     metadata = {'role': role}
     if patient_id:
         metadata['patient_id'] = patient_id
@@ -48,16 +48,16 @@ class ForecastApiTests(unittest.TestCase):
             self.assertEqual(403, response.status_code)
             forecast.assert_not_called()
 
-    def test_patient_can_read_own_record_and_clinician_can_read_cohort(self):
-        for headers in (token(), token('patient', '2017_1_20201118')):
+    def test_platform_roles_and_legacy_doctor_can_access_permitted_record(self):
+        for headers in (token(), token('admin'), token('clinician'), token('patient', '2017_1_20201118')):
             with patch.object(service, 'forecast_patient', return_value={'patient_id': '2017_1_20201118'}) as forecast:
                 response = self.client.post(self.url, json={'horizon_hours': 6}, headers=headers)
                 self.assertEqual(200, response.status_code)
                 forecast.assert_called_once_with('2017_1_20201118', {'horizon_hours': 6})
 
-    def test_editable_user_metadata_cannot_grant_clinician_access(self):
+    def test_editable_user_metadata_cannot_grant_doctor_access(self):
         encoded = jwt.encode({'sub': 'test-user', 'exp': time.time() + 600, 'aud': 'authenticated',
-                              'role': 'authenticated', 'user_metadata': {'role': 'clinician'}}, SECRET, algorithm='HS256')
+                              'role': 'authenticated', 'user_metadata': {'role': 'doctor'}}, SECRET, algorithm='HS256')
         response = self.client.post(self.url, json={}, headers={'Authorization': f'Bearer {encoded}'})
         self.assertEqual(403, response.status_code)
 

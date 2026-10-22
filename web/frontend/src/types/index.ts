@@ -5,8 +5,7 @@
 
 export type UserRole = 'admin' | 'doctor' | 'patient';
 
-// Reserved entry for the Admin availability notice; its dashboard is not implemented.
-export type AdminModule = 'admin_overview';
+export type AdminModule = 'admin_overview' | 'admin_users' | 'admin_approvals' | 'admin_assignments' | 'admin_activity';
 
 export type DoctorModule =
   | 'doctor_overview'

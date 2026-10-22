@@ -28,12 +28,14 @@ interface AuthViewProps {
   initialFlow?: AuthFlow;
   onSuccessLogin: () => void;
   onClose?: () => void;
+  onPreviewAdmin?: () => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({
   initialFlow = 'signin',
   onSuccessLogin,
   onClose,
+  onPreviewAdmin,
 }) => {
   const [currentFlow, setCurrentFlow] = useState<AuthFlow>(initialFlow);
 
@@ -152,15 +154,22 @@ export const AuthView: React.FC<AuthViewProps> = ({
           </button>
         </div>
 
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
+        {onPreviewAdmin && (
+          <button type="button" onClick={onPreviewAdmin} className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100">
+            Preview Admin demo
+          </button>
+        )}
         {onClose && (
           <button
             onClick={onClose}
             className="text-xs text-slate-500 hover:text-blue-600 font-semibold flex items-center gap-1"
           >
-            <span>Skip to Dashboard</span>
+            <span>Preview Doctor dashboard</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
+        </div>
       </header>
 
       {/* Main Split Screen Container */}
@@ -303,7 +312,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
               {/* Callout */}
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-600 leading-relaxed">
-                One sign-in for patients, doctors and administrators. Your account determines your workspace. The Admin dashboard is not yet available.
+                One sign-in for patients, doctors and administrators. Your account determines your workspace. Admin pages are available as a browser demo.
               </div>
 
               {/* Bottom links */}

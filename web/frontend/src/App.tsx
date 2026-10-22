@@ -1,4 +1,4 @@
-/** Doctor and patient workspaces, with an availability notice for Admin accounts. */
+/** Application shell for the Admin, Doctor, and Patient workspaces. */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -13,7 +13,7 @@ import { ReportView } from './components/ReportView';
 import { AuthView } from './components/AuthView';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { ClinicalDataView } from './components/ClinicalDataView';
-import { AdminPendingView } from './components/admin/AdminPendingView';
+import { AdminWorkspace } from './components/admin/AdminWorkspace';
 import { DoctorOverviewView } from './components/doctor/DoctorOverviewView';
 import { DoctorPatientListView } from './components/doctor/DoctorPatientListView';
 import type { NavigationModule, AuthFlow, Patient, UserRole } from './types';
@@ -209,6 +209,7 @@ export const App: React.FC = () => {
     return (
       <AuthView
         initialFlow={authFlow}
+        onPreviewAdmin={() => setAppMode('admin')}
         onSuccessLogin={() => {
           const client = getSupabaseClient();
           client?.auth.getUser().then(({ data }) => {
@@ -236,7 +237,7 @@ export const App: React.FC = () => {
   }
 
   if (appMode === 'admin') {
-    return <AdminPendingView onBackToSignIn={() => handleOpenAuth('signin')} />;
+    return <AdminWorkspace onExit={() => handleOpenAuth('signin')} />;
   }
 
   if (appMode === 'patient' && !currentPatient) {

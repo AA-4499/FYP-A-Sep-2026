@@ -1,4 +1,4 @@
-# Patient registration: first working milestone
+# Patient registration and personal dashboard
 
 This milestone connects Patient signup, email confirmation/resend, email/password login,
 session restoration, local sign-out, and password recovery to Supabase. Doctor applications
@@ -25,6 +25,12 @@ design prototype; the active form is `AccountAuthView.tsx`.
 5. With default email delivery, use an email already belonging to your project's team.
    Sending to general users requires custom SMTP. Default sending limits are small;
    repeated tests and resend attempts can be rate limited.
+6. Run [supabase_patient_dashboard.sql](supabase_patient_dashboard.sql) after the profile
+   script. It adds the dashboard function and enables row-level security on the existing
+   `patient_summary` and `patient_detail` tables. Patients can read only the record linked
+   by their own profile; anonymous reads and Patient clinical writes are blocked even if
+   older broad policies exist. Trusted Doctor/Admin accounts retain cohort read access.
+   It does not create clinical tables, assign records, or change existing medical data.
 
 Do not share secret/service-role keys or put them in `VITE_` variables. The app's existing
 publishable key is used for signup and sign-in. The SQL file has not been applied remotely
@@ -53,8 +59,9 @@ different port, add that exact local origin to the Supabase redirect allowlist.
    the same user ID has role `patient` and a null `patient_id`.
    Confirm `nric_passport_no` matches the synthetic value you entered.
 5. Open the confirmation link while the local app is running. The app should show
-   **Your Patient account is ready** with the correct email and a waiting-for-record message.
-6. Refresh. The session should restore to the same account screen.
+   **Patient dashboard** with your name, email, and personal navigation. New accounts see
+   **Your dashboard is ready**, empty health measurements, and a care-team linking message.
+6. Refresh. The session should restore to your personal dashboard.
 7. Click **Sign out**. You should return to the sign-in form. Refresh to confirm it stays signed out.
 8. Sign in again with the same credentials. Wrong passwords should show an error.
 
@@ -82,12 +89,29 @@ Before collecting real IDs, replace this metadata transport with a trusted serve
 registration flow that stores the number outside Auth metadata/JWTs. The profile column
 is protected by owner-only RLS, but is not application-encrypted.
 
-Patient accounts currently stay on the account-ready screen. Even a linked account does
-not open the clinical dashboard in this milestone. This prevents the old default-patient
-fallback from displaying an unrelated record. Next, implement the trusted patient-linking
-process, enforce database row-level security on the deployed clinical tables, and connect
-the exact linked record with no demo fallback. Database security on existing clinical
-tables has not been changed or verified by this migration.
+Confirmed Patient accounts now open their own dashboard, My health, and My profile.
+The dashboard calls `get_my_patient_dashboard()` without accepting a patient ID from the
+browser. The database uses `auth.uid()` to find the account's `profiles.patient_id` link.
+It returns only that record's recorded measurements and up to 100 recent observations.
+The function uses SECURITY INVOKER so table RLS still applies. Missing measurements stay
+missing, with no default clinical values, sample recommendations, or calculated risk scores.
+There is no patient selector, Doctor/Admin switch, or database settings menu for Patients.
+The richer simulation/twin/report pages remain in the Doctor/sample workspace until
+their data and authorization are ready for Patient use.
+
+For a Patient with existing medical data, a trusted administrator must verify ownership
+and set `profiles.patient_id` to the exact `patient_summary."Patient Number"` in the
+Supabase Table Editor (or a future trusted server workflow). The NRIC/passport number
+does not automatically authorize a link. New Patients can use their dashboard with a
+null link. Existing sample cohort records must not be arbitrarily assigned to real people.
+
+After applying the dashboard SQL, test with two separate test accounts and different
+authorized test records: each dashboard must show only its linked record. With the
+Patient's JWT, direct REST reads of the other record must return no rows; attempts to
+change `profiles.patient_id` or write clinical data must fail or affect zero rows. A newly
+registered unlinked account must see no clinical data. Also test logout and switching
+accounts in the same browser. These deployed RLS checks have not been run by the agent;
+frontend tests use mocked responses and cannot establish database isolation by themselves.
 
 Only trusted `app_metadata` can route a signed-in account to Doctor or Admin. Editable
 `user_metadata` is never used to grant those roles. An account with no assigned role has
@@ -98,8 +122,11 @@ is now denied for Patient tokens. The Admin pages still operate on browser-local
 
 - `src/lib/accountAuth.ts`: signup request, password validation, trusted-role mapping.
 - `src/components/AccountAuthView.tsx`: forms, confirmation/resend, recovery, errors.
-- `src/components/AuthGateway.tsx`: session verification, routing, account screen, sign-out.
+- `src/components/AuthGateway.tsx`: session verification, routing, sign-out.
+- `src/components/PatientWorkspace.tsx`: personal dashboard and empty/loading/error states.
+- `src/lib/patientDashboard.ts`: own-account RPC loader; no sample fallback.
 - `docs/supabase_patient_registration.sql`: database profile creation and client-write restrictions.
+- `docs/supabase_patient_dashboard.sql`: clinical RLS and own-account dashboard function.
 
 Official references: [Password auth](https://supabase.com/docs/guides/auth/passwords),
 [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls),

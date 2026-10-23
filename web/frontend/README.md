@@ -2,8 +2,8 @@
 
 Patient registration, confirmation links, login/logout, session restoration, and password
 recovery now use Supabase Auth. Follow the [Patient authentication walkthrough](../../docs/patient-auth-walkthrough.md)
-to apply the profile SQL and run a real email test. Signed-in Patients currently see an
-account-ready screen; clinical record linking/access is the next milestone. Unauthenticated
+to apply the profile and dashboard SQL scripts and run a real email test. Confirmed Patients
+see their own dashboard, health readings, and profile; unlinked accounts see empty states. Unauthenticated
 dashboard previews use sample records and do not run the live cohort synchronization.
 The active form is `AccountAuthView.tsx`; `AuthView.tsx` is a retained, unused prototype.
 
@@ -11,7 +11,7 @@ This folder contains the React/Vite frontend. `App.tsx` coordinates authenticati
 
 - **Doctor:** the teal clinical workspace, with overview, patient management, health monitoring, digital twin, knowledge graph, reports and settings.
 - **Admin:** dedicated overview, user accounts, doctor approvals, patient assignments, and activity history. These pages use a clearly labelled browser demo with synthetic records; no live account permissions are changed.
-- **Patient:** personal dashboard, clinical profile, monitoring, digital twin, knowledge graph, risk prediction and reports.
+- **Patient:** authenticated personal dashboard, recorded health measurements, recent glucose readings, and account profile. The Doctor/sample workspace retains the prototype twin, prediction, and report pages.
 
 The former blue clinic workspace and its separate sidebar have been removed. Its overview, patient/glucose-review pages, clinical analytics, alerts/tasks, care team, devices, settings and support routes are no longer available. The shared patient monitoring, reports and digital-twin components remain available through the current workspaces.
 
@@ -20,7 +20,8 @@ The former blue clinic workspace and its separate sidebar have been removed. Its
 ```text
 main.tsx
   App.tsx
-    AuthView
+    AuthGateway / AccountAuthView
+    PatientWorkspace (signed-in Patient only)
     Sidebar / TopBar
     DoctorOverviewView / DoctorPatientListView
     AdminWorkspace / AdminPages / AdminUI

@@ -18,6 +18,226 @@ interface DashboardViewProps {
   onNavigate: (module: NavigationModule) => void;
 }
 
+
+type AgpBin = {
+  minuteOfDay: number;
+  p10: number;
+  p25: number;
+  median: number;
+  p75: number;
+  p90: number;
+};
+
+const CompactAgpChart: React.FC<{ bins: AgpBin[] }> = ({ bins }) => {
+  const width = 320;
+  const height = 100;
+
+  const left = 28;
+  const right = 306;
+  const top = 6;
+  const bottom = 76;
+
+  const minG = 40;
+  const maxG = 340;
+
+  const x = (minute: number) =>
+    left + (minute / 1440) * (right - left);
+
+  const y = (glucose: number) =>
+    bottom - ((Math.max(minG, Math.min(maxG, glucose)) - minG) /
+      (maxG - minG)) * (bottom - top);
+
+  const makeBand = (
+    lower: 'p10' | 'p25',
+    upper: 'p90' | 'p75'
+  ) => {
+    if (bins.length < 2) return '';
+
+    const upperPoints = bins.map(
+      (b) => `${x(b.minuteOfDay)},${y(b[upper])}`
+    );
+
+    const lowerPoints = [...bins].reverse().map(
+      (b) => `${x(b.minuteOfDay)},${y(b[lower])}`
+    );
+
+    return `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z`;
+  };
+
+  const medianPath = bins
+    .map((b, i) =>
+      `${i === 0 ? 'M' : 'L'} ${x(b.minuteOfDay)} ${y(b.median)}`
+    )
+    .join(' ');
+
+  const outer = makeBand('p10', 'p90');
+  const inner = makeBand('p25', 'p75');
+
+  return (
+    <div className="mt-4 w-full h-36 flex flex-col justify-center">
+      {bins.length === 0 ? (
+        <div className="h-28 flex items-center justify-center text-xs text-slate-400">
+          No CGM data available
+        </div>
+      ) : (
+        <>
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="w-full h-28 overflow-visible"
+            role="img"
+            aria-label="Compact ambulatory glucose profile with percentile bands and median glucose"
+          >
+            <defs>
+              <clipPath id="dashboard-agp-clip">
+                <rect
+                  x={left}
+                  y={top}
+                  width={right - left}
+                  height={bottom - top}
+                />
+              </clipPath>
+              <clipPath id="dashboard-agp-below">
+                <rect
+                  x={left}
+                  y={y(70)}
+                  width={right - left}
+                  height={bottom - y(70)}
+                />
+              </clipPath>
+
+              <clipPath id="dashboard-agp-above">
+                <rect
+                  x={left}
+                  y={top}
+                  width={right - left}
+                  height={y(180) - top}
+                />
+              </clipPath>
+            </defs>
+
+            {/* Target range */}
+            <rect
+              x={left}
+              y={y(180)}
+              width={right - left}
+              height={y(70) - y(180)}
+              fill="#D1FAE5"
+              opacity="0.55"
+            />
+
+            {[70, 180].map((g) => (
+              <line
+                key={g}
+                x1={left}
+                x2={right}
+                y1={y(g)}
+                y2={y(g)}
+                stroke="#10b981"
+                strokeWidth="1"
+                strokeDasharray="4 3"
+              />
+            ))}
+
+            <g clipPath="url(#dashboard-agp-clip)">
+              {/* P10–P90: light green */}
+              <path d={outer} fill="#86EFAC" fillOpacity="0.65" />
+
+              {/* Below target: orange */}
+              <path
+                d={outer}
+                fill="#F97316"
+                fillOpacity="0.9"
+                clipPath="url(#dashboard-agp-below)"
+              />
+
+              {/* Above target: red */}
+              <path
+                d={outer}
+                fill="#DC2626"
+                fillOpacity="0.85"
+                clipPath="url(#dashboard-agp-above)"
+              />
+
+              {/* P25–P75: dark green */}
+              <path d={inner} fill="#15803D" fillOpacity="0.45" />
+
+              <path
+                d={inner}
+                fill="#F97316"
+                clipPath="url(#dashboard-agp-below)"
+              />
+
+              <path
+                d={inner}
+                fill="#DC2626"
+                clipPath="url(#dashboard-agp-above)"
+              />
+
+              {/* Median glucose */}
+              <path
+                d={medianPath}
+                fill="none"
+                stroke="#1D4ED8"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+
+            {/* X-axis */}
+            {[0, 6, 12, 18, 24].map((hour) => {
+              const xpos = x(hour * 60);
+
+              return (
+                <g key={hour}>
+                  <line
+                    x1={xpos}
+                    x2={xpos}
+                    y1={bottom}
+                    y2={bottom + 3}
+                    stroke="#94a3b8"
+                  />
+                  <text
+                    x={xpos}
+                    y={bottom + 13}
+                    fontSize="8"
+                    fill="#64748b"
+                    textAnchor={
+                      hour === 0 ? 'start' :
+                      hour === 24 ? 'end' : 'middle'
+                    }
+                  >
+                    {String(hour).padStart(2, '0')}:00
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Compact Y-axis labels */}
+            {[70, 180].map((g) => (
+              <text
+                key={g}
+                x={left - 5}
+                y={y(g) + 3}
+                textAnchor="end"
+                fontSize="8"
+                fill="#059669"
+              >
+                {g}
+              </text>
+            ))}
+          </svg>
+
+          <div className="flex justify-between items-center text-[9px] text-slate-500 pt-1 px-1">
+            <span>Time of day</span>
+            <span>Glucose (mg/dL)</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate }) => {
   // What-if sliders state (initialized to simulate 43% as in mockup)
   const [whatIfHbA1c, setWhatIfHbA1c] = useState<number>(7.0);
@@ -34,26 +254,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
     Math.min(95, Math.max(12, baselineRisk + deltaHbA1c * 12 + deltaFbg * 1.8 + deltaBmi * 1.5))
   );
 
-  // Generate SVG path from patient's actual continuous CGM readings (1,000+ points)
-  const renderCGMPath = () => {
-    if (!patient.cgmReadings || patient.cgmReadings.length === 0) return '';
-    const readings = patient.cgmReadings;
-    const step = Math.max(1, Math.floor(readings.length / 100));
-    const sampled = readings.filter((_, idx) => idx % step === 0);
-    const minG = 40;
-    const maxG = 340;
-    const width = 300;
-    const height = 55;
+  const agpBins = React.useMemo(() => {
+    if (!patient.cgmReadings?.length) return [];
 
-    const points = sampled.map((r, idx) => {
-      const x = 10 + (idx / (sampled.length - 1 || 1)) * width;
-      const clamped = Math.max(minG, Math.min(maxG, r.cgm));
-      const y = 68 - ((clamped - minG) / (maxG - minG)) * height;
-      return `${x.toFixed(1)} ${y.toFixed(1)}`;
+    const bins = Array.from({ length: 96 }, (_, i) => ({
+      minuteOfDay: i * 15,
+      values: [] as number[],
+    }));
+
+    patient.cgmReadings.forEach((reading) => {
+      const date = new Date(reading.timestamp);
+      const glucose = Number(reading.cgm);
+
+      if (!Number.isFinite(date.getTime()) || !Number.isFinite(glucose)) {
+        return;
+      }
+
+      const minuteOfDay = date.getHours() * 60 + date.getMinutes();
+      const binIndex = Math.floor(minuteOfDay / 15);
+
+      if (binIndex >= 0 && binIndex < 96) {
+        bins[binIndex].values.push(glucose);
+      }
     });
 
-    return `M ${points.join(' L ')}`;
-  };
+    const percentile = (sorted: number[], p: number) => {
+      if (!sorted.length) return null;
+
+      const position = (sorted.length - 1) * p;
+      const lower = Math.floor(position);
+      const upper = Math.ceil(position);
+
+      return sorted[lower] +
+        (sorted[upper] - sorted[lower]) * (position - lower);
+    };
+
+    return bins
+      .filter((bin) => bin.values.length > 0)
+      .map((bin) => {
+        const sorted = [...bin.values].sort((a, b) => a - b);
+
+        return {
+          minuteOfDay: bin.minuteOfDay,
+          p10: percentile(sorted, 0.10)!,
+          p25: percentile(sorted, 0.25)!,
+          median: percentile(sorted, 0.50)!,
+          p75: percentile(sorted, 0.75)!,
+          p90: percentile(sorted, 0.90)!,
+        };
+      });
+  }, [patient.cgmReadings]);
 
   const hasCGM = Boolean(patient.hasContinuousCGM && patient.cgmReadings && patient.cgmReadings.length > 0);
   const cgmSummary = patient.cgmSummary;
@@ -102,7 +352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
           <div>
             <div className="flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-                {hasCGM ? 'Continuous CGM Waveform (14 Days)' : 'Longitudinal Glycemic Profile'}
+                {hasCGM ? 'Continuous CGM Waveform' : 'Longitudinal Glycemic Profile'}
               </h3>
               {hasCGM && cgmSummary && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -112,47 +362,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
             </div>
 
             {hasCGM ? (
-              /* Actual 14-Day Continuous Sensor Waveform */
-              <div className="mt-4 w-full h-36 flex flex-col justify-center">
-                <svg className="w-full h-28 overflow-visible" viewBox="0 0 320 80">
-                  {/* Guide lines */}
-                  <line x1="10" y1="15" x2="310" y2="15" stroke="#f8fafc" strokeWidth="1" />
-                  <line x1="10" y1="40" x2="310" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="10" y1="72" x2="310" y2="72" stroke="#e2e8f0" strokeWidth="1" />
+              <>
+                <CompactAgpChart bins={agpBins} />
 
-                  {/* Target Glycemic Band (70 - 180 mg/dL) */}
-                  <rect x="10" y="38" width="300" height="26" fill="#ecfdf5" rx="3" />
-                  <line x1="10" y1="38" x2="310" y2="38" stroke="#a7f3d0" strokeWidth="0.8" strokeDasharray="3 2" />
-                  <line x1="10" y1="64" x2="310" y2="64" stroke="#a7f3d0" strokeWidth="0.8" strokeDasharray="3 2" />
-
-                  {/* 180 mg/dL label */}
-                  <text x="312" y="41" fontSize="7" fill="#10b981" fontStyle="italic">180</text>
-                  <text x="312" y="67" fontSize="7" fill="#10b981" fontStyle="italic">70</text>
-
-                  {/* Actual Continuous CGM Waveform */}
-                  <path
-                    d={renderCGMPath()}
-                    fill="none"
-                    stroke="#2563eb"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  {/* Latest reading pulse marker */}
-                  <circle cx="310" cy="42" r="3.5" fill="#2563eb" />
-                  <circle cx="310" cy="42" r="6" fill="#2563eb" opacity="0.25" className="animate-ping" />
-                </svg>
-
-                {/* X-axis labels */}
-                <div className="flex justify-between items-center text-[10px] text-slate-500 pt-1.5 px-1 font-medium">
-                  <span>{cgmSummary?.startDate ? new Date(cgmSummary.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Day 1'}</span>
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
-                    {patient.cgmReadings?.length.toLocaleString()} continuous sensor points
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-600 mt-1">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-3 h-2 rounded-sm bg-green-300" />
+                    P10–P90
                   </span>
-                  <span>{cgmSummary?.endDate ? new Date(cgmSummary.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Day 14'}</span>
+
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-3 h-2 rounded-sm bg-green-700" />
+                    P25–P75
+                  </span>
+
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-4 h-0.5 bg-blue-700" />
+                    Median
+                  </span>
+
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-3 h-2 rounded-sm bg-orange-500" />
+                    Below 70
+                  </span>
+
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-3 h-2 rounded-sm bg-red-600" />
+                    Above 180
+                  </span>
                 </div>
-              </div>
+              </>
             ) : (
               /* Clinical State for Patients Without CGM sensor */
               <div className="mt-3 bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col items-center justify-center text-center space-y-2">
@@ -180,10 +419,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
           <div className="pt-2 text-xs text-slate-500 flex items-center justify-between">
             {hasCGM ? (
               <>
-                <div>
-                  <span className="text-emerald-700 font-semibold">Green band:</span> Target (70–180 mg/dL) ·{' '}
-                  <span className="text-blue-600 font-semibold">Blue wave:</span> 15-min sensor readings
-                </div>
                 <button
                   onClick={() => onNavigate('monitoring')}
                   className="text-xs font-semibold text-blue-600 hover:underline"

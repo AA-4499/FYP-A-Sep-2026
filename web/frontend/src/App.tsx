@@ -157,11 +157,20 @@ export const App: React.FC = () => {
     }
   };
 
+
+  // TEMPORARY: Bypass authentication to preview the patient workspace.
+  const handleTestPatientMode = () => {
+    setUserRole('patient');
+    setAppMode('patient');
+    setPatientModule('patient_home');
+  };
+
   // If in Auth mode, render full-screen AuthView
   if (appMode === 'auth') {
     return (
       <AuthView
         initialFlow={authFlow}
+        onTestPatientMode={handleTestPatientMode}
         onSuccessLogin={() => {
           const client = getSupabaseClient();
           client?.auth.getUser().then(({ data }) => {
@@ -326,13 +335,13 @@ export const App: React.FC = () => {
                 />
               )}
 
-              {/* 3. Risk Assessment & What-if Simulation */}
+              {/* 3. Risk Assessment & What-if Simulation
               {(patientModule === 'risk' || patientModule === 'patient_insights') && (
                 <RiskSimulationView
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
-              )}
+              )} */}
 
               {/* 4. Explainable AI & Model Insights Chat */}
               {patientModule === 'explain_ai' && (
@@ -342,18 +351,18 @@ export const App: React.FC = () => {
                 />
               )}
 
-              {/* 5. Knowledge Graph */}
+              {/* 5. Knowledge Graph
               {patientModule === 'knowledge_graph' && (
                 <KnowledgeGraphView />
-              )}
+              )} */}
 
-              {/* 6. Physiological Digital Twin */}
+              {/* 6. Physiological Digital Twin
               {(patientModule === 'digital_twin' || patientModule === 'patient_digital_twin') && (
                 <DigitalTwinView
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
-              )}
+              )} */}
 
               {/* 7. Clinical Health Dossier & Reports */}
               {(patientModule === 'reports' || patientModule === 'patient_reports') && (

@@ -28,12 +28,14 @@ interface AuthViewProps {
   initialFlow?: AuthFlow;
   onSuccessLogin: () => void;
   onClose?: () => void;
+  onTestPatientMode: () => void;
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({
   initialFlow = 'signin',
   onSuccessLogin,
   onClose,
+  onTestPatientMode,
 }) => {
   const [currentFlow, setCurrentFlow] = useState<AuthFlow>(initialFlow);
 
@@ -296,7 +298,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   type="submit"
                   className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                 >
-                  <span>{isSubmitting ? 'Signing in�' : 'Sign in'}</span>
+                  <span>{isSubmitting ? 'Signing in�' : 'Sign in'}</span>
                   <span>→</span>
                 </button>
               </form>
@@ -936,6 +938,15 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 >
                   <span>Verify email</span>
                   <span>→</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onTestPatientMode}
+                  className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                >
+                  <span>🧪</span>
+                  <span>Skip verification — Test Patient Dashboard</span>
                 </button>
               </form>
 

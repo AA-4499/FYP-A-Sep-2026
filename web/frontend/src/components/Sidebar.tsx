@@ -123,12 +123,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: 'patient_home', label: 'Home' },
             { id: 'patient_profile', label: 'My profile' },
             { id: 'patient_monitoring', label: 'My health' },
-            { id: 'patient_digital_twin', label: 'My digital twin' },
-            { id: 'knowledge_graph', label: 'Knowledge graph' },
-            { id: 'patient_insights', label: 'Risk prediction & what-if' },
             { id: 'patient_reports', label: 'Reports' },
           ].map((item) => {
             const isActive = activeModule === item.id;
+
             return (
               <button
                 key={item.id}
@@ -140,14 +138,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}
               >
                 <span
-                  className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center text-[8px] shrink-0 ${
+                  className={`w-2 h-2 rounded-xs border shrink-0 transition-colors ${
                     isActive
-                      ? 'border-purple-600 text-purple-600 bg-white font-bold'
-                      : 'border-slate-300 text-slate-300'
+                      ? 'border-purple-600 bg-purple-600'
+                      : 'border-slate-300 bg-white'
                   }`}
-                >
-                  {isActive ? '▪' : ''}
-                </span>
+                />
+
                 <span>{item.label}</span>
               </button>
             );

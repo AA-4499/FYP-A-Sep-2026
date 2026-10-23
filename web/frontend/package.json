@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "test:admin": "node --test tests/adminDemo.test.mjs",
+    "test:auth": "node --test tests/accountAuth.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

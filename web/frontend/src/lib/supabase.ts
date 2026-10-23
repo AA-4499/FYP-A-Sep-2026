@@ -400,6 +400,11 @@ export function getCachedRawDetails(): SupabasePatientDetail[] {
   return cachedRawDetails;
 }
 
+export function clearSupabasePatientCache(): void {
+  cachedRawSummaries = [];
+  cachedRawDetails = [];
+}
+
 export function getCachedRawSummaries(): SupabasePatientSummary[] {
   return cachedRawSummaries;
 }

@@ -1,5 +1,12 @@
 # DiaTwin frontend
 
+Patient registration, confirmation links, login/logout, session restoration, and password
+recovery now use Supabase Auth. Follow the [Patient authentication walkthrough](../../docs/patient-auth-walkthrough.md)
+to apply the profile SQL and run a real email test. Signed-in Patients currently see an
+account-ready screen; clinical record linking/access is the next milestone. Unauthenticated
+dashboard previews use sample records and do not run the live cohort synchronization.
+The active form is `AccountAuthView.tsx`; `AuthView.tsx` is a retained, unused prototype.
+
 This folder contains the React/Vite frontend. `App.tsx` coordinates authentication, patient selection and Supabase synchronization. The platform defines three roles, with the following implementation status:
 
 - **Doctor:** the teal clinical workspace, with overview, patient management, health monitoring, digital twin, knowledge graph, reports and settings.

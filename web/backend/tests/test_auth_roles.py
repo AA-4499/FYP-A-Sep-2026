@@ -83,6 +83,14 @@ class PlatformRoleTests(unittest.TestCase):
         self.assertEqual(403, response.status_code)
         self.patient.assert_not_called()
 
+    def test_patient_cannot_browse_directory_even_with_a_linked_record(self):
+        with patch.object(dashboard, 'list_patients') as directory:
+            for patient_id in (None, 'record-a'):
+                response = self.client.get('/api/patients', headers=headers(
+                    app_metadata={'role': 'patient', 'patient_id': patient_id}))
+                self.assertEqual(403, response.status_code)
+            directory.assert_not_called()
+
     def test_unauthenticated_request_is_denied(self):
         self.assertEqual(401, self.client.get(self.url).status_code)
         self.patient.assert_not_called()

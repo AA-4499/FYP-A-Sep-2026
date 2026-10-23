@@ -10,13 +10,13 @@ import { AIChatView } from './components/AIChatView';
 import { KnowledgeGraphView } from './components/KnowledgeGraphView';
 import { DigitalTwinView } from './components/DigitalTwinView';
 import { ReportView } from './components/ReportView';
-import { AuthView } from './components/AuthView';
+import { AuthGateway } from './components/AuthGateway';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { ClinicalDataView } from './components/ClinicalDataView';
 import { AdminWorkspace } from './components/admin/AdminWorkspace';
 import { DoctorOverviewView } from './components/doctor/DoctorOverviewView';
 import { DoctorPatientListView } from './components/doctor/DoctorPatientListView';
-import type { NavigationModule, AuthFlow, Patient, UserRole } from './types';
+import type { NavigationModule, Patient, UserRole } from './types';
 import { PATIENTS, getPatientById } from './data/patientsData';
 import { createDemoRecommendations } from './data/knowledgeGraphDemoData';
 import type { ClinicalRecommendation, RecommendationStatus } from './data/knowledgeGraphDemoData';
@@ -27,20 +27,12 @@ import {
   testSupabaseConnection,
 } from './lib/supabase';
 
-function normalizeUserRole(user: { app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> } | null | undefined): UserRole | null {
-  const rawRole =
-    user?.app_metadata?.role ||
-    user?.user_metadata?.role;
+export const App: React.FC = () => (
+  <AuthGateway renderWorkspace={(role, demo, onExit) => <Workspace key={`${role}-${demo}`} initialRole={role} isDemo={demo} onExit={onExit} />} />
+);
 
-  if (rawRole === 'admin') return 'admin';
-  if (rawRole === 'patient') return 'patient';
-  if (rawRole === 'doctor' || rawRole === 'clinician') return 'doctor';
-  return null;
-}
-
-export const App: React.FC = () => {
-  const [appMode, setAppMode] = useState<UserRole | 'auth'>('auth');
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
+const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () => void }> = ({ initialRole, isDemo, onExit }) => {
+  const [appMode, setAppMode] = useState<UserRole>(initialRole);
 
   // Currently active module in the sidebar
   const [workspaceModule, setWorkspaceModule] = useState<NavigationModule>('doctor_overview');
@@ -58,30 +50,9 @@ export const App: React.FC = () => {
   // Session-only prototype state for doctor-reviewed recommendations shared to the patient view.
   const [recommendationsByPatient, setRecommendationsByPatient] = useState<Record<string, ClinicalRecommendation[]>>({});
 
-  // Auth flow to display when auth mode is opened
-  const [authFlow, setAuthFlow] = useState<AuthFlow>('signin');
-
-  useEffect(() => {
-    const client = getSupabaseClient();
-    if (!client) return;
-    client.auth.getSession().then(({ data }) => {
-      const role = normalizeUserRole(data.session?.user);
-      setUserRole(role || null);
-      if (data.session) {
-        setAppMode(role || 'doctor');
-        setWorkspaceModule(role === 'admin' ? 'admin_overview' : 'doctor_overview');
-      }
-    });
-    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
-      const role = normalizeUserRole(session?.user);
-      setUserRole(role || null);
-      if (!session) setAppMode('auth');
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
   // Load patients from Supabase or fallback
   const syncSupabaseData = useCallback(async () => {
+    if (isDemo) return;
     try {
       const conn = await testSupabaseConnection();
       setIsSupabaseConnected(conn.connected);
@@ -108,7 +79,7 @@ export const App: React.FC = () => {
     } catch (err) {
       console.error('Error synchronizing Supabase:', err);
     }
-  }, [currentPatientId]);
+  }, [currentPatientId, isDemo]);
 
   useEffect(() => {
     syncSupabaseData();
@@ -185,12 +156,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open Auth Modal / View
-  const handleOpenAuth = (flow: AuthFlow = 'signin') => {
-    setAuthFlow(flow);
-    setAppMode('auth');
-  };
-
   const navigateWorkspace = (module: NavigationModule) => {
     if (module.startsWith('doctor_')) {
       setAppMode('doctor');
@@ -204,39 +169,8 @@ export const App: React.FC = () => {
     }
   };
 
-  // If in Auth mode, render full-screen AuthView
-  if (appMode === 'auth') {
-    return (
-      <AuthView
-        initialFlow={authFlow}
-        onSuccessLogin={() => {
-          const client = getSupabaseClient();
-          client?.auth.getUser().then(({ data }) => {
-            const role = normalizeUserRole(data.user);
-            setUserRole(role || null);
-            if (role === 'patient') {
-              setAppMode('patient');
-              setPatientModule('patient_home');
-            } else if (role === 'admin') {
-              setAppMode('admin');
-              setWorkspaceModule('admin_overview');
-            } else {
-              setAppMode('doctor');
-              setWorkspaceModule('doctor_overview');
-            }
-          });
-        }}
-        onClose={() => {
-          setUserRole('doctor');
-          setAppMode('doctor');
-          setWorkspaceModule('doctor_overview');
-        }}
-      />
-    );
-  }
-
   if (appMode === 'admin') {
-    return <AdminWorkspace onExit={() => handleOpenAuth('signin')} />;
+    return <AdminWorkspace onExit={onExit} />;
   }
 
   if (appMode === 'patient' && !currentPatient) {
@@ -280,7 +214,8 @@ export const App: React.FC = () => {
               setAppMode(mode);
               if (mode === 'doctor') setWorkspaceModule('doctor_overview');
             }}
-            onOpenAuth={() => handleOpenAuth('signin')}
+            onOpenAuth={onExit}
+            isDemo={isDemo}
             onOpenAdmin={() => setAppMode('admin')}
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
@@ -363,8 +298,9 @@ export const App: React.FC = () => {
                   sharedRecommendations={publishedRecommendations}
                 />
               )}
-              {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && <ClinicalDataView patientId={currentPatientId} />}
-              {patientModule === 'patient_profile' && <ClinicalDataView patientId={currentPatientId} />}
+              {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && !isDemo && <ClinicalDataView patientId={currentPatientId} />}
+              {patientModule === 'patient_profile' && !isDemo && <ClinicalDataView patientId={currentPatientId} />}
+              {patientModule === 'patient_profile' && isDemo && <section className="rounded-2xl border border-slate-200 bg-white p-6"><h1 className="text-xl font-bold">Sample Patient profile</h1><p className="mt-3 text-sm text-slate-600">{currentPatient.name} · {currentPatient.condition}</p><p className="mt-2 text-xs text-slate-400">This preview uses sample records. Sign in to set up your own Patient account.</p></section>}
               {patientModule === 'patient_recommendations' && <PatientRecommendationsView recommendations={publishedRecommendations} />}
 
               {/* 2. Longitudinal Monitoring */}

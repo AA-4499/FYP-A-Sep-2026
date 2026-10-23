@@ -46,6 +46,8 @@ def authorize_api_request():
         return response
     user = getattr(g, "current_user", {})
     patient_id = request.view_args.get("patient_id") if request.view_args else None
+    if user.get("role") == "patient" and not patient_id:
+        return jsonify({"error": "Patients cannot browse the patient directory."}), 403
     if patient_id and user.get("role") == "patient" and user.get("claims", {}).get("patient_id") != patient_id:
         return jsonify({"error": "Patients may only access their own records."}), 403
     return None

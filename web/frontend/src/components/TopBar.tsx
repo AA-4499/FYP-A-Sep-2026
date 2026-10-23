@@ -10,6 +10,7 @@ import {
   Hospital,
   Database,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import type { Patient } from '../types';
 
@@ -21,6 +22,7 @@ interface TopBarProps {
   onSelectPatient: (patientId: string) => void;
   onSwitchMode: (mode: 'patient' | 'doctor') => void;
   onOpenAuth: () => void;
+  isDemo: boolean;
   onOpenAdmin: () => void;
   onOpenSupabaseModal: () => void;
 }
@@ -33,6 +35,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSelectPatient,
   onSwitchMode,
   onOpenAuth,
+  isDemo,
   onOpenAdmin,
   onOpenSupabaseModal,
 }) => {
@@ -236,8 +239,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                 }}
                 className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
               >
-                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-                <span>Auth &amp; Onboarding Suite</span>
+                {isDemo ? <KeyRound className="w-3.5 h-3.5 text-blue-600" /> : <LogOut className="w-3.5 h-3.5 text-blue-600" />}
+                <span>{isDemo ? 'Sign in / Register' : 'Sign out'}</span>
               </button>
               <button
                 onClick={() => {

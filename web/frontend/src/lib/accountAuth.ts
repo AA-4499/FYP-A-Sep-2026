@@ -19,11 +19,14 @@ export function confirmationUrl(origin: string): string {
   return new URL('/', origin).href;
 }
 
-export async function registerPatient(client: SupabaseClient, input: { name: string; email: string; password: string; confirm: string }, origin: string) {
+export async function registerPatient(client: SupabaseClient, input: { name: string; identityNumber: string; email: string; password: string; confirm: string }, origin: string) {
   validateRegistration(input.name, input.password, input.confirm);
+  const identityNumber = input.identityNumber.trim();
+  if (!identityNumber) throw new Error('Enter your NRIC / Passport No.');
+  if (identityNumber.length > 64 || /[\u0000-\u001f\u007f]/.test(identityNumber)) throw new Error('Enter a valid NRIC / Passport No. of up to 64 characters.');
   const { data, error } = await client.auth.signUp({
     email: input.email.trim(), password: input.password,
-    options: { emailRedirectTo: confirmationUrl(origin), data: { full_name: input.name.trim(), requested_role: 'patient' } },
+    options: { emailRedirectTo: confirmationUrl(origin), data: { full_name: input.name.trim(), nric_passport_no: identityNumber, requested_role: 'patient' } },
   });
   if (error) throw error;
   return data;

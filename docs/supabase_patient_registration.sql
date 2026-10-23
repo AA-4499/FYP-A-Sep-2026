@@ -10,6 +10,11 @@ create table if not exists public.profiles (
   patient_id text,
   created_at timestamptz not null default now()
 );
+-- Also upgrades installations where profiles was created by an earlier script.
+-- Existing accounts keep NULL; their identity numbers must not be guessed.
+alter table public.profiles add column if not exists nric_passport_no text
+  check (nric_passport_no is null or (char_length(btrim(nric_passport_no)) between 1 and 64
+    and nric_passport_no !~ '[[:cntrl:]]'));
 alter table public.profiles enable row level security;
 grant select on public.profiles to authenticated;
 
@@ -17,13 +22,20 @@ drop policy if exists registration_profile_self_read on public.profiles;
 create policy registration_profile_self_read on public.profiles
   for select to authenticated using (id = auth.uid());
 
+-- Profiles now contain identity numbers. Constrain older broad read policies too.
+-- Trusted administration must access other users through a server-side service role.
+drop policy if exists registration_profile_private_read on public.profiles;
+create policy registration_profile_private_read on public.profiles as restrictive
+  for select to anon, authenticated using (id = auth.uid());
+
 -- Public registration always starts as Patient. Requested role and patient_id
 -- from editable signup metadata must never grant elevated permissions or record access.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  insert into public.profiles (id, full_name, role)
-  values (new.id, left(coalesce(new.raw_user_meta_data->>'full_name', ''), 120), 'patient')
+  insert into public.profiles (id, full_name, role, nric_passport_no)
+  values (new.id, left(coalesce(new.raw_user_meta_data->>'full_name', ''), 120), 'patient',
+    nullif(btrim(new.raw_user_meta_data->>'nric_passport_no'), ''))
   on conflict (id) do nothing;
   return new;
 end;

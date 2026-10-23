@@ -15,6 +15,10 @@ design prototype; the active form is `AccountAuthView.tsx`.
 4. Review and run [supabase_patient_registration.sql](supabase_patient_registration.sql)
    in the SQL Editor. It creates a profile when an Auth user is created and provisions
    missing profiles for existing users. Existing profiles remain unchanged.
+   If you ran an earlier version, rerun this updated script: it adds the nullable
+   `nric_passport_no` column to the existing table and updates the registration trigger.
+   Existing accounts keep a blank identity number. Profile reads are now restricted to
+   the account owner, including when an older policy allowed all Doctors/Admins to read them.
    It also prevents browser clients from inserting, updating, or deleting profiles;
    future live Admin writes must go through a trusted server. Do not rerun the original
    `supabase_phase2.sql` on an existing database.
@@ -41,11 +45,13 @@ different port, add that exact local origin to the Supabase redirect allowlist.
 ## 3. Test one Patient account
 
 1. Choose **New here? Create a Patient account**.
-2. Enter a test name, an existing team email, and matching passwords (at least 8 characters).
-   No national ID or medical details are collected in this milestone.
+2. Enter a test name, a synthetic **NRIC / Passport No.**, an existing team email,
+   and matching passwords (at least 8 characters). The identity number is required;
+   leading zeros, passport letters, and NRIC hyphens are retained. Use fictional IDs in development.
 3. Submit once. The app should show **Check your inbox**. This does not itself mean verified.
 4. In Authentication → Users, confirm the user exists. In Table Editor → profiles, confirm
    the same user ID has role `patient` and a null `patient_id`.
+   Confirm `nric_passport_no` matches the synthetic value you entered.
 5. Open the confirmation link while the local app is running. The app should show
    **Your Patient account is ready** with the correct email and a waiting-for-record message.
 6. Refresh. The session should restore to the same account screen.
@@ -67,6 +73,14 @@ claim a new account definitely exists.
 - Preview sample dashboards while signed out. Preview mode does not run the cohort sync.
 
 ## Current access boundary and next step
+
+The identity number is self-reported, not proof of identity, and never assigns a medical
+record or a role. This prototype passes it in Supabase signup user metadata so the
+database trigger can copy it to the profile. Supabase also includes user metadata in
+session JWTs: do not log/share tokens or use real identity numbers in development.
+Before collecting real IDs, replace this metadata transport with a trusted server
+registration flow that stores the number outside Auth metadata/JWTs. The profile column
+is protected by owner-only RLS, but is not application-encrypted.
 
 Patient accounts currently stay on the account-ready screen. Even a linked account does
 not open the clinical dashboard in this milestone. This prevents the old default-patient

@@ -31,9 +31,19 @@ design prototype; the active form is `AccountAuthView.tsx`.
    by their own profile; anonymous reads and Patient clinical writes are blocked even if
    older broad policies exist. Trusted Doctor/Admin accounts retain cohort read access.
    It does not create clinical tables, assign records, or change existing medical data.
+7. Run [supabase_patient_auto_provision.sql](supabase_patient_auto_provision.sql).
+   This adds automatic Patient Numbers such as `PT-000001`. Registration creates a
+   profile and an empty row in `patient_summary`, then links them in the same transaction.
+   It also provisions existing unlinked Patient accounts, so your current test account
+   does not need to register again. Existing links are preserved. Doctor/Admin accounts
+   with trusted roles do not receive Patient records. You can rerun the script safely.
+   No `patient_detail` observations are created until actual readings are recorded.
+   This script uses existing tables and adds a sequence, trigger, and ownership constraints.
+   If your imported schema requires clinical values or has duplicate/broken links, it
+   stops with an error instead of inventing measurements or reassigning records.
 
 Do not share secret/service-role keys or put them in `VITE_` variables. The app's existing
-publishable key is used for signup and sign-in. The SQL file has not been applied remotely
+publishable key is used for signup and sign-in. The SQL files have not been applied remotely
 by the coding agent.
 
 ## 2. Run the frontend
@@ -56,11 +66,13 @@ different port, add that exact local origin to the Supabase redirect allowlist.
    leading zeros, passport letters, and NRIC hyphens are retained. Use fictional IDs in development.
 3. Submit once. The app should show **Check your inbox**. This does not itself mean verified.
 4. In Authentication → Users, confirm the user exists. In Table Editor → profiles, confirm
-   the same user ID has role `patient` and a null `patient_id`.
+   the same user ID has role `patient` and an automatically assigned `patient_id`, such as
+   `PT-000001`. In `patient_summary`, check that `Patient Number` matches it and clinical
+   measurements are null. The number is assigned by the database, never by the form.
    Confirm `nric_passport_no` matches the synthetic value you entered.
 5. Open the confirmation link while the local app is running. The app should show
-   **Patient dashboard** with your name, email, and personal navigation. New accounts see
-   **Your dashboard is ready**, empty health measurements, and a care-team linking message.
+   the existing Patient Home dashboard with your name, Patient Number, and personal
+   navigation. New records show empty health measurements until the care team adds data.
 6. Refresh. The session should restore to your personal dashboard.
 7. Click **Sign out**. You should return to the sign-in form. Refresh to confirm it stays signed out.
 8. Sign in again with the same credentials. Wrong passwords should show an error.
@@ -89,29 +101,43 @@ Before collecting real IDs, replace this metadata transport with a trusted serve
 registration flow that stores the number outside Auth metadata/JWTs. The profile column
 is protected by owner-only RLS, but is not application-encrypted.
 
-Confirmed Patient accounts now open their own dashboard, My health, and My profile.
+Confirmed Patient accounts now open the existing Patient Home layout: the four metrics,
+CGM waveform, risk factors, what-if controls, and health summary. The original sidebar
+includes Home, My profile, My health, My digital twin, Risk prediction & what-if,
+My recommendations, and Reports. The header identifies the account as Patient and
+provides sign-out; care-team, Admin, cohort search, and database settings controls are absent.
 The dashboard calls `get_my_patient_dashboard()` without accepting a patient ID from the
 browser. The database uses `auth.uid()` to find the account's `profiles.patient_id` link.
 It returns only that record's recorded measurements and up to 100 recent observations.
 The function uses SECURITY INVOKER so table RLS still applies. Missing measurements stay
 missing, with no default clinical values, sample recommendations, or calculated risk scores.
 There is no patient selector, Doctor/Admin switch, or database settings menu for Patients.
-The richer simulation/twin/report pages remain in the Doctor/sample workspace until
-their data and authorization are ready for Patient use.
+The shared Home component renders unavailable measurements as dashes and disables
+what-if controls when no risk assessment exists. HbA1c and fasting glucose are converted
+from their declared database units for the existing display. The CGM graph and time-in-range
+summary use valid dated readings from the latest 100 observations, not a claimed 14-day feed.
+Digital twin and risk pages currently show availability messages; Reports displays recorded
+measurements, not a fabricated clinician report. Recommendations remain empty until the
+care-team publishing integration is available. The Doctor/sample workspace is unchanged.
 
-For a Patient with existing medical data, a trusted administrator must verify ownership
-and set `profiles.patient_id` to the exact `patient_summary."Patient Number"` in the
-Supabase Table Editor (or a future trusted server workflow). The NRIC/passport number
-does not automatically authorize a link. New Patients can use their dashboard with a
-null link. Existing sample cohort records must not be arbitrarily assigned to real people.
+New Patients receive a new record automatically. The database's profile trigger assigns
+`profiles.patient_id` to its new `patient_summary."Patient Number"`. A unique ownership
+index prevents two profiles sharing one number; a foreign key prevents dangling links.
+The number is shown in the dashboard header and My profile. Sequence gaps after failed
+registrations are normal. Email confirmation is still required before dashboard access.
+The NRIC/passport number does not select or authorize an existing record. Importing or
+merging existing clinic records into a new account requires a separate verified workflow.
 
 After applying the dashboard SQL, test with two separate test accounts and different
 authorized test records: each dashboard must show only its linked record. With the
 Patient's JWT, direct REST reads of the other record must return no rows; attempts to
 change `profiles.patient_id` or write clinical data must fail or affect zero rows. A newly
-registered unlinked account must see no clinical data. Also test logout and switching
-accounts in the same browser. These deployed RLS checks have not been run by the agent;
-frontend tests use mocked responses and cannot establish database isolation by themselves.
+registered account must see its own empty record and no other clinical data. Also test logout and switching
+accounts in the same browser. `npm run test:database` executes all three SQL migrations
+in an isolated PGlite PostgreSQL database with synthetic Auth/clinical schemas, checking
+provisioning, rollback, reruns, unique ownership, and RPC/direct-table RLS. This is a
+development-only dependency and is not imported by the app. These local tests do not
+replace checking your deployed Supabase schema; the agent has not applied migrations there.
 
 Only trusted `app_metadata` can route a signed-in account to Doctor or Admin. Editable
 `user_metadata` is never used to grant those roles. An account with no assigned role has
@@ -123,10 +149,12 @@ is now denied for Patient tokens. The Admin pages still operate on browser-local
 - `src/lib/accountAuth.ts`: signup request, password validation, trusted-role mapping.
 - `src/components/AccountAuthView.tsx`: forms, confirmation/resend, recovery, errors.
 - `src/components/AuthGateway.tsx`: session verification, routing, sign-out.
-- `src/components/PatientWorkspace.tsx`: personal dashboard and empty/loading/error states.
+- `src/components/PatientWorkspace.tsx`: authenticated Patient shell and empty/loading/error states.
+- `src/components/DashboardView.tsx`: shared Home layout with safe missing-data display.
 - `src/lib/patientDashboard.ts`: own-account RPC loader; no sample fallback.
 - `docs/supabase_patient_registration.sql`: database profile creation and client-write restrictions.
 - `docs/supabase_patient_dashboard.sql`: clinical RLS and own-account dashboard function.
+- `docs/supabase_patient_auto_provision.sql`: automatic Patient Number, empty record, and account link.
 
 Official references: [Password auth](https://supabase.com/docs/guides/auth/passwords),
 [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls),

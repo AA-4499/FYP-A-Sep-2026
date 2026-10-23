@@ -14,17 +14,21 @@ import { Activity, Radio, AlertCircle, ArrowRight, Gauge, CheckCircle2 } from 'l
 import type { Patient, NavigationModule } from '../types';
 import type { ClinicalRecommendation } from '../data/knowledgeGraphDemoData';
 
+export type DashboardPatient = Pick<Patient, 'hba1c' | 'fastingGlucose' | 'bmi' | 'currentRiskPct' | 'timeInRangePct' | 'hasContinuousCGM' | 'cgmReadings' | 'cgmSummary' | 'keyFactors'>;
 interface DashboardViewProps {
-  patient: Patient;
+  patient: DashboardPatient;
   onNavigate: (module: NavigationModule) => void;
   sharedRecommendations?: ClinicalRecommendation[];
+  selfService?: boolean;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate, sharedRecommendations = [] }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate, sharedRecommendations = [], selfService = false }) => {
+  const metric = (value: number, suffix = '') => Number.isFinite(value) ? `${value}${suffix}` : '—';
+  const canSimulate = [patient.currentRiskPct, patient.hba1c, patient.fastingGlucose, patient.bmi].every(Number.isFinite);
   // What-if sliders state (initialized to simulate 43% as in mockup)
-  const [whatIfHbA1c, setWhatIfHbA1c] = useState<number>(7.0);
-  const [whatIfFbg, setWhatIfFbg] = useState<number>(7.5);
-  const [whatIfBmi, setWhatIfBmi] = useState<number>(24.5);
+  const [whatIfHbA1c, setWhatIfHbA1c] = useState<number>(selfService && Number.isFinite(patient.hba1c) ? patient.hba1c : 7.0);
+  const [whatIfFbg, setWhatIfFbg] = useState<number>(selfService && Number.isFinite(patient.fastingGlucose) ? patient.fastingGlucose : 7.5);
+  const [whatIfBmi, setWhatIfBmi] = useState<number>(selfService && Number.isFinite(patient.bmi) ? patient.bmi : 24.5);
 
   // Calculate simulated risk dynamically
   const baselineRisk = patient.currentRiskPct;
@@ -68,7 +72,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">HbA1c</p>
           <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
-            {patient.hba1c}%
+            {metric(patient.hba1c, '%')}
           </p>
         </div>
 
@@ -76,7 +80,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Fasting glucose</p>
           <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
-            {patient.fastingGlucose}
+            {metric(patient.fastingGlucose)}
           </p>
         </div>
 
@@ -84,7 +88,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">BMI</p>
           <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
-            {patient.bmi}
+            {metric(patient.bmi)}
           </p>
         </div>
 
@@ -92,7 +96,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Current risk</p>
           <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#b91c1c] tracking-tight">
-            {patient.currentRiskPct}%
+            {metric(patient.currentRiskPct, '%')}
           </p>
         </div>
       </div>
@@ -104,7 +108,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
           <div>
             <div className="flex items-center justify-between">
               <h3 className="text-sm sm:text-base font-semibold text-slate-900">
-                {hasCGM ? 'Continuous CGM Waveform (14 Days)' : 'Longitudinal Glycemic Profile'}
+                {selfService ? 'Continuous CGM Waveform' : hasCGM ? 'Continuous CGM Waveform (14 Days)' : 'Longitudinal Glycemic Profile'}
               </h3>
               {hasCGM && cgmSummary && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -142,8 +146,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                   />
 
                   {/* Latest reading pulse marker */}
-                  <circle cx="310" cy="42" r="3.5" fill="#2563eb" />
-                  <circle cx="310" cy="42" r="6" fill="#2563eb" opacity="0.25" className="animate-ping" />
+                  {!selfService && <><circle cx="310" cy="42" r="3.5" fill="#2563eb" /><circle cx="310" cy="42" r="6" fill="#2563eb" opacity="0.25" className="animate-ping" /></>}
                 </svg>
 
                 {/* X-axis labels */}
@@ -164,7 +167,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                 <div>
                   <p className="text-xs font-bold text-slate-800">No Continuous CGM Sensor Telemetry</p>
                   <p className="text-[11px] text-slate-500 max-w-[270px] mt-0.5 leading-relaxed">
-                    Continuous subcutaneous sensor not fitted for this admission. Baseline Fasting Glucose is <strong>{patient.fastingGlucose} mmol/L</strong> and HbA1c is <strong>{patient.hba1c}%</strong>.
+                    {selfService ? 'No sensor readings are available in your linked record yet.' : <>Continuous subcutaneous sensor not fitted for this admission. Baseline Fasting Glucose is <strong>{patient.fastingGlucose} mmol/L</strong> and HbA1c is <strong>{patient.hba1c}%</strong>.</>}
                   </p>
                 </div>
                 <button
@@ -184,18 +187,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
               <>
                 <div>
                   <span className="text-emerald-700 font-semibold">Green band:</span> Target (70–180 mg/dL) ·{' '}
-                  <span className="text-blue-600 font-semibold">Blue wave:</span> 15-min sensor readings
+                  <span className="text-blue-600 font-semibold">Blue wave:</span> {selfService ? 'Recorded sensor readings' : '15-min sensor readings'}
                 </div>
                 <button
                   onClick={() => onNavigate('monitoring')}
                   className="text-xs font-semibold text-blue-600 hover:underline"
                 >
-                  Full AGP Profile →
+                  {selfService ? 'View readings →' : 'Full AGP Profile →'}
                 </button>
               </>
             ) : (
               <span className="text-slate-400 text-[11px]">
-                Patients 2000, 2001, 2002, 2003 contain 14-day continuous CGM feeds.
+                {selfService ? 'Only measurements from your own record appear here.' : 'Patients 2000, 2001, 2002, 2003 contain 14-day continuous CGM feeds.'}
               </span>
             )}
           </div>
@@ -210,6 +213,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
 
             {/* Horizontal SHAP Bars matching mockup */}
             <div className="mt-5 space-y-3.5 text-xs sm:text-sm">
+              {patient.keyFactors.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-sm leading-relaxed text-slate-500">A risk assessment is not available for your record yet.</p>}
               {patient.keyFactors.map((factor) => (
                 <div key={factor.name} className="flex items-center justify-between gap-3">
                   <span className="w-32 sm:w-36 text-slate-700 shrink-0 truncate font-normal">
@@ -241,6 +245,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                 <span className="w-28 text-slate-700 shrink-0 font-normal">HbA1c</span>
                 <input
                   type="range"
+                  aria-label="Simulated HbA1c"
+                  disabled={!canSimulate}
                   min="5.0"
                   max="11.0"
                   step="0.1"
@@ -249,7 +255,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                   className="w-full accent-slate-400 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
                 />
                 <span className="w-10 text-right font-bold text-slate-900 shrink-0">
-                  {whatIfHbA1c.toFixed(1)}
+                  {canSimulate ? whatIfHbA1c.toFixed(1) : '—'}
                 </span>
               </div>
 
@@ -258,6 +264,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                 <span className="w-28 text-slate-700 shrink-0 font-normal">Fasting glucose</span>
                 <input
                   type="range"
+                  aria-label="Simulated fasting glucose"
+                  disabled={!canSimulate}
                   min="4.5"
                   max="14.0"
                   step="0.1"
@@ -266,7 +274,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                   className="w-full accent-slate-400 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
                 />
                 <span className="w-10 text-right font-bold text-slate-900 shrink-0">
-                  {whatIfFbg.toFixed(1)}
+                  {canSimulate ? whatIfFbg.toFixed(1) : '—'}
                 </span>
               </div>
 
@@ -275,6 +283,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                 <span className="w-28 text-slate-700 shrink-0 font-normal">BMI</span>
                 <input
                   type="range"
+                  aria-label="Simulated BMI"
+                  disabled={!canSimulate}
                   min="18.5"
                   max="38.0"
                   step="0.1"
@@ -283,7 +293,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
                   className="w-full accent-slate-400 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
                 />
                 <span className="w-10 text-right font-bold text-slate-900 shrink-0">
-                  {whatIfBmi.toFixed(1)}
+                  {canSimulate ? whatIfBmi.toFixed(1) : '—'}
                 </span>
               </div>
             </div>
@@ -294,7 +304,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-left">
                 <p className="text-xs text-slate-500 font-medium">Current</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {baselineRisk}%
+                  {metric(baselineRisk, '%')}
                 </p>
               </div>
 
@@ -302,7 +312,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
               <div className="bg-[#dbeafe] rounded-xl p-3 text-left">
                 <p className="text-xs text-blue-700 font-medium">Simulated</p>
                 <p className="text-2xl font-bold text-[#1d4ed8] mt-1">
-                  {simulatedRisk}%
+                  {canSimulate ? metric(simulatedRisk, '%') : '—'}
                 </p>
               </div>
             </div>
@@ -310,7 +320,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
 
           {/* Disclaimer at bottom */}
           <p className="text-[11px] text-slate-400">
-            Simulated result, not a clinical outcome.
+            {canSimulate ? 'Simulated result, not a clinical outcome.' : 'Simulation becomes available when your measurements and risk assessment are ready.'}
           </p>
         </div>
 
@@ -413,7 +423,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
             </div>
           </div>
         )}
-        <p className="mt-4 text-[10px] leading-4 text-slate-400">Prototype: shared items are temporary demo data and are not saved to a medical record or notification service.</p>
+        {!selfService && <p className="mt-4 text-[10px] leading-4 text-slate-400">Prototype: shared items are temporary demo data and are not saved to a medical record or notification service.</p>}
       </section>
 
       {/* 3. BOTTOM ACTION BUTTONS */}

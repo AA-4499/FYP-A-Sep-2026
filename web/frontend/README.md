@@ -2,8 +2,9 @@
 
 Patient registration, confirmation links, login/logout, session restoration, and password
 recovery now use Supabase Auth. Follow the [Patient authentication walkthrough](../../docs/patient-auth-walkthrough.md)
-to apply the profile and dashboard SQL scripts and run a real email test. Confirmed Patients
-see their own dashboard, health readings, and profile; unlinked accounts see empty states. Unauthenticated
+to apply the profile, dashboard, and automatic-provisioning SQL scripts and run a real email test.
+Registration assigns a unique Patient Number and empty medical record automatically. Confirmed Patients
+see their own dashboard, health readings, and profile; new records show empty measurements. Unauthenticated
 dashboard previews use sample records and do not run the live cohort synchronization.
 The active form is `AccountAuthView.tsx`; `AuthView.tsx` is a retained, unused prototype.
 

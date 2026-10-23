@@ -12,6 +12,7 @@
     "test:admin": "node --test tests/adminDemo.test.mjs",
     "test:auth": "node --test tests/accountAuth.test.mjs",
     "test:patient": "node --test tests/patientDashboard.test.mjs",
+    "test:database": "node --test tests/patientProvisioning.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -27,6 +28,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
     "@types/cytoscape": "^3.21.9",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

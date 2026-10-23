@@ -18,6 +18,7 @@ interface SidebarProps {
   onSelectModule: (module: NavigationModule) => void;
   onReturnToCareTeam?: () => void;
   currentPatientName?: string;
+  selfService?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -26,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectModule,
   onReturnToCareTeam,
   currentPatientName,
+  selfService = false,
 }) => {
   if (mode === 'doctor') {
     const items = [
@@ -87,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // PATIENT SELF-CARE MODE
   return (
-    <aside className="w-60 shrink-0 bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between min-h-[720px]">
+    <aside className="w-full md:w-60 shrink-0 bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between md:min-h-[720px]">
       <div className="space-y-6">
         {/* Brand Header */}
         <div className="px-1">
@@ -116,6 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <button
                 key={item.id}
+                  aria-current={isActive ? 'page' : undefined}
                 onClick={() => onSelectModule(item.id as NavigationModule)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${
                   isActive
@@ -141,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Return to care team workspace */}
       <div className="pt-4 border-t border-slate-100 space-y-3">
-        {onReturnToCareTeam && (
+        {onReturnToCareTeam && !selfService && (
           <button
             onClick={onReturnToCareTeam}
             className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5"
@@ -152,8 +155,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <div className="px-1 text-[11px] text-slate-400">
-          <p className="font-semibold text-slate-500">v2.4 Prototype</p>
-          <p>ShanghaiT2DM Cohort</p>
+          <p className="font-semibold text-slate-500">{selfService ? 'Patient workspace' : 'v2.4 Prototype'}</p>
+          <p>{selfService ? 'Your personal health record' : 'ShanghaiT2DM Cohort'}</p>
         </div>
       </div>
     </aside>

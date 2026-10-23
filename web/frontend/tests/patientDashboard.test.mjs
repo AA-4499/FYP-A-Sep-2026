@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 const source = readFileSync(new URL('../src/lib/patientDashboard.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } });
-const { loadPatientDashboard, measurement } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { loadPatientDashboard, measurement, toDashboardPatient } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 const unlinked = { profile: { id: 'user-a', full_name: 'Patient A', patient_id: null }, summary: null, readings: [] };
 const linked = { ...unlinked, profile: { ...unlinked.profile, patient_id: 'record-a' }, summary: { 'Patient Number': 'record-a' }, readings: [{ 'Patient Number': 'record-a', 'CGM (mg / dl)': 111 }] };
 const clientFor = (data, error = null) => ({ rpc: async () => ({ data, error }) });
@@ -48,4 +50,51 @@ test('missing measurements stay missing and real zero readings are preserved', (
   assert.equal(measurement(0), '0');
   assert.equal(measurement('6.4'), '6.4');
   assert.equal(measurement(125), '125');
+});
+
+test('existing dashboard adapter converts explicit source units and never invents risk values', () => {
+  const patient = toDashboardPatient({ ...linked, summary: { ...linked.summary, 'HbA1c (mmol/mol)': 60, 'Fasting Plasma Glucose (mg/dl)': 83, 'BMI (kg/m²)': 23.6 }, readings: [
+    { 'Patient Number': 'record-a', Date: '2026-10-23T11:00:00Z', 'CGM (mg / dl)': 200 },
+    { 'Patient Number': 'record-a', Date: '2026-10-23T10:00:00Z', 'CGM (mg / dl)': 100 },
+    { 'Patient Number': 'record-a', Date: 'invalid', 'CGM (mg / dl)': 111 },
+    { 'Patient Number': 'record-a', Date: '2026-10-23T12:00:00Z', 'CGM (mg / dl)': null },
+  ] });
+  assert.equal(patient.hba1c, 7.6);
+  assert.equal(patient.fastingGlucose, 4.6);
+  assert.equal(patient.bmi, 23.6);
+  assert.equal(patient.cgmReadings.length, 2);
+  assert.equal(patient.cgmReadings[0].cgm, 100);
+  assert.equal(patient.cgmSummary.meanGlucose, 150);
+  assert.equal(patient.timeInRangePct, 50);
+  assert.ok(Number.isNaN(patient.currentRiskPct));
+  assert.deepEqual(patient.keyFactors, []);
+});
+
+test('new accounts retain empty measurements, predictions, and sensor data', () => {
+  const patient = toDashboardPatient(unlinked);
+  for (const key of ['hba1c', 'fastingGlucose', 'bmi', 'currentRiskPct', 'timeInRangePct']) assert.ok(Number.isNaN(patient[key]), key);
+  assert.equal(patient.hasContinuousCGM, false);
+  assert.equal(patient.cgmSummary, undefined);
+});
+
+async function componentModule(name) {
+  const source = readFileSync(new URL(`../src/components/${name}.tsx`, import.meta.url), 'utf8');
+  let { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.React } });
+  outputText = outputText.replace(/from (['"])(react|lucide-react)\1/g, (_, quote, specifier) => `from ${JSON.stringify(import.meta.resolve(specifier))}`);
+  return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+}
+
+test('existing Home layout renders all four cards safely for an unlinked Patient', async () => {
+  const { DashboardView } = await componentModule('DashboardView');
+  const html = renderToStaticMarkup(React.createElement(DashboardView, { patient: toDashboardPatient(unlinked), selfService: true, onNavigate() {} }));
+  for (const title of ['Continuous CGM Waveform', 'Why this risk? Key factors', 'What-if simulation', 'Your health at a glance']) assert.ok(html.includes(title), title);
+  assert.doesNotMatch(html, /NaN|62%|Patient 2000|Patients 2000|Prototype:/);
+  assert.equal((html.match(/disabled=""/g) || []).length, 3);
+});
+
+test('Patient sidebar retains the original navigation without a care-team switch', async () => {
+  const { Sidebar } = await componentModule('Sidebar');
+  const html = renderToStaticMarkup(React.createElement(Sidebar, { mode: 'patient', activeModule: 'patient_home', selfService: true, onSelectModule() {}, onReturnToCareTeam() {} }));
+  for (const label of ['Home', 'My profile', 'My health', 'My digital twin', 'Risk prediction &amp; what-if', 'My recommendations', 'Reports']) assert.ok(html.includes(label), label);
+  assert.doesNotMatch(html, /Doctor dashboard|ShanghaiT2DM Cohort/);
 });

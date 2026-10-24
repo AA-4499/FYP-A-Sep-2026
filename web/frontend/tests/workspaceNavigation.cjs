@@ -364,9 +364,29 @@
     await ready("Browser GRU computed successfully");
     assert(
       await evaluate(
+        `(() => { const horizon = document.querySelector('[aria-label="Forecast horizon"]'); return horizon.value === '6' && [...horizon.options].map(o => o.value).join(',') === '6,12'; })()`,
+      ),
+      "Prediction lab must default to 6h and offer only 6/12h",
+    );
+    assert(
+      await evaluate(
+        `(() => { const history = document.querySelector('[data-testid="history-panel"]'); const simulator = document.querySelector('[data-testid="simulator-panel"]'); return history.tagName === 'DETAILS' && !history.open && !document.querySelector('[data-testid="history-content"]') && !!(simulator.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING); })()`,
+      ),
+      "Historical diagnostics must be collapsed after the simulator",
+    );
+    await click("Show all 24 forecast rows");
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="forecast-values-panel"] tbody tr').length === 24`,
+      ),
+      "Default 6h forecast is incomplete",
+    );
+    await click("Show first 12 rows");
+    assert(
+      await evaluate(
         `document.querySelectorAll('[data-testid="forecast-values-panel"] tbody tr').length === 12`,
       ),
-      "3-hour browser predictions were not rendered",
+      "Initial six-hour forecast rows were not rendered",
     );
     assert(
       await evaluate(
@@ -380,6 +400,53 @@
     await click("Run what-if simulation");
     await ready("Largest curve difference");
     await ready("Browser GRU computed successfully");
+    const forecastValues = await evaluate(
+      `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+    );
+    await click("Show reference range");
+    assert(
+      await evaluate(
+        `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.scale === 'reference'`,
+      ),
+      "Reference-scale view did not activate",
+    );
+    await click("Fit forecast range");
+    assert(
+      await evaluate(
+        `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.scale === 'fit'`,
+      ),
+      "Focused forecast scale did not activate",
+    );
+    assert(
+      (await evaluate(
+        `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+      )) === forecastValues,
+      "Axis zoom changed model values",
+    );
+    await evaluate(
+      `document.querySelector('[data-testid="history-panel"] summary').click()`,
+    );
+    await ready("Model evaluation and timeline coverage");
+    // The chart mounts lazily, then measures its container with ResizeObserver.
+    for (let i = 0; i < 60; i++) {
+      if (await evaluate(`document.querySelectorAll('[data-testid="history-content"] .recharts-line-curve').length > 0`)) break;
+      await delay(100);
+    }
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="history-content"] .recharts-line-curve').length > 0`,
+      ),
+      "Expanded historical diagnostics did not render",
+    );
+    await evaluate(
+      `document.querySelector('[data-testid="history-panel"] summary').click()`,
+    );
+    assert(
+      !(await evaluate(
+        `document.querySelector('[data-testid="history-panel"]').open`,
+      )),
+      "Historical diagnostics did not collapse",
+    );
     await screenshot("browser-gru-what-if.png");
     await evaluate(
       `(() => {const select=document.querySelector('[aria-label="Forecast horizon"]');select.value='12';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
@@ -400,7 +467,7 @@
     );
     assert(!exceptions.length, exceptions.join("\n"));
     console.log(
-      "PASS: actual repository GRU worker, 3/12-hour forecasts, interactive what-if, no model service or login",
+      "PASS: browser GRU 6/12h forecasts, collapsed historical diagnostics at bottom, axis zoom preserves values, interactive what-if",
     );
     console.log(
       "PASS: complete paging, database failures, all navigation, Patient isolation, physiology events, and mobile layout",

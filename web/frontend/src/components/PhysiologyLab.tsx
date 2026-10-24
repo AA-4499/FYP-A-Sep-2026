@@ -152,7 +152,7 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                       setMinute(30);
                     }}
                   >
-                    {[3, 6, 12].map((h) => (
+                    {[6, 12].map((h) => (
                       <option key={h} value={h}>
                         {h} hours
                       </option>

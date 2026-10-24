@@ -2,7 +2,11 @@
 
 The temporary default is **Repository GRU · browser (no Render)**. It executes the checked-in `models/weights/gru_t2dm_forecaster.pt` weights in a Web Worker. It does not run Python on GitHub, retrain the model, substitute a generated curve, or merely display the existing baseline snapshots.
 
-Open Prediction lab, choose a 3-, 6- or 12-hour horizon, and add meal/insulin events in the what-if panel. Both baseline and scenario are newly computed. No model-service URL, model-service login, or Supabase write is needed. Database pages still read Supabase normally.
+Open Prediction lab, choose a 6- or 12-hour horizon (default 6), and add meal/insulin events in the what-if panel. Both baseline and scenario are newly computed. The three-hour option is no longer exposed in either Prediction lab view; older model/API compatibility and numerical reference tests still support it. No model-service URL, model-service login, or Supabase write is needed. Database pages still read Supabase normally.
+
+Historical training/validation/testing charts, evaluation tables and model details are grouped in a default-collapsed section at the bottom, after the prediction and simulator. The historical chart is rendered only when expanded.
+
+The main prediction chart initially fits its vertical axis to the actual predicted range. A reference-range toggle restores the wider threshold view. Zoom changes no prediction values and does not interpolate new peaks or troughs. The existing recursive GRU can settle towards a stable value; a longer horizon does not guarantee oscillations. A link opens the separate Physiology lab for explicitly hypothetical meal-absorption/insulin-feedback scenarios. The experimental conditional checkpoint was not substituted merely to obtain a more curved plot; its documented event-direction problems remain unresolved.
 
 ## Model and input identity
 

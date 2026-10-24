@@ -78,108 +78,159 @@ function GlucoseChart({
   loading: boolean;
   history?: boolean;
 }) {
+  const [fitForecast, setFitForecast] = useState(true);
   const rows = chartRows(series);
   const hasData = rows.length > 0;
-  return (
-    <div
-      className="relative mt-5 h-[330px] w-full"
-      role="img"
-      aria-label={
-        history
-          ? "Observed CGM with training, validation, and held-out testing predictions"
-          : "Baseline and what-if glucose prediction comparison"
+  let minimum = Infinity,
+    maximum = -Infinity;
+  series.forEach((s) =>
+    s.points.forEach((point) => {
+      if (Number.isFinite(point.value)) {
+        minimum = Math.min(minimum, point.value);
+        maximum = Math.max(maximum, point.value);
       }
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={rows}
-          margin={{ top: 15, right: 15, left: 0, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis
-            dataKey="timestamp"
-            type="number"
-            domain={hasData ? ["dataMin", "dataMax"] : [0, 1]}
-            scale="time"
-            tickFormatter={hasData ? formatTime : () => ""}
-            minTickGap={50}
-            tick={{ fontSize: 10 }}
-          />
-          <YAxis
-            domain={hasData ? ["auto", "auto"] : [40, 280]}
-            tick={{ fontSize: 11 }}
-            width={48}
-          />
-          <Tooltip
-            labelFormatter={(value) => formatTime(Number(value))}
-            formatter={(value: unknown) => `${Number(value).toFixed(1)} mg/dL`}
-          />
-          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
-          {[
-            { value: 70, color: "#c2410c" },
-            { value: 140, color: "#16a34a" },
-            { value: 180, color: "#ca8a04" },
-            { value: 250, color: "#dc2626" },
-          ].map((line) => (
-            <ReferenceLine
-              key={line.value}
-              y={line.value}
-              ifOverflow="extendDomain"
-              stroke={line.color}
-              strokeDasharray="4 4"
-              label={{
-                value: String(line.value),
-                position: "insideTopLeft",
-                fontSize: 10,
-                fill: line.color,
-              }}
-            />
-          ))}
-          {series.map((s) => (
-            <Line
-              key={s.key}
-              type="linear"
-              dataKey={s.key}
-              name={s.label}
-              stroke={s.color}
-              strokeWidth={s.key === "observed" ? 1 : 2}
-              strokeDasharray={s.key === "scenario" ? "6 3" : undefined}
-              dot={false}
-              connectNulls
-              isAnimationActive={false}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
-      {!hasData && (
-        <div className="absolute inset-x-10 top-20 flex justify-center pointer-events-none">
-          <div className="max-w-xs rounded-xl border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
-            {loading && (
-              <RefreshCw
-                size={18}
-                className="mx-auto mb-2 animate-spin text-blue-500"
-              />
-            )}
-            <p className="text-sm font-semibold text-slate-700">
-              {loading ? "Loading model results" : "Waiting for model results"}
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">
-              {history
-                ? "Observed CGM and training, validation and testing curves will appear here."
-                : "The baseline forecast and applied what-if scenario will appear here."}
-            </p>
-          </div>
+    }),
+  );
+  const padding = Math.max(5, (maximum - minimum) * 0.15);
+  const focused = !history && fitForecast && Number.isFinite(minimum);
+  const domain: [number | string, number | string] = !hasData
+    ? [40, 280]
+    : history
+      ? ["auto", "auto"]
+      : focused
+        ? [Math.floor(minimum - padding), Math.ceil(maximum + padding)]
+        : [Math.min(40, minimum), Math.max(280, maximum)];
+  return (
+    <>
+      {!history && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-slate-500">
+            {focused
+              ? "Y-axis fitted to the predicted values · mg/dL"
+              : "Reference-range view · mg/dL"}
+          </p>
+          <button
+            type="button"
+            aria-label="Fit forecast vertical range"
+            aria-pressed={fitForecast}
+            onClick={() => setFitForecast((value) => !value)}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            {fitForecast ? "Show reference range" : "Fit forecast range"}
+          </button>
         </div>
       )}
-    </div>
+      <div
+        className="relative mt-5 h-[330px] w-full"
+        role="img"
+        data-scale={focused ? "fit" : "reference"}
+        aria-label={
+          history
+            ? "Observed CGM with training, validation, and held-out testing predictions"
+            : "Baseline and what-if glucose prediction comparison"
+        }
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={rows}
+            margin={{ top: 15, right: 15, left: 0, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis
+              dataKey="timestamp"
+              type="number"
+              domain={hasData ? ["dataMin", "dataMax"] : [0, 1]}
+              scale="time"
+              tickFormatter={hasData ? formatTime : () => ""}
+              minTickGap={50}
+              tick={{ fontSize: 10 }}
+            />
+            <YAxis domain={domain} tick={{ fontSize: 11 }} width={48} />
+            <Tooltip
+              labelFormatter={(value) => formatTime(Number(value))}
+              formatter={(value: unknown) =>
+                `${Number(value).toFixed(1)} mg/dL`
+              }
+            />
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+            {[
+              { value: 70, color: "#c2410c" },
+              { value: 140, color: "#16a34a" },
+              { value: 180, color: "#ca8a04" },
+              { value: 250, color: "#dc2626" },
+            ].map((line) => (
+              <ReferenceLine
+                key={line.value}
+                y={line.value}
+                ifOverflow={history ? "extendDomain" : "discard"}
+                stroke={line.color}
+                strokeDasharray="4 4"
+                label={{
+                  value: String(line.value),
+                  position: "insideTopLeft",
+                  fontSize: 10,
+                  fill: line.color,
+                }}
+              />
+            ))}
+            {series.map((s) => (
+              <Line
+                key={s.key}
+                type="linear"
+                dataKey={s.key}
+                name={s.label}
+                stroke={s.color}
+                strokeWidth={s.key === "observed" ? 1 : 2}
+                strokeDasharray={s.key === "scenario" ? "6 3" : undefined}
+                dot={false}
+                connectNulls
+                isAnimationActive={false}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+        {!hasData && (
+          <div className="absolute inset-x-10 top-20 flex justify-center pointer-events-none">
+            <div className="max-w-xs rounded-xl border border-slate-200 bg-white/95 p-4 text-center shadow-sm">
+              {loading && (
+                <RefreshCw
+                  size={18}
+                  className="mx-auto mb-2 animate-spin text-blue-500"
+                />
+              )}
+              <p className="text-sm font-semibold text-slate-700">
+                {loading
+                  ? "Loading model results"
+                  : "Waiting for model results"}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                {history
+                  ? "Observed CGM and training, validation and testing curves will appear here."
+                  : "The baseline forecast and applied what-if scenario will appear here."}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+      {!history && (
+        <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
+          Axis zoom changes the display only. All curve values are unchanged
+          model outputs; reference lines outside the visible range are hidden.
+        </p>
+      )}
+    </>
   );
 }
 
-function ForecastPanel({ patient, onNavigate }: Props) {
+function ForecastPanel({
+  patient,
+  onNavigate,
+  onOpenPhysiology,
+}: Props & { onOpenPhysiology: () => void }) {
   const [source, setSource] = useState<ForecastSource>("browser");
   const preview = source === "preview";
   const browser = source === "browser";
-  const [horizon, setHorizon] = useState(3);
+  const [horizon, setHorizon] = useState(6);
   const [mealEnabled, setMealEnabled] = useState(false);
   const [insulinEnabled, setInsulinEnabled] = useState(false);
   const [mealAmount, setMealAmount] = useState(60);
@@ -198,6 +249,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
   const [apiUrl, setApiUrl] = useState(getForecastApiUrl);
   const [connectionError, setConnectionError] = useState("");
   const [showAllRows, setShowAllRows] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const current =
     result?.patient_id === patient.id &&
     result.source === source &&
@@ -519,7 +571,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               baselineRequest();
             }}
           >
-            {[3, 6, 12].map((hours) => (
+            {[6, 12].map((hours) => (
               <option key={hours} value={hours}>
                 {hours} hours
               </option>
@@ -663,6 +715,22 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               </span>
             </div>
             <GlucoseChart series={forecastSeries} loading={loading} />
+            <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-xs leading-relaxed text-slate-600">
+              <p>
+                The GRU estimates a statistical trajectory from recent history.
+                Recursive predictions can settle towards a stable value; a
+                longer horizon does not guarantee a rise and fall. Added events
+                show this model's learned sensitivity, not a validated
+                physiological response.
+              </p>
+              <button
+                type="button"
+                onClick={onOpenPhysiology}
+                className="mt-3 font-semibold text-teal-800 hover:underline"
+              >
+                Explore meal absorption and delayed insulin feedback →
+              </button>
+            </div>
             <p className="mt-2 text-xs leading-relaxed text-slate-400">
               {current
                 ? `Forecast begins ${displayTime(current.forecast_start)}. Future points use recursive 15-minute predictions.`
@@ -670,101 +738,6 @@ function ForecastPanel({ patient, onNavigate }: Props) {
                   ? "Loading the model and exact repository record history."
                   : "Connect the prediction service to load the selected patient's model results."}
             </p>
-          </section>
-
-          <section className={card} data-testid="history-panel">
-            <h2 className="text-sm font-bold text-slate-900">
-              CGM training, validation and testing history
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Observed readings and chronological GRU predictions for the
-              selected patient record
-            </p>
-            <GlucoseChart series={historySeries} loading={loading} history />
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
-              Training and validation curves are in-sample diagnostics. Testing
-              shows rolling one-step predictions against actual held-out CGM
-              readings. These errors do not validate the accuracy of a 3-, 6- or
-              12-hour recursive forecast.
-            </p>
-          </section>
-
-          <section className={card} data-testid="evaluation-panel">
-            <h2 className="text-sm font-bold text-slate-900">
-              Model evaluation and timeline coverage
-            </h2>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                [
-                  "One-step MAE",
-                  current?.metrics
-                    ? `${current.metrics.mae_mg_dl.toFixed(2)} mg/dL`
-                    : "\u2014",
-                ],
-                [
-                  "One-step RMSE",
-                  current?.metrics
-                    ? `${current.metrics.rmse_mg_dl.toFixed(2)} mg/dL`
-                    : "\u2014",
-                ],
-                [
-                  "Test windows",
-                  current?.metrics?.test_windows.toLocaleString() ?? "\u2014",
-                ],
-                [
-                  "Model lookback",
-                  current ? `${current.sequence_length * 15} min` : "\u2014",
-                ],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-[11px] text-slate-500">{label}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-800">
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-200 text-slate-500">
-                  <tr>
-                    <th className="py-2 font-medium">Timeline</th>
-                    <th className="py-2 font-medium">Points</th>
-                    <th className="py-2 font-medium">Start</th>
-                    <th className="py-2 font-medium">End</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historySeries
-                    .filter((series) => series.key !== "actual")
-                    .map((series) => (
-                      <tr
-                        key={series.key}
-                        className="border-b border-slate-100 last:border-0"
-                      >
-                        <td className="py-3 pr-3">
-                          <span
-                            className="mr-2 inline-block h-2 w-2 rounded-full"
-                            style={{ backgroundColor: series.color }}
-                          />
-                          {series.label}
-                        </td>
-                        <td className="py-3 pr-3">
-                          {current ? series.points.length : "\u2014"}
-                        </td>
-                        <td className="whitespace-nowrap py-3 pr-3">
-                          {displayTime(series.points[0]?.timestamp)}
-                        </td>
-                        <td className="whitespace-nowrap py-3">
-                          {displayTime(
-                            series.points[series.points.length - 1]?.timestamp,
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
           </section>
 
           <section className={card} data-testid="forecast-values-panel">
@@ -851,65 +824,6 @@ function ForecastPanel({ patient, onNavigate }: Props) {
                 Forecast values will appear after the model returns a result.
               </p>
             )}
-          </section>
-
-          <section className={card} data-testid="model-details-panel">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-              <Database size={15} className="text-blue-500" />
-              Model and data details
-            </h2>
-            <dl className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-              {[
-                ["Model", "One-step GRU (legacy)"],
-                ["Patient record", patient.id],
-                [
-                  "Execution",
-                  browser
-                    ? "Browser GRU · no Render"
-                    : (current?.source ?? source),
-                ],
-                [
-                  "Input history",
-                  browser
-                    ? "Exact repository workbook record (not live Supabase)"
-                    : "Selected service data source",
-                ],
-                [
-                  "Checkpoint SHA-256",
-                  current?.model_sha256 ?? "Awaiting model",
-                ],
-                [
-                  "Observed readings",
-                  current?.observed.length.toLocaleString() ?? "\u2014",
-                ],
-                [
-                  "Model lookback",
-                  current
-                    ? `${current.sequence_length} readings / ${current.sequence_length * 15} minutes`
-                    : "\u2014",
-                ],
-                ["Forecast begins", displayTime(current?.forecast_start)],
-                [
-                  "Supabase run ID",
-                  preview || browser
-                    ? "Not saved (local browser session)"
-                    : (current?.storage?.run_id ?? "No completed run"),
-                ],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-slate-400">{label}</dt>
-                  <dd className="mt-1 break-all font-medium text-slate-700">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-400">
-              Research and education only; not for diagnosis, treatment, or
-              insulin dosing. Meal and insulin effects are learned from sparse
-              historical events. Reference lines are shown at 70, 140, 180 and
-              250 mg/dL.
-            </p>
           </section>
         </div>
 
@@ -1076,6 +990,175 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           </form>
         </aside>
       </div>
+      <details
+        className={card}
+        data-testid="history-panel"
+        open={historyOpen}
+        onToggle={(event) => setHistoryOpen(event.currentTarget.open)}
+      >
+        <summary className="cursor-pointer text-sm font-bold text-slate-900">
+          CGM training, validation and testing history
+          <span className="ml-2 text-xs font-normal text-slate-400">
+            Historical diagnostics · expand to view
+          </span>
+        </summary>
+        {historyOpen && (
+          <div className="mt-5 space-y-5">
+            <section className="space-y-3" data-testid="history-content">
+              <h2 className="text-sm font-bold text-slate-900">
+                CGM training, validation and testing history
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Observed readings and chronological GRU predictions for the
+                selected patient record
+              </p>
+              <GlucoseChart series={historySeries} loading={loading} history />
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                Training and validation curves are in-sample diagnostics.
+                Testing shows rolling one-step predictions against actual
+                held-out CGM readings. These errors do not validate the accuracy
+                of a 6- or 12-hour recursive forecast.
+              </p>
+            </section>
+            <section className={card} data-testid="evaluation-panel">
+              <h2 className="text-sm font-bold text-slate-900">
+                Model evaluation and timeline coverage
+              </h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  [
+                    "One-step MAE",
+                    current?.metrics
+                      ? `${current.metrics.mae_mg_dl.toFixed(2)} mg/dL`
+                      : "\u2014",
+                  ],
+                  [
+                    "One-step RMSE",
+                    current?.metrics
+                      ? `${current.metrics.rmse_mg_dl.toFixed(2)} mg/dL`
+                      : "\u2014",
+                  ],
+                  [
+                    "Test windows",
+                    current?.metrics?.test_windows.toLocaleString() ?? "\u2014",
+                  ],
+                  [
+                    "Model lookback",
+                    current ? `${current.sequence_length * 15} min` : "\u2014",
+                  ],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-lg bg-slate-50 p-3">
+                    <p className="text-[11px] text-slate-500">{label}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-slate-200 text-slate-500">
+                    <tr>
+                      <th className="py-2 font-medium">Timeline</th>
+                      <th className="py-2 font-medium">Points</th>
+                      <th className="py-2 font-medium">Start</th>
+                      <th className="py-2 font-medium">End</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historySeries
+                      .filter((series) => series.key !== "actual")
+                      .map((series) => (
+                        <tr
+                          key={series.key}
+                          className="border-b border-slate-100 last:border-0"
+                        >
+                          <td className="py-3 pr-3">
+                            <span
+                              className="mr-2 inline-block h-2 w-2 rounded-full"
+                              style={{ backgroundColor: series.color }}
+                            />
+                            {series.label}
+                          </td>
+                          <td className="py-3 pr-3">
+                            {current ? series.points.length : "\u2014"}
+                          </td>
+                          <td className="whitespace-nowrap py-3 pr-3">
+                            {displayTime(series.points[0]?.timestamp)}
+                          </td>
+                          <td className="whitespace-nowrap py-3">
+                            {displayTime(
+                              series.points[series.points.length - 1]
+                                ?.timestamp,
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>{" "}
+            <section className={card} data-testid="model-details-panel">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <Database size={15} className="text-blue-500" />
+                Model and data details
+              </h2>
+              <dl className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+                {[
+                  ["Model", "One-step GRU (legacy)"],
+                  ["Patient record", patient.id],
+                  [
+                    "Execution",
+                    browser
+                      ? "Browser GRU · no Render"
+                      : (current?.source ?? source),
+                  ],
+                  [
+                    "Input history",
+                    browser
+                      ? "Exact repository workbook record (not live Supabase)"
+                      : "Selected service data source",
+                  ],
+                  [
+                    "Checkpoint SHA-256",
+                    current?.model_sha256 ?? "Awaiting model",
+                  ],
+                  [
+                    "Observed readings",
+                    current?.observed.length.toLocaleString() ?? "\u2014",
+                  ],
+                  [
+                    "Model lookback",
+                    current
+                      ? `${current.sequence_length} readings / ${current.sequence_length * 15} minutes`
+                      : "\u2014",
+                  ],
+                  ["Forecast begins", displayTime(current?.forecast_start)],
+                  [
+                    "Supabase run ID",
+                    preview || browser
+                      ? "Not saved (local browser session)"
+                      : (current?.storage?.run_id ?? "No completed run"),
+                  ],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-slate-400">{label}</dt>
+                    <dd className="mt-1 break-all font-medium text-slate-700">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-400">
+                Research and education only; not for diagnosis, treatment, or
+                insulin dosing. Meal and insulin effects are learned from sparse
+                historical events. Reference lines are shown at 70, 140, 180 and
+                250 mg/dL.
+              </p>
+            </section>
+          </div>
+        )}
+      </details>
     </div>
   );
 }
@@ -1107,7 +1190,11 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
         ))}
       </div>
       {tab === "forecast" ? (
-        <ForecastPanel key={props.patient.id} {...props} />
+        <ForecastPanel
+          key={props.patient.id}
+          {...props}
+          onOpenPhysiology={() => setTab("physiology")}
+        />
       ) : (
         <PhysiologyLab key={props.patient.id} patient={props.patient} />
       )}

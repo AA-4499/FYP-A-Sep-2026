@@ -11,7 +11,9 @@ WORKDIR /app
 # Upgrade pip
 RUN python -m pip install --upgrade pip setuptools wheel
 
-COPY requirements.txt /app/
+# The only Python requirements file that exists at the repository root level is
+# web/backend/requirements.txt; requirements-dev.txt extends it via "-r requirements.txt".
+COPY web/backend/requirements.txt /app/requirements.txt
 RUN pip install -r requirements.txt
 
 # SMPL-capable dependency layer used by the dashboard and export service only.
@@ -36,7 +38,9 @@ CMD ["python", "app.py"]
 
 # Notebook training excludes Torch, SMPL, PyVista, and other dashboard-only weight.
 FROM core-deps AS training
-COPY requirements-dev.txt /app/
+# requirements-dev.txt starts with "-r requirements.txt"; copying the backend
+# requirements to /app/requirements.txt satisfies that relative include.
+COPY requirements-dev.txt web/backend/requirements.txt /app/
 RUN pip install -r requirements-dev.txt
 COPY . /app
 RUN useradd -m appuser || true

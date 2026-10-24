@@ -36,6 +36,9 @@ artifacts_notebook/twin_cache/
 .test-deps/
 .npm-cache/
 
+# Isolated git worktrees used for promotion work
+.worktrees/
+
 # Local UI verification artifacts
 .ui-check/
 

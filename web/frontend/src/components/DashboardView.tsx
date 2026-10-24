@@ -447,7 +447,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
               Why this risk? Key factors
             </h3>
 
-            {/* Horizontal SHAP Bars matching mockup */}
+            {/* Horizontal risk-factor bars (heuristic attribution, not SHAP) */}
             <div className="mt-5 space-y-3.5 text-xs sm:text-sm">
               {patient.keyFactors.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-sm leading-relaxed text-slate-500">A risk assessment is not available for your record yet.</p>}
               {patient.keyFactors.map((factor) => (

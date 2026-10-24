@@ -1,6 +1,13 @@
-"""Module 4: Explainable AI (XAI) & Feature Attribution Service.
-Provides SHAP values and clinical factor attribution for patient risk scores.
-Team Member Assignment: Explainable AI (XAI) & Model Interpretability.
+"""Module 4: Risk Factor Attribution Service.
+
+Returns heuristic linear factor attributions for the composite risk score.
+
+This is NOT SHAP. The values are fixed linear coefficients multiplied by the
+distance from a threshold, chosen by hand. They are not Shapley values, they
+were not produced by an explainer, and they do not sum to the prediction minus
+a baseline. Any consumer that needs real attributions must load a trained model
+and a `shap.TreeExplainer` (see digital_twin/biophysical_models/stage3.py for an
+existing example of the real thing).
 """
 from __future__ import annotations
 
@@ -9,13 +16,14 @@ from .patient_service import get_patient
 from .longitudinal_service import get_patient_timeline
 from .risk_model_service import assess_patient_risk
 
-# Teammate Hook: When your SHAP explainer is trained, load it here:
+# Teammate Hook: to make these real attributions, train a model, then:
 # import shap
-# EXPLAINER = shap.TreeExplainer(LOADED_MODEL) if LOADED_MODEL else None
+# EXPLAINER = shap.TreeExplainer(LOADED_MODEL)
+# and return EXPLAINER(features_vector).values instead of the coefficients below.
 
 
 def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Compute patient-specific SHAP attribution values explaining their predicted risk."""
+    """Return heuristic linear factor attributions (not SHAP) for a patient's risk."""
     patient = get_patient(patient_id) or {}
     timeline = get_patient_timeline(patient_id)
     cgm_summary = timeline.get("summary", {})
@@ -32,10 +40,11 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
     ldl = float(custom_features.get("ldl_cholesterol", patient.get("ldl_cholesterol", 2.9)) if custom_features else patient.get("ldl_cholesterol", 2.9))
     egfr = float(custom_features.get("egfr", patient.get("egfr", 85.0)) if custom_features else patient.get("egfr", 85.0))
 
-    base_expected_value = 0.380  # Population average baseline risk
+    # Arbitrary reference constant used only to colour the chart. It is not a
+    # learned base value and no additivity relation holds against it.
+    base_expected_value = 0.380
 
-    # Teammate Hook: Replace with `shap_values = EXPLAINER(features_vector)`
-    # Compute feature contributions relative to population baseline
+    # Heuristic attributions: hand-set coefficients times distance from threshold.
     contributions: List[Dict[str, Any]] = []
 
     # 1. HbA1c
@@ -44,7 +53,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "hba1c",
         "label": "Glycated Hemoglobin (HbA1c)",
         "value": f"{hba1c:.1f} %",
-        "shap_value": hba1c_delta,
+        "attribution": hba1c_delta,
         "impact": "Increases Risk" if hba1c_delta > 0 else "Lowers Risk",
         "category": "Glycemic Control",
         "description": f"Target is <7.0%. Currently {hba1c:.1f}%, adding {abs(hba1c_delta)*100:.1f}% to risk." if hba1c_delta > 0 else f"Well controlled below threshold, reducing risk by {abs(hba1c_delta)*100:.1f}%."
@@ -56,7 +65,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "time_in_range_pct",
         "label": "CGM Time in Range (TIR)",
         "value": f"{tir:.1f} %",
-        "shap_value": tir_delta,
+        "attribution": tir_delta,
         "impact": "Increases Risk" if tir_delta > 0 else "Lowers Risk",
         "category": "CGM Monitoring",
         "description": f"International consensus target is >70% TIR. Patient achieved {tir:.1f}%."
@@ -68,7 +77,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "fasting_glucose",
         "label": "Fasting Blood Glucose",
         "value": f"{fbg:.1f} mmol/L",
-        "shap_value": fbg_delta,
+        "attribution": fbg_delta,
         "impact": "Increases Risk" if fbg_delta > 0 else "Lowers Risk",
         "category": "Glycemic Control",
         "description": f"Normal fasting baseline is 4.4 - 7.0 mmol/L. Current reading: {fbg:.1f} mmol/L."
@@ -80,7 +89,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "systolic_bp",
         "label": "Systolic Blood Pressure",
         "value": f"{int(sys_bp)} mmHg",
-        "shap_value": bp_delta,
+        "attribution": bp_delta,
         "impact": "Increases Risk" if bp_delta > 0 else "Lowers Risk",
         "category": "Vascular Health",
         "description": f"Hypertensive threshold is >130 mmHg. Current: {int(sys_bp)} mmHg."
@@ -92,7 +101,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "diabetes_duration_years",
         "label": "Diabetes Duration",
         "value": f"{duration:.1f} years",
-        "shap_value": dur_delta,
+        "attribution": dur_delta,
         "impact": "Increases Risk" if dur_delta > 0 else "Lowers Risk",
         "category": "History",
         "description": f"Longer chronicity increases cumulative microvascular exposure."
@@ -104,7 +113,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "bmi",
         "label": "Body Mass Index (BMI)",
         "value": f"{bmi:.1f} kg/m²",
-        "shap_value": bmi_delta,
+        "attribution": bmi_delta,
         "impact": "Increases Risk" if bmi_delta > 0 else "Lowers Risk",
         "category": "Metabolic Status",
         "description": f"Healthy weight range for Asian populations is 18.5 - 23.9 kg/m²."
@@ -116,7 +125,7 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "ldl_cholesterol",
         "label": "LDL Cholesterol",
         "value": f"{ldl:.1f} mmol/L",
-        "shap_value": ldl_delta,
+        "attribution": ldl_delta,
         "impact": "Increases Risk" if ldl_delta > 0 else "Lowers Risk",
         "category": "Lipid Profile",
         "description": f"Optimal diabetic target is <2.6 mmol/L."
@@ -128,19 +137,19 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "feature": "egfr",
         "label": "Estimated GFR (eGFR)",
         "value": f"{egfr:.1f} mL/min",
-        "shap_value": egfr_delta,
+        "attribution": egfr_delta,
         "impact": "Increases Risk" if egfr_delta > 0 else "Lowers Risk",
         "category": "Renal Function",
         "description": f"Normal filtration rate is >90 mL/min/1.73m²."
     })
 
-    # Sort descending by absolute SHAP contribution magnitude
-    contributions.sort(key=lambda x: abs(x["shap_value"]), reverse=True)
+    # Sort descending by absolute heuristic attribution magnitude
+    contributions.sort(key=lambda x: abs(x["attribution"]), reverse=True)
 
     predicted_score = risk_assessment["composite_risk_score"]
 
-    top_drivers = [c["label"] for c in contributions if c["shap_value"] > 0][:3]
-    top_protectors = [c["label"] for c in contributions if c["shap_value"] < 0][:2]
+    top_drivers = [c["label"] for c in contributions if c["attribution"] > 0][:3]
+    top_protectors = [c["label"] for c in contributions if c["attribution"] < 0][:2]
 
     explanation_summary = (
         f"Patient #{patient_id}'s predicted diabetes complication risk is {risk_assessment['composite_risk_pct']}%. "
@@ -154,5 +163,17 @@ def explain_patient_risk(patient_id: str, custom_features: Optional[Dict[str, An
         "predicted_risk_score": predicted_score,
         "explanation_summary": explanation_summary,
         "contributions": contributions,
-        "methodology": "SHAP (SHapley Additive exPlanations) via TreeExplainer",
+        "methodology": "heuristic linear attribution (not SHAP)",
+        "provenance": {
+            "engine": "heuristic-linear-attribution-v1",
+            "computed": False,
+            "validated": False,
+            "source": "synthetic",
+            "shapley_additive": False,
+            "note": (
+                "Each `attribution` is a hand-set coefficient times the distance from a "
+                "clinical threshold. These are not Shapley values: the sum of attributions "
+                "plus base_expected_value does not equal predicted_risk_score."
+            ),
+        },
     }

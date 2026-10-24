@@ -1,6 +1,8 @@
 """Module 3: Longitudinal Risk Assessment Service.
-Evaluates multi-dimensional diabetes complication risks and glycemic instability.
-Team Member Assignment: Longitudinal Risk Assessment & ML Modeling.
+
+Computes multi-dimensional complication risk from hand-set linear coefficients.
+No classifier is trained and no discrimination metric has been measured for these
+scores; see the `provenance` block in the response.
 """
 from __future__ import annotations
 
@@ -9,8 +11,8 @@ import math
 from .patient_service import get_patient
 from .longitudinal_service import get_patient_timeline
 
-# Teammate Hook: If loading a pre-trained ML model (XGBoost/LightGBM/PyTorch),
-# place model files in a models/ directory and initialize here:
+# Teammate Hook: If loading a pre-trained ML model (gradient-boosted trees or a
+# neural net), place model files in a models/ directory and initialize here:
 # MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "risk_model.pkl"
 # LOADED_MODEL = joblib.load(MODEL_PATH) if MODEL_PATH.exists() else None
 
@@ -121,11 +123,17 @@ def assess_patient_risk(patient_id: str, custom_features: Optional[Dict[str, Any
                 "key_driver": "eGFR Decline & Diabetes Duration",
             },
         },
-        "model_metadata": {
-            "model_name": "ShanghaiT2DM-Longitudinal-Ensemble",
-            "model_architecture": "Temporal XGBoost + BiLSTM Feature Extractor",
-            "dataset": "ShanghaiT2DM Longitudinal Cohort (N=105)",
-            "validation_auroc": 0.894,
-            "last_calibrated": "2026-09",
+        "provenance": {
+            "engine": "heuristic-weighted-linear-v1",
+            "computed": False,
+            "validated": False,
+            "source": "synthetic",
+            "note": (
+                "Composite and sub-risk scores come from hand-set linear coefficients defined in "
+                "this module. No classifier was trained, no discrimination metric has been "
+                "measured for these scores, and none should be reported as model performance. "
+                "The CGM forecasting model is a separate component; see "
+                "docs/conditional-model-audit.md."
+            ),
         },
     }

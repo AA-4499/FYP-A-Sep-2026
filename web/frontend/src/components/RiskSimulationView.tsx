@@ -1,4 +1,15 @@
 import { PhysiologyLab } from "./PhysiologyLab";
+import { ScenarioBuilder } from "./ScenarioBuilder";
+import {
+  simulatePhysiology,
+  type PhysiologyAssumptions,
+} from "../lib/physiology";
+import { clinicalNumber } from "../lib/clinicalData";
+import {
+  recordTime,
+  type ScenarioDraft,
+  type compileScenario,
+} from "../lib/scenario";
 import React, { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -231,12 +242,29 @@ function ForecastPanel({
   const preview = source === "preview";
   const browser = source === "browser";
   const [horizon, setHorizon] = useState(6);
-  const [mealEnabled, setMealEnabled] = useState(false);
-  const [insulinEnabled, setInsulinEnabled] = useState(false);
-  const [mealAmount, setMealAmount] = useState(60);
-  const [insulinAmount, setInsulinAmount] = useState(2);
-  const [mealMinutes, setMealMinutes] = useState(60);
-  const [insulinMinutes, setInsulinMinutes] = useState(120);
+  const [drafts, setDrafts] = useState<ScenarioDraft[]>([]);
+  const [simulation, setSimulation] = useState<{
+    patientId: string;
+    source: ForecastSource;
+    hours: number;
+    seed: string;
+    baseline: ForecastPoint[];
+    scenario: ForecastPoint[];
+    baseline_end: number;
+    scenario_end: number;
+    scenario_enabled: boolean;
+    unmodelled: string[];
+    schedule: ReturnType<typeof compileScenario>["schedule"];
+    assumptions: PhysiologyAssumptions;
+  } | null>(null);
+  const [simulationError, setSimulationError] = useState("");
+  const [assumptions, setAssumptions] = useState<PhysiologyAssumptions>({
+    basalGlucose: 120,
+    weightKg: 70,
+    betaResponse: 0.5,
+    sensitivity: 0.7,
+    absorptionMinutes: 45,
+  });
   const [request, setRequest] = useState<{
     revision: number;
     events: ForecastEvent[];
@@ -261,6 +289,7 @@ function ForecastPanel({
     const controller = new AbortController();
     setLoading(true);
     setError("");
+    setSimulation(null);
     fetchGlucoseForecast(
       patient.id,
       {
@@ -286,7 +315,36 @@ function ForecastPanel({
     return () => controller.abort();
   }, [patient.id, source, horizon, request]);
 
+  useEffect(() => {
+    setDrafts([]);
+    setSimulation(null);
+    setSimulationError("");
+  }, [patient.id, source, horizon]);
+  useEffect(() => {
+    if (!current) return;
+    const weight = clinicalNumber(patient.recordedFields?.["Weight (kg)"]);
+    setAssumptions({
+      basalGlucose: Math.min(250, Math.max(60, current.latest_glucose)),
+      weightKg:
+        Number.isFinite(weight) && weight >= 30 && weight <= 250 ? weight : 70,
+      betaResponse: 0.5,
+      sensitivity: 0.7,
+      absorptionMinutes: 45,
+    });
+  }, [patient.id, current?.forecast_start, current?.latest_glucose]);
+  const activeSimulation =
+    current &&
+    simulation?.patientId === patient.id &&
+    simulation.source === source &&
+    simulation.hours === horizon &&
+    simulation.seed === current.forecast_start
+      ? simulation
+      : null;
+  const output = activeSimulation || current;
+
   function baselineRequest() {
+    setSimulation(null);
+    setSimulationError("");
     setRequest((previous) => ({
       revision: previous.revision + 1,
       events: [],
@@ -294,26 +352,52 @@ function ForecastPanel({
     }));
   }
 
-  function run(event: React.FormEvent) {
-    event.preventDefault();
-    const events: ForecastEvent[] = [];
-    if (mealEnabled)
-      events.push({
-        kind: "meal",
-        amount: mealAmount,
-        minutes_ahead: mealMinutes,
+  function runScenario(plan: ReturnType<typeof compileScenario>) {
+    if (!current) return;
+    try {
+      const baseline = simulatePhysiology(
+        current.latest_glucose,
+        horizon,
+        assumptions,
+      );
+      const scenario = simulatePhysiology(
+        current.latest_glucose,
+        horizon,
+        assumptions,
+        plan.events,
+      );
+      const points = (rows: typeof baseline) =>
+        rows
+          .filter((row) => row.minute % 15 === 0)
+          .map((row) => ({
+            timestamp: new Date(
+              recordTime(current.forecast_start) + row.minute * 60000,
+            ).toISOString(),
+            value: row.glucose,
+          }));
+      const base = points(baseline),
+        whatIf = points(scenario);
+      setSimulation({
+        patientId: patient.id,
+        source,
+        hours: horizon,
+        seed: current.forecast_start,
+        baseline: base,
+        scenario: whatIf,
+        baseline_end: base[base.length - 1].value,
+        scenario_end: whatIf[whatIf.length - 1].value,
+        scenario_enabled: true,
+        unmodelled: plan.unmodelled,
+        schedule: plan.schedule,
+        assumptions: { ...assumptions },
       });
-    if (insulinEnabled)
-      events.push({
-        kind: "insulin",
-        amount: insulinAmount,
-        minutes_ahead: insulinMinutes,
-      });
-    setRequest((previous) => ({
-      revision: previous.revision + 1,
-      events,
-      runId: crypto.randomUUID(),
-    }));
+      setSimulationError("");
+    } catch (reason) {
+      setSimulation(null);
+      setSimulationError(
+        reason instanceof Error ? reason.message : "Simulation unavailable.",
+      );
+    }
   }
 
   function connect(event: React.FormEvent) {
@@ -323,8 +407,7 @@ function ForecastPanel({
       setConnectionError("");
       setConnectionOpen(false);
       setSource("supabase");
-      setMealEnabled(false);
-      setInsulinEnabled(false);
+      setDrafts([]);
       baselineRequest();
     } catch (err) {
       setConnectionError(
@@ -338,10 +421,10 @@ function ForecastPanel({
   function download() {
     if (!current) return;
     const lines = [
-      "timestamp,baseline_glucose_mg_dl,scenario_glucose_mg_dl",
-      ...current.baseline.map(
+      "engine,timestamp,baseline_glucose_mg_dl,scenario_glucose_mg_dl",
+      ...output!.baseline.map(
         (point, index) =>
-          `${point.timestamp},${point.value},${current.scenario[index]?.value ?? ""}`,
+          `${activeSimulation ? "unvalidated-physiology" : "gru"},${point.timestamp},${point.value},${output!.scenario[index]?.value ?? ""}`,
       ),
     ];
     const url = URL.createObjectURL(
@@ -349,7 +432,7 @@ function ForecastPanel({
     );
     const link = document.createElement("a");
     link.href = url;
-    link.download = `glucose-forecast-${current.patient_id}-${current.horizon_hours}h.csv`;
+    link.download = `glucose-${activeSimulation ? "simulation" : "forecast"}-${current.patient_id}-${current.horizon_hours}h.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -357,17 +440,21 @@ function ForecastPanel({
   const forecastSeries: Series[] = [
     {
       key: "baseline",
-      label: "Baseline prediction",
+      label: activeSimulation
+        ? "No added events (physiology)"
+        : "Baseline prediction (GRU)",
       color: "#2563eb",
-      points: current?.baseline ?? [],
+      points: output?.baseline ?? [],
     },
-    ...(current?.scenario_enabled || !current
+    ...(output?.scenario_enabled || !current
       ? [
           {
             key: "scenario",
-            label: "What-if prediction",
+            label: activeSimulation
+              ? "Scheduled events (physiology)"
+              : "What-if prediction",
             color: "#e07a36",
-            points: current?.scenario ?? [],
+            points: output?.scenario ?? [],
           },
         ]
       : []),
@@ -404,20 +491,18 @@ function ForecastPanel({
       points: current?.testing_actual ?? [],
     },
   ];
-  const delta = current
-    ? current.scenario_end - current.baseline_end
-    : undefined;
-  const differences = current?.scenario_enabled
-    ? current.scenario.map(
+  const delta = output ? output.scenario_end - output.baseline_end : undefined;
+  const differences = output?.scenario_enabled
+    ? output.scenario.map(
         (point, index) =>
-          point.value - (current.baseline[index]?.value ?? point.value),
+          point.value - (output.baseline[index]?.value ?? point.value),
       )
     : [];
   const peakDifference = differences.reduce(
     (peak, value) => (Math.abs(value) > Math.abs(peak) ? value : peak),
     0,
   );
-  const forecastRows = current?.baseline.slice(1) ?? [];
+  const forecastRows = output?.baseline.slice(1) ?? [];
 
   return (
     <div className="space-y-5 pb-10 animate-fadeIn">
@@ -482,7 +567,8 @@ function ForecastPanel({
           </p>
           <p className="mt-2 text-[11px]">
             The historical evaluation charts are checkpoint-matched saved
-            diagnostics; the forecast and scenario curves are newly computed.
+            diagnostics. The GRU forecast is computed here; scheduled event
+            responses use a separate, explicitly labelled physiology model.
           </p>
         </div>
       )}
@@ -540,8 +626,7 @@ function ForecastPanel({
             value={source}
             onChange={(event) => {
               setSource(event.target.value as ForecastSource);
-              setMealEnabled(false);
-              setInsulinEnabled(false);
+              setDrafts([]);
               baselineRequest();
             }}
           >
@@ -566,8 +651,6 @@ function ForecastPanel({
             onChange={(event) => {
               const hours = Number(event.target.value);
               setHorizon(hours);
-              setMealMinutes((value) => Math.min(value, hours * 60 - 15));
-              setInsulinMinutes((value) => Math.min(value, hours * 60 - 15));
               baselineRequest();
             }}
           >
@@ -592,18 +675,18 @@ function ForecastPanel({
               : "\u2014",
           ],
           [
-            "Held-out one-step MAE",
+            "Held-out one-step MAE (GRU)",
             current?.metrics
               ? `${displayNumber(current.metrics.mae_mg_dl)} mg/dL`
               : "\u2014",
           ],
           [
-            `Prediction after ${horizon} hours`,
-            current ? `${displayNumber(current.scenario_end)} mg/dL` : "\u2014",
+            `${activeSimulation ? "Simulated CGM" : "Prediction"} after ${horizon} hours`,
+            current ? `${displayNumber(output!.scenario_end)} mg/dL` : "\u2014",
           ],
           [
             "What-if at forecast end",
-            delta !== undefined && current?.scenario_enabled
+            delta !== undefined && output?.scenario_enabled
               ? `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} mg/dL`
               : current
                 ? "No event applied"
@@ -653,8 +736,7 @@ function ForecastPanel({
                       <button
                         onClick={() => {
                           setSource("browser");
-                          setMealEnabled(false);
-                          setInsulinEnabled(false);
+                          setDrafts([]);
                           baselineRequest();
                         }}
                         className="underline"
@@ -686,28 +768,43 @@ function ForecastPanel({
             {!loading && !error && current && (
               <p className="flex items-center gap-2 text-xs text-emerald-700">
                 <CheckCircle2 size={14} />
-                {preview
-                  ? "Local snapshot loaded; no database write"
-                  : browser
-                    ? "Browser GRU computed successfully; no database write"
-                    : current.storage?.saved
-                      ? `Saved to Supabase · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves`
-                      : "Forecast loaded; no storage receipt"}
+                {activeSimulation
+                  ? "Physiology scenario computed; GRU diagnostics are separate"
+                  : preview
+                    ? "Local snapshot loaded; no database write"
+                    : browser
+                      ? "Browser GRU computed successfully; no database write"
+                      : current.storage?.saved
+                        ? `Saved to Supabase · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves`
+                        : "Forecast loaded; no storage receipt"}
               </p>
             )}
           </div>
 
           <section className={card} data-testid="prediction-panel">
+            {!!activeSimulation?.unmodelled.length && (
+              <p
+                role="status"
+                className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+              >
+                Incomplete scenario: medicine, stress or illness events are
+                context only. Their effects are not included in this curve.
+              </p>
+            )}
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
-                  Glucose prediction
+                  {activeSimulation
+                    ? "Scheduled event response"
+                    : "Glucose prediction"}
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
                   {horizon}-hour{" "}
-                  {preview
-                    ? "precomputed baseline forecast"
-                    : "baseline and what-if comparison"}
+                  {activeSimulation
+                    ? "unvalidated physiology comparison; GRU forecast is separate"
+                    : preview
+                      ? "precomputed baseline forecast"
+                      : "baseline and what-if comparison"}
                 </p>
               </div>
               <span className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-600">
@@ -717,11 +814,18 @@ function ForecastPanel({
             <GlucoseChart series={forecastSeries} loading={loading} />
             <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-xs leading-relaxed text-slate-600">
               <p>
-                The GRU estimates a statistical trajectory from recent history.
-                Recursive predictions can settle towards a stable value; a
-                longer horizon does not guarantee a rise and fall. Added events
-                show this model's learned sensitivity, not a validated
-                physiological response.
+                {activeSimulation ? (
+                  "These curves use the same assumed physiology and starting glucose. The baseline assumes no added events; it is not the GRU forecast. Carbohydrate enters blood gradually, remaining beta-cell activity responds with a delay, and injected insulin acts after absorption. The event-free reference is balanced around the seed glucose (60-250 mg/dL); this does not establish fasting or stability."
+                ) : (
+                  <>
+                    The GRU estimates a statistical trajectory from recent
+                    history. Recursive predictions can settle towards a stable
+                    value; a longer horizon does not guarantee a rise and fall.
+                    Run a scheduled scenario to explore a separate physiological
+                    response; it will be labelled as simulation, not a GRU
+                    forecast.
+                  </>
+                )}
               </p>
               <button
                 type="button"
@@ -733,7 +837,7 @@ function ForecastPanel({
             </div>
             <p className="mt-2 text-xs leading-relaxed text-slate-400">
               {current
-                ? `Forecast begins ${displayTime(current.forecast_start)}. Future points use recursive 15-minute predictions.`
+                ? `${activeSimulation ? "Simulation" : "Forecast"} begins ${displayTime(current.forecast_start)} UTC. ${activeSimulation ? "One-minute integration, sampled every 15 minutes." : "Future points use recursive 15-minute predictions."}`
                 : browser
                   ? "Loading the model and exact repository record history."
                   : "Connect the prediction service to load the selected patient's model results."}
@@ -744,10 +848,12 @@ function ForecastPanel({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
-                  Forecast values
+                  {activeSimulation ? "Simulated values" : "Forecast values"}
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Predicted CGM at each future 15-minute step
+                  {activeSimulation
+                    ? "Hypothetical CGM at each 15-minute step; not a validated patient prediction"
+                    : "Predicted CGM at each future 15-minute step"}
                 </p>
               </div>
               <button
@@ -776,7 +882,7 @@ function ForecastPanel({
                         ? forecastRows
                         : forecastRows.slice(0, 12)
                       ).map((point, index) => {
-                        const scenario = current!.scenario[index + 1]?.value;
+                        const scenario = output!.scenario[index + 1]?.value;
                         const change =
                           scenario === undefined
                             ? undefined
@@ -793,12 +899,12 @@ function ForecastPanel({
                               {point.value.toFixed(1)} mg/dL
                             </td>
                             <td className="py-2.5">
-                              {current!.scenario_enabled
+                              {output!.scenario_enabled
                                 ? `${displayNumber(scenario)} mg/dL`
                                 : "\u2014"}
                             </td>
                             <td className="py-2.5">
-                              {current!.scenario_enabled && change !== undefined
+                              {output!.scenario_enabled && change !== undefined
                                 ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}`
                                 : "\u2014"}
                             </td>
@@ -838,9 +944,9 @@ function ForecastPanel({
           <p className="mt-2 text-xs leading-relaxed text-slate-500">
             {preview
               ? "This static preview cannot calculate new scenarios. Choose Repository GRU or the online service."
-              : "Add hypothetical events to compare their projected effect with the baseline prediction."}
+              : "Schedule food, injections, medicines and activity. Expand each event to enter what happened, when and how much."}
           </p>
-          {current?.scenario_enabled && (
+          {output?.scenario_enabled && (
             <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
               <p className="text-slate-600">Largest curve difference</p>
               <p className="mt-1 font-semibold text-blue-800">
@@ -854,140 +960,156 @@ function ForecastPanel({
               </p>
             </div>
           )}
-          <form onSubmit={run} className="mt-5 space-y-5">
-            <fieldset
-              disabled={preview}
-              className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 disabled:opacity-50"
+          {simulationError && (
+            <p
+              role="alert"
+              className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-900"
             >
-              <legend className="px-1 text-xs font-semibold text-slate-700">
-                Meal event
-              </legend>
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={mealEnabled}
-                  onChange={(event) => setMealEnabled(event.target.checked)}
-                />
-                Include a meal event
-              </label>
-              <label className="block text-xs text-slate-500">
-                Food mass (g)
-                <input
-                  className={input}
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  required
-                  disabled={!mealEnabled}
-                  value={mealAmount}
-                  onChange={(event) =>
-                    setMealAmount(event.target.valueAsNumber)
-                  }
-                />
-              </label>
-              <label className="block text-xs text-slate-500">
-                Minutes after latest CGM
-                <input
-                  className={input}
-                  type="number"
-                  min="15"
-                  max={horizon * 60 - 15}
-                  step="15"
-                  required
-                  disabled={!mealEnabled}
-                  value={mealMinutes}
-                  onChange={(event) =>
-                    setMealMinutes(event.target.valueAsNumber)
-                  }
-                />
-              </label>
-            </fieldset>
-            <fieldset
-              disabled={preview}
-              className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 disabled:opacity-50"
-            >
-              <legend className="px-1 text-xs font-semibold text-slate-700">
-                Insulin event
-              </legend>
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={insulinEnabled}
-                  onChange={(event) => setInsulinEnabled(event.target.checked)}
-                />
-                Include an insulin event
-              </label>
-              <label className="block text-xs text-slate-500">
-                Insulin amount (units)
-                <input
-                  className={input}
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  required
-                  disabled={!insulinEnabled}
-                  value={insulinAmount}
-                  onChange={(event) =>
-                    setInsulinAmount(event.target.valueAsNumber)
-                  }
-                />
-              </label>
-              <label className="block text-xs text-slate-500">
-                Minutes after latest CGM
-                <input
-                  className={input}
-                  type="number"
-                  min="15"
-                  max={horizon * 60 - 15}
-                  step="15"
-                  required
-                  disabled={!insulinEnabled}
-                  value={insulinMinutes}
-                  onChange={(event) =>
-                    setInsulinMinutes(event.target.valueAsNumber)
-                  }
-                />
-              </label>
-            </fieldset>
-            <p className="text-[11px] leading-relaxed text-slate-400">
-              {preview
-                ? "The static preview contains baseline results only. Choose Repository GRU or the online service for new scenarios."
-                : `Use 15-minute intervals within the selected ${horizon}-hour horizon. Changes apply when you run the simulation.`}
+              {simulationError}
             </p>
-            <button
-              type="submit"
-              disabled={loading || preview}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          )}
+          {activeSimulation && (
+            <div
+              data-testid="scenario-result"
+              className="mt-4 space-y-3 rounded-xl border border-teal-100 bg-teal-50 p-3 text-[11px] leading-relaxed text-teal-900"
             >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              {preview
-                ? "Online service required"
-                : loading
-                  ? "Running model..."
-                  : "Run what-if simulation"}
-            </button>
-            <button
-              type="button"
-              className="w-full text-xs font-medium text-slate-500 hover:text-blue-600"
-              onClick={() => {
-                setMealEnabled(false);
-                setInsulinEnabled(false);
-                baselineRequest();
-              }}
-            >
-              Reset to baseline
-            </button>
-            <p className="border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-400">
-              Baseline means no future events were supplied, not confirmed
-              fasting or no insulin. Food mass is not carbohydrate mass. These
-              curves show model sensitivity, not validated treatment effects.{" "}
-              {preview
-                ? "Local previews are not saved to Supabase."
-                : browser
-                  ? "Browser GRU forecasts are not saved to Supabase."
-                  : "Completed online forecasts are saved to Supabase."}
+              <p className="font-semibold">
+                Physiology scenario computed; no database write
+              </p>
+              <p>Applied schedule (UTC):</p>
+              <ol className="space-y-1">
+                {activeSimulation.schedule.map((row) => (
+                  <li key={row.id}>
+                    {row.at.replace("T", " ")} - {row.description}
+                    {row.kind === "meal"
+                      ? ` - ${row.carbohydrate} g carbohydrate`
+                      : row.kind === "insulin"
+                        ? ` - ${row.amount} units`
+                        : row.kind === "activity"
+                          ? ` - ${row.amount} min`
+                          : " - context only"}
+                  </li>
+                ))}
+              </ol>
+              {!!activeSimulation.unmodelled.length && (
+                <p
+                  role="status"
+                  className="rounded-lg bg-amber-100 p-2 text-amber-950"
+                >
+                  Incomplete scenario: {activeSimulation.unmodelled.join("; ")}.
+                  These events have no quantified effect in the displayed curve.
+                  Medication-only scenarios cannot estimate a drug response.
+                </p>
+              )}
+              <p>
+                Results correspond to this applied schedule. Draft edits take
+                effect only after running again.
+              </p>
+              <p>
+                Applied assumptions: reference{" "}
+                {activeSimulation.assumptions.basalGlucose.toFixed(1)} mg/dL;
+                weight {activeSimulation.assumptions.weightKg} kg; beta response{" "}
+                {activeSimulation.assumptions.betaResponse}; sensitivity{" "}
+                {activeSimulation.assumptions.sensitivity}.
+              </p>
+            </div>
+          )}
+          <ScenarioBuilder
+            value={drafts}
+            onChange={setDrafts}
+            start={current?.forecast_start}
+            hours={horizon}
+            disabled={loading || preview || !current}
+            onRun={runScenario}
+            onReset={baselineRequest}
+          />
+          <details className="mt-4 rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-500">
+            <summary className="cursor-pointer font-semibold">
+              Simulation assumptions and research
+            </summary>
+            <p className="mt-2">
+              Starting glucose and record time come from the selected forecast
+              source. Event-free hepatic balance is assumed around the starting
+              glucose, bounded to 60-250 mg/dL. Initial gut contents and
+              injected insulin on board are assumed zero; recent unrecorded food
+              or medicine can change the real response.
             </p>
-          </form>
+            <p className="mt-2">
+              Recorded weight is used when within 30-250 kg; otherwise 70 kg is
+              assumed. Remaining beta-cell response 0.5 and insulin sensitivity
+              0.7 are hypothetical defaults, not estimated from this patient.
+              Adjust them below and rerun. Zero beta response represents absent
+              secretion in this reduced model; it is not an inferred diagnosis.
+              Meal speed and exercise effects are illustrative.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {(
+                [
+                  ["basalGlucose", "Reference glucose (mg/dL)", 60, 250, 0.1],
+                  ["weightKg", "Weight (kg)", 30, 250, 0.1],
+                  [
+                    "betaResponse",
+                    "Beta-cell response (relative)",
+                    0,
+                    1.5,
+                    0.05,
+                  ],
+                  ["sensitivity", "Insulin sensitivity (relative)", 0, 2, 0.05],
+                ] as const
+              ).map(([key, label, min, max, step]) => (
+                <label key={key} className="block text-[10px]">
+                  {label}
+                  <input
+                    aria-label={`Scenario ${label}`}
+                    type="number"
+                    className={input}
+                    value={
+                      Number.isFinite(assumptions[key]) ? assumptions[key] : ""
+                    }
+                    min={min}
+                    max={max}
+                    step={step}
+                    disabled={!current || loading}
+                    onChange={(event) =>
+                      setAssumptions((previous) => ({
+                        ...previous,
+                        [key]: event.target.valueAsNumber,
+                      }))
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <p className="mt-2">
+              Medicines differ in mechanism, formulation and duration. No
+              milligram-to-glucose effect is invented. Non-insulin medicines,
+              stress and illness are retained as context only.
+            </p>
+            <a
+              href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2769591/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block font-semibold text-teal-700"
+            >
+              Meal glucose-insulin modelling research
+            </a>
+            <a
+              href="https://www.niddk.nih.gov/health-information/diabetes/overview/insulin-medicines-treatments"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block font-semibold text-teal-700"
+            >
+              How diabetes medicines work
+            </a>
+            <a
+              href="https://diabetes.org/health-wellness/fitness/why-does-exercise-sometimes-raise-blood-sugar"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block font-semibold text-teal-700"
+            >
+              Why exercise can lower or raise glucose
+            </a>
+          </details>
         </aside>
       </div>
       <details

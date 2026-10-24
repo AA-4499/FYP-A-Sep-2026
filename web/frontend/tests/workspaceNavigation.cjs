@@ -111,7 +111,7 @@
 
     fs.writeFileSync(
       path.join(out, "navigation-fixture.html"),
-      '<div id="root"></div><script type="module" src="/.ui-check/navigation-fixture.tsx"></script>',
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0"><div id="root"></div><script type="module" src="/.ui-check/navigation-fixture.tsx"></script>',
     );
     fs.writeFileSync(
       path.join(out, "navigation-fixture.tsx"),
@@ -166,6 +166,25 @@
       });
       await delay(200);
     };
+    const addScenarioEvent = async (kind, fields) => {
+      await evaluate(
+        `(() => { const select = document.querySelector('[aria-label="Add scenario event"]'); select.value = ${JSON.stringify(kind)}; select.dispatchEvent(new Event('change', {bubbles:true})); })()`,
+      );
+      await delay(100);
+      const index = await evaluate(
+        `document.querySelectorAll('[data-testid="scenario-event"]').length`,
+      );
+      for (const [field, value] of Object.entries(fields)) {
+        await evaluate(
+          `(() => { const input = document.querySelector('[aria-label="Event ${index} ${field}"]'); if (!input) throw Error('Missing event field'); const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event('input', {bubbles:true})); input.dispatchEvent(new Event('change', {bubbles:true})); })()`,
+        );
+      }
+      await delay(100);
+    };
+    const eventClock = async (minutes) =>
+      evaluate(
+        `(() => { const min = document.querySelector('input[type="datetime-local"]').min; return new Date(Date.parse(min + 'Z') + (${minutes} - 1) * 60000).toISOString().slice(0,16); })()`,
+      );
     const expectPage = async (label, text) => {
       await click(label, "document.querySelector('aside')");
       await ready(text);
@@ -267,8 +286,17 @@
     );
     await click("Physiology lab");
     await ready("Glucose response and recovery");
-    await click("Add event and compare");
-    await ready("g carbohydrate");
+    await addScenarioEvent("meal", {
+      description: "Mixed meal",
+      amount: "250",
+      carbohydrate: "45",
+    });
+    const physiologyTime = await eventClock(30);
+    await evaluate(
+      `(() => { const input=document.querySelector('[aria-label="Event 1 time"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(physiologyTime)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`,
+    );
+    await click("Run what-if simulation");
+    await ready("Applied schedule (UTC)");
     assert(
       await evaluate(
         `document.querySelectorAll('.recharts-line-curve').length>=4`,
@@ -358,6 +386,12 @@
       "Mobile horizontal overflow",
     );
     assert(!exceptions.length, exceptions.join("\n"));
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 1050,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
     await open("?repo");
     await ready("2 accessible records");
     await expectPage("Prediction lab", "Repository GRU");
@@ -394,12 +428,49 @@
       ),
       "Repository history was not distinguished from cloud readings",
     );
+    assert(
+      await evaluate(
+        `!document.querySelector('[data-testid="simulator-panel"] input[type="checkbox"]')`,
+      ),
+      "Checkbox events must be replaced by the schedule builder",
+    );
+    await addScenarioEvent("meal", {
+      description: "Rice and vegetables",
+      amount: "250",
+      carbohydrate: "45",
+    });
+    const firstMealTime = await eventClock(60);
     await evaluate(
-      `document.querySelector('[data-testid="simulator-panel"] input[type="checkbox"]').click()`,
+      `(() => { const input=document.querySelector('[aria-label="Event 1 time"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(firstMealTime)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`,
     );
     await click("Run what-if simulation");
     await ready("Largest curve difference");
-    await ready("Browser GRU computed successfully");
+    await ready("Physiology scenario computed");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-panel"]').innerText.includes('No added events (physiology)')`,
+      ),
+      "Event simulation was not distinguished from the GRU",
+    );
+    await addScenarioEvent("insulin", {
+      description: "Hypothetical rapid insulin",
+      amount: "1",
+      time: firstMealTime,
+    });
+    await addScenarioEvent("meal", {
+      description: "Later snack",
+      amount: "100",
+      carbohydrate: "15",
+      time: await eventClock(180),
+    });
+    await click("Run what-if simulation");
+    await ready("Later snack");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="scenario-result"]').innerText.includes('Hypothetical rapid insulin')`,
+      ),
+      "Multiple applied events were lost",
+    );
     const forecastValues = await evaluate(
       `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
     );
@@ -429,7 +500,12 @@
     await ready("Model evaluation and timeline coverage");
     // The chart mounts lazily, then measures its container with ResizeObserver.
     for (let i = 0; i < 60; i++) {
-      if (await evaluate(`document.querySelectorAll('[data-testid="history-content"] .recharts-line-curve').length > 0`)) break;
+      if (
+        await evaluate(
+          `document.querySelectorAll('[data-testid="history-content"] .recharts-line-curve').length > 0`,
+        )
+      )
+        break;
       await delay(100);
     }
     assert(
@@ -448,10 +524,61 @@
       "Historical diagnostics did not collapse",
     );
     await screenshot("browser-gru-what-if.png");
+    // Medicine is retained in the schedule, never converted to an invented curve.
+    await addScenarioEvent("medication", {
+      description: "Metformin immediate-release",
+      amount: "500",
+      time: await eventClock(120),
+    });
+    await click("Run what-if simulation");
+    await ready("Incomplete scenario");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-panel"]').innerText.includes('context only')`,
+      ),
+      "Missing visible incomplete-scenario warning",
+    );
+    assert(
+      (await evaluate(
+        `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+      )) === forecastValues,
+      "Context-only medication changed the numeric curve",
+    );
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 1,
+      mobile: true,
+    });
+    await delay(400);
+    assert(
+      await evaluate(
+        `window.innerWidth === 390 && document.documentElement.scrollWidth <= window.innerWidth + 2`,
+      ),
+      "Scheduled event cards overflow the real mobile viewport",
+    );
+    await screenshot("scheduled-what-if-mobile.png");
+    await evaluate(
+      `document.querySelector('[aria-label="Remove event 4"]').click()`,
+    );
+    await ready("Draft changes are not applied");
+    await click("Run what-if simulation");
+    assert(
+      !(await evaluate(
+        `document.querySelector('[data-testid="prediction-panel"]').innerText.includes('Incomplete scenario')`,
+      )),
+      "Removing a context event did not update scenario completeness",
+    );
     await evaluate(
       `(() => {const select=document.querySelector('[aria-label="Forecast horizon"]');select.value='12';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
     );
     await ready("Browser GRU computed successfully");
+    assert(
+      await evaluate(
+        `!document.querySelector('[data-testid="scenario-result"]') && !document.querySelector('[data-testid="scenario-event"]')`,
+      ),
+      "Changing horizon retained an obsolete scenario",
+    );
     await click("Show all 48 forecast rows");
     assert(
       await evaluate(
@@ -467,7 +594,7 @@
     );
     assert(!exceptions.length, exceptions.join("\n"));
     console.log(
-      "PASS: browser GRU 6/12h forecasts, collapsed historical diagnostics at bottom, axis zoom preserves values, interactive what-if",
+      "PASS: browser GRU 6/12h forecasts, collapsed diagnostics, clock-time multi-event physiology, context-only medicines, draft/reset behaviour, mobile event layout and unchanged axis values",
     );
     console.log(
       "PASS: complete paging, database failures, all navigation, Patient isolation, physiology events, and mobile layout",

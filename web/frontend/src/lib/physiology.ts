@@ -12,9 +12,11 @@ export interface PhysiologyAssumptions {
   absorptionMinutes: number;
 }
 export interface PhysiologyEvent {
-  kind: "carbohydrate" | "insulin";
+  kind: "carbohydrate" | "insulin" | "activity";
   minute: number;
   amount: number;
+  absorptionMinutes?: number;
+  intensity?: "moderate" | "intense";
 }
 export interface PhysiologyPoint {
   minute: number;
@@ -65,17 +67,31 @@ export function simulatePhysiology(
     events.length > 12 ||
     events.some(
       (e) =>
-        !["carbohydrate", "insulin"].includes(e.kind) ||
+        !["carbohydrate", "insulin", "activity"].includes(e.kind) ||
         !Number.isInteger(e.minute) ||
         e.minute < 0 ||
         e.minute >= hours * 60 ||
         !Number.isFinite(e.amount) ||
         e.amount <= 0 ||
-        e.amount > (e.kind === "carbohydrate" ? 200 : 20),
+        e.amount >
+          (e.kind === "carbohydrate"
+            ? 200
+            : e.kind === "activity"
+              ? 120
+              : 20) ||
+        (e.kind === "carbohydrate" &&
+          e.absorptionMinutes !== undefined &&
+          (!Number.isFinite(e.absorptionMinutes) ||
+            e.absorptionMinutes < 20 ||
+            e.absorptionMinutes > 120)) ||
+        (e.kind === "activity" &&
+          (!Number.isInteger(e.amount) ||
+            e.minute + e.amount > hours * 60 ||
+            !["moderate", "intense"].includes(e.intensity || ""))),
     )
   ) {
     throw new Error(
-      "Enter events within the simulation window: up to 200 g carbohydrate or 20 units of hypothetical insulin per event.",
+      "Enter events within the simulation window: up to 200 g carbohydrate, 20 hypothetical insulin units, or 120 minutes of activity per event.",
     );
   }
   let glucose = initialGlucose,
@@ -87,6 +103,7 @@ export function simulatePhysiology(
     depot1 = 0,
     depot2 = 0,
     exogenous = 0;
+  const meals: { first: number; second: number; tau: number }[] = [];
   const points: PhysiologyPoint[] = [];
   const point = (minute: number) => ({
     minute,
@@ -100,12 +117,35 @@ export function simulatePhysiology(
   points.push(point(0));
   for (let minute = 0; minute < hours * 60; minute++) {
     for (const event of events.filter((e) => e.minute === minute)) {
-      if (event.kind === "carbohydrate") gut1 += event.amount;
-      else depot1 += event.amount;
+      if (event.kind === "carbohydrate")
+        meals.push({
+          first: event.amount,
+          second: 0,
+          tau: event.absorptionMinutes ?? absorptionMinutes,
+        });
+      else if (event.kind === "insulin") depot1 += event.amount;
     }
     // One-minute explicit integration, all right-hand sides use the prior state.
-    const gutTransfer = gut1 / absorptionMinutes;
-    const absorption = gut2 / absorptionMinutes;
+    let absorption = 0;
+    for (const meal of meals) {
+      const transfer = meal.first / meal.tau;
+      const appearance = meal.second / meal.tau;
+      absorption += appearance;
+      meal.first -= transfer;
+      meal.second += transfer - appearance;
+    }
+    // Illustrative activity compartments, not fitted exercise response coefficients.
+    // Cap overlapping activity at one concurrent session rather than stacking effort.
+    const active = events.filter(
+      (e) =>
+        e.kind === "activity" &&
+        minute >= e.minute &&
+        minute < e.minute + e.amount,
+    );
+    const exercising = active.length > 0;
+    const intense = active.some((e) => e.intensity === "intense");
+    const muscleUptake = exercising ? (intense ? 0.001 : 0.002) * glucose : 0;
+    const stressHepaticRelease = intense ? 0.45 : 0;
     const insulinTransfer = depot1 / 55;
     const insulinAbsorption = depot2 / 55;
     const stimulus = betaResponse * Math.max(0, (glucose - basalGlucose) / 100);
@@ -113,12 +153,14 @@ export function simulatePhysiology(
       (0.008 * basalGlucose) / (1 + 0.6 * action) +
       Math.max(0, 70 - glucose) * 0.02;
     const glucoseChange =
-      hepaticReturn -
+      hepaticReturn +
+      stressHepaticRelease -
+      muscleUptake -
       0.008 * glucose -
       0.008 * sensitivity * action * glucose +
       (absorption * 1000 * 0.8) / (1.6 * weightKg);
-    gut1 -= gutTransfer;
-    gut2 += gutTransfer - absorption;
+    gut1 = meals.reduce((total, meal) => total + meal.first, 0);
+    gut2 = meals.reduce((total, meal) => total + meal.second, 0);
     depot1 -= insulinTransfer;
     depot2 += insulinTransfer - insulinAbsorption;
     exogenous += insulinAbsorption * 0.35 - exogenous / 60;

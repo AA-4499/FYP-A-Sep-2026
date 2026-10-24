@@ -2,7 +2,7 @@
 
 The temporary default is **Repository GRU · browser (no Render)**. It executes the checked-in `models/weights/gru_t2dm_forecaster.pt` weights in a Web Worker. It does not run Python on GitHub, retrain the model, substitute a generated curve, or merely display the existing baseline snapshots.
 
-Open Prediction lab, choose a 6- or 12-hour horizon (default 6), and add meal/insulin events in the what-if panel. Both baseline and scenario are newly computed. The three-hour option is no longer exposed in either Prediction lab view; older model/API compatibility and numerical reference tests still support it. No model-service URL, model-service login, or Supabase write is needed. Database pages still read Supabase normally.
+Open Prediction lab and choose a 6- or 12-hour horizon (default 6). The GRU computes the baseline forecast. The clock-time event planner now uses the separate reduced physiology model for a matched no-added-event / scheduled-event comparison; the chart, table, result receipt and CSV label this switch explicitly. It does not add an arbitrary physiological offset to the GRU output. Clear the scenario to return to the GRU. The three-hour option is no longer exposed in either view; older model/API compatibility and numerical reference tests still support it. No model-service URL, model-service login, or Supabase write is needed. Database pages still read Supabase normally.
 
 Historical training/validation/testing charts, evaluation tables and model details are grouped in a default-collapsed section at the bottom, after the prediction and simulator. The historical chart is rendered only when expanded.
 
@@ -15,7 +15,7 @@ The main prediction chart initially fits its vertical axis to the actual predict
 - Weights are exported losslessly as little-endian float32 tensors; no extra inference dependency or GPU is required.
 - Inputs are the exact matched repository workbook's latest complete history segment. There are 109 bundled record histories. An absent record is unavailable; it never falls back to a different person, visit or the current user's clinical summary.
 - Repository workbook data are historical and do not refresh from Supabase. This source is called out above the chart and in model details. The model never combines the repository seed with new database observations and labels that mixture as live inference.
-- Existing saved observed/training/validation/test charts and one-step metrics are reused only when patient ID, checkpoint digest and forecast origin all match. The forecast and what-if curves are always calculated again. Missing historical diagnostics do not prevent inference and are not invented.
+- Existing saved observed/training/validation/test charts and one-step metrics are reused only when patient ID, checkpoint digest and forecast origin all match. The forecast is calculated again. These GRU diagnostics do not validate the separate physiological event simulation. Missing historical diagnostics do not prevent inference and are not invented.
 
 ## Runtime and cancellation
 
@@ -40,7 +40,7 @@ node --test tests/browserGru.test.mjs
 npm run build
 ```
 
-Numerical tests compare 3/6/12-hour baseline and combined meal/insulin forecasts for two actual repository records against Python/PyTorch, with a maximum permitted deviation of 0.001 mg/dL. Tests also verify the original checkpoint digest, all bundled histories, event timing, deterministic resets, invalid events and corrupted weights. The browser regression executes the real Worker, checks new what-if results and complete 12-hour outputs, and retains missing-record and Patient-isolation checks.
+Numerical tests compare 3/6/12-hour baseline and legacy combined meal/insulin forecasts for two actual repository records against Python/PyTorch, with a maximum permitted deviation of 0.001 mg/dL. Legacy learned event features remain available internally for compatibility, but the updated UI uses a carbohydrate-based mechanistic scenario instead of treating food mass as carbohydrate. Tests also verify the original checkpoint digest, all bundled histories, event timing, deterministic resets, invalid events and corrupted weights. The browser regression executes the real Worker, checks scheduled physiological scenarios and complete 12-hour GRU outputs, and retains missing-record and Patient-isolation checks.
 
 This is numerical compatibility with the existing research model, not evidence of clinical accuracy. Long-horizon forecast validity and causal treatment effects are not established by parity tests. The legacy model's food-mass and insulin feature limitations remain described in [the model audit](conditional-model-audit.md). The separate Physiology lab still uses explicit hypothetical mechanisms and is not the GRU.
 

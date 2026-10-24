@@ -1,3 +1,5 @@
+import { ScenarioBuilder } from "./ScenarioBuilder";
+import { type ScenarioDraft, type compileScenario } from "../lib/scenario";
 import React, { useMemo, useState } from "react";
 import { Activity, ArrowRight, FlaskConical, RotateCcw } from "lucide-react";
 import {
@@ -13,7 +15,7 @@ import {
 } from "recharts";
 import type { Patient } from "../types";
 import { clinicalNumber, clinicalValue } from "../lib/clinicalData";
-import { simulatePhysiology, type PhysiologyEvent } from "../lib/physiology";
+import { simulatePhysiology } from "../lib/physiology";
 
 const card =
   "rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6";
@@ -38,12 +40,12 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
   );
   const [beta, setBeta] = useState(0.5);
   const [sensitivity, setSensitivity] = useState(0.7);
-  const [absorption, setAbsorption] = useState(45);
-  const [events, setEvents] = useState<PhysiologyEvent[]>([]);
-  const [kind, setKind] = useState<PhysiologyEvent["kind"]>("carbohydrate");
-  const [amount, setAmount] = useState(40);
-  const [minute, setMinute] = useState(30);
-  const [formError, setFormError] = useState("");
+  const absorption = 45;
+  const [drafts, setDrafts] = useState<ScenarioDraft[]>([]);
+  const [applied, setApplied] = useState<ReturnType<
+    typeof compileScenario
+  > | null>(null);
+  const events = applied?.events || [];
   const result = useMemo(() => {
     if (!last) return { rows: [], error: "" };
     try {
@@ -72,26 +74,6 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
     }
   }, [last, hours, basal, weight, beta, sensitivity, absorption, events]);
   const final = result.rows[result.rows.length - 1];
-  const add = () => {
-    if (
-      !Number.isFinite(amount) ||
-      amount <= 0 ||
-      amount > (kind === "carbohydrate" ? 200 : 20) ||
-      !Number.isInteger(minute) ||
-      minute < 0 ||
-      minute >= hours * 60 ||
-      events.length >= 12
-    ) {
-      setFormError(
-        "Enter a positive amount within the displayed limits, and a time inside the selected horizon. Maximum 12 events.",
-      );
-      return;
-    }
-    setEvents(
-      [...events, { kind, amount, minute }].sort((a, b) => a.minute - b.minute),
-    );
-    setFormError("");
-  };
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-xs leading-relaxed text-indigo-900">
@@ -120,7 +102,7 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
             {[
               ["Recorded starting CGM", clinicalValue(last.cgm, "mg/dL")],
               ["Simulated ending CGM", clinicalValue(final?.glucose, "mg/dL")],
-              ["Scenario events", String(events.length)],
+              ["Scenario events", String(applied?.schedule.length || 0)],
               ["Seed observation", last.date.replace("T", " ").slice(0, 16)],
             ].map(([label, value]) => (
               <div key={label} className={card}>
@@ -148,8 +130,8 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                     value={hours}
                     onChange={(e) => {
                       setHours(Number(e.target.value));
-                      setEvents([]);
-                      setMinute(30);
+                      setDrafts([]);
+                      setApplied(null);
                     }}
                   >
                     {[6, 12].map((h) => (
@@ -259,7 +241,7 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                     [
                       "1",
                       "Absorption",
-                      "Carbohydrate passes through two gut compartments before appearing in blood.",
+                      "Each meal has its own two-stage absorption, with a selected speed; food weight is not carbohydrate weight.",
                     ],
                     [
                       "2",
@@ -269,7 +251,7 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                     [
                       "3",
                       "Recovery",
-                      "Glucose use, insulin clearance and a basal hepatic return shape recovery. No automatic periodic rise is forced.",
+                      "Glucose use, delayed insulin action and hepatic production shape recovery. Moderate activity increases uptake; intense activity can add a hepatic stress response. No periodic rise is forced.",
                     ],
                   ].map(([n, title, text]) => (
                     <div key={n} className="rounded-2xl bg-slate-50 p-4">
@@ -303,87 +285,37 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                 <Activity size={16} className="text-teal-600" />
                 Scenario builder
               </h2>
-              <label className="block text-xs text-slate-500">
-                Event type
-                <select
-                  aria-label="Physiology event type"
-                  className={input}
-                  value={kind}
-                  onChange={(e) => {
-                    const value = e.target.value as typeof kind;
-                    setKind(value);
-                    setAmount(value === "insulin" ? 1 : 40);
-                  }}
+              <ScenarioBuilder
+                value={drafts}
+                onChange={setDrafts}
+                start={last.date}
+                hours={hours}
+                onRun={setApplied}
+                onReset={() => setApplied(null)}
+              />
+              {applied && (
+                <div
+                  data-testid="physiology-applied-schedule"
+                  className="space-y-2 rounded-xl bg-teal-50 p-3 text-[11px] leading-relaxed text-teal-900"
                 >
-                  <option value="carbohydrate">Carbohydrate intake</option>
-                  <option value="insulin">
-                    Hypothetical rapid-acting insulin
-                  </option>
-                </select>
-              </label>
-              <label className="block text-xs text-slate-500">
-                {kind === "carbohydrate"
-                  ? "Available carbohydrate (g), maximum 200"
-                  : "Hypothetical units, maximum 20"}
-                <input
-                  aria-label="Physiology event amount"
-                  className={input}
-                  type="number"
-                  min={0.1}
-                  max={kind === "carbohydrate" ? 200 : 20}
-                  step={0.1}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.valueAsNumber)}
-                />
-              </label>
-              <label className="block text-xs text-slate-500">
-                Minutes after seed observation
-                <input
-                  aria-label="Physiology event time"
-                  className={input}
-                  type="number"
-                  min={0}
-                  max={hours * 60 - 1}
-                  step={1}
-                  value={minute}
-                  onChange={(e) => setMinute(e.target.valueAsNumber)}
-                />
-              </label>
-              <button
-                onClick={add}
-                className="w-full rounded-xl bg-teal-700 px-4 py-3 text-xs font-bold text-white hover:bg-teal-800"
-              >
-                Add event and compare
-              </button>
-              {formError && (
-                <p role="alert" className="text-xs text-red-700">
-                  {formError}
-                </p>
+                  <p className="font-semibold">Applied schedule (UTC)</p>
+                  {applied.schedule.map((row) => (
+                    <p key={row.id}>
+                      {row.at.replace("T", " ")} - {row.description}
+                    </p>
+                  ))}
+                  {!!applied.unmodelled.length && (
+                    <p className="rounded-lg bg-amber-100 p-2 text-amber-950">
+                      Incomplete scenario: {applied.unmodelled.join("; ")}.
+                      Context only; excluded from the numeric curve.
+                    </p>
+                  )}
+                  <p>
+                    Draft event edits apply after running again. Assumption
+                    controls below update the applied scenario immediately.
+                  </p>
+                </div>
               )}
-              <div className="space-y-2">
-                {events.map((e, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-[11px]"
-                  >
-                    <span className="flex-1">
-                      +{e.minute} min · {e.amount}{" "}
-                      {e.kind === "carbohydrate"
-                        ? "g carbohydrate"
-                        : "hypothetical units"}
-                    </span>
-                    <button
-                      aria-label={`Remove event ${i + 1}`}
-                      onClick={() =>
-                        setEvents(events.filter((_, index) => index !== i))
-                      }
-                      className="text-slate-400 hover:text-red-700"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
               <div className="space-y-4 border-t border-slate-100 pt-5">
                 <h3 className="text-xs font-bold">Visible model assumptions</h3>
                 <p className="text-[10px] leading-relaxed text-slate-500">
@@ -427,7 +359,6 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                 {[
                   ["Beta-cell responsiveness", beta, setBeta, 1.5],
                   ["Insulin sensitivity", sensitivity, setSensitivity, 2],
-                  ["Absorption time (minutes)", absorption, setAbsorption, 120],
                 ].map(([label, value, setter, max]) => (
                   <label
                     key={String(label)}
@@ -459,11 +390,10 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
               <button
                 className="flex items-center gap-2 text-xs font-semibold text-slate-500"
                 onClick={() => {
-                  setEvents([]);
+                  setDrafts([]);
+                  setApplied(null);
                   setBeta(0.5);
                   setSensitivity(0.7);
-                  setAbsorption(45);
-                  setFormError("");
                 }}
               >
                 <RotateCcw size={13} />

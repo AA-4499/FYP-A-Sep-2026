@@ -1,0 +1,67 @@
+# Clinical data and physiology workspace
+
+Implemented 24 October 2026. This change removes synthetic clinical results from the active cohort and Patient workspaces. It does not establish clinical validation of the prediction model.
+
+## Verified source and data contract
+
+The project is `dgtaujhgwxmoghqdqkti`. A read-only REST check found 111 `patient_summary` rows and 5,029 `patient_detail` rows at the time of implementation. These are observations at a point in time, not constants in the application. No database rows or policies were changed.
+
+- All available PostgREST pages are fetched in stable identifier order. A per-response server cap is not treated as a complete dataset. Patient-only reads include the exact linked Patient Number and reject a response containing another record.
+- Missing numeric values remain unavailable. HbA1c columns explicitly labelled mmol/mol use `0.09148 × value + 2.152`; fasting glucose columns labelled mg/dL use `value / 18.0182`. There is no magnitude-based unit guessing.
+- Only finite, positive CGM values with valid dates are used. Duplicate timestamps are resolved deterministically. Missing dates and gaps are not filled with invented glucose.
+- The overview derives counts and HbA1c distributions from accessible records. Its review signals are transparent measurement filters, not complication probabilities. Undated summary laboratories are not described as current live measurements.
+- Monitoring retains actual CGM, clock-time percentile AGP, original meal annotations, and explicitly separated insulin routes/rates. The percentage of available observations in a band is labelled as a share of readings, not complete sensor wear time.
+- The digital twin shows recorded physiological evidence. It does not infer pancreas, retinal or liver stress scores. The record graph contains stored attributes and identifies their source; it is not a causal or diagnostic graph.
+- Reports export recorded summary fields as CSV with spreadsheet formula escaping. No synthetic predicted improvement, clinical signature or prescribed therapy is generated.
+- The public research preview reads only what the existing database permissions allow. An authenticated Patient still uses the account-bound dashboard RPC and exact-record, RLS-governed reads. It cannot browse the cohort through that workspace.
+
+The previous browser prototype components remain in source history, but the application shell no longer routes clinical pages through them. Legacy backend endpoints that generated synthetic timelines, risk probabilities, organ scores and reports now return explicit `501` unavailability. Patient directory/profile endpoints use Supabase instead of generated profiles.
+
+## Prediction versus mechanism exploration
+
+**CGM forecast** defaults to Supabase for database records. It calls the authenticated Python GRU service and uses the selected record's history. Online inference still needs a deployed API, server-side Supabase credentials and the existing forecast-storage RPC. A public publishable key cannot replace the server secret. The interface shows connection errors rather than silently substituting a local forecast snapshot.
+
+The existing GRU is a next-step predictor rolled forward in 15-minute steps. A held-out one-step MAE is not evidence of validated 3-, 6- or 12-hour accuracy. The separate direct multi-step candidate already present in `models/training/t2dm/conditional_pipeline.py` remains an experimental candidate; no claim of new predictive accuracy is made here. See [the existing conditional model audit](conditional-model-audit.md).
+
+**Physiology lab** is a new local research simulation seeded from the last recorded CGM. It runs without the Python service and does not write to clinical tables. It is deliberately labelled as an unvalidated reduced model, not the published UVA/Padova or GIM simulator, a fitted patient digital twin, an insulin prescription, or a replacement for the GRU.
+
+Glucose-responsive endogenous insulin secretion is not a universal threshold switch. In T2D, remaining beta-cell responsiveness and tissue sensitivity vary. A later rise may result from new absorption, reduced insulin action, endogenous glucose production or other influences; it is not a required periodic rebound. A constant basal state with no new inputs therefore remains stable in this model.
+
+### Reduced model and units
+
+The implementation is in `web/frontend/src/lib/physiology.ts`. Numerical integration uses one-minute steps and emits five-minute samples. It follows a compartment structure rather than copying third-party source code.
+
+- `G`: plasma-glucose surrogate, mg/dL. Initialized from the last CGM as an explicit approximation.
+- `C`: sensor-glucose surrogate, mg/dL, with `dC/dt = (G-C)/10` (minutes).
+- `Q1`, `Q2`: unabsorbed carbohydrate, g. An event enters `Q1`; `dQ1/dt=-Q1/tau`, `dQ2/dt=(Q1-Q2)/tau`. Absorbed glucose appearance is `0.8 × 1000 × Q2 / (tau × 1.6 × weightKg)` mg/dL/min.
+- `S`: dimensionless excess endogenous insulin response. `dS/dt = (beta × max((G-Gb)/100,0)-S)/25`.
+- `D1`, `D2`: hypothetical subcutaneous insulin depots, units. Each has a 55-minute transfer time; absorption feeds a relative exogenous activity state with a 60-minute decay time. The conversion factor `0.35` is an explicit, uncalibrated research assumption; these states are not measured insulin concentrations.
+- `X`: relative delayed insulin action, `dX/dt=(S+E-X)/60`.
+- Net glucose balance: `dG/dt = H - 0.008G - 0.008 × sensitivity × X × G + appearance`, where `H = 0.008Gb/(1+0.6X) + 0.02 × max(70-G,0)` is a simplified basal hepatic-return/counter-regulation term.
+
+Constants are provisional assumptions with the units stated above. The model is not calibrated to this cohort. It omits many physiological processes and drug types. It does not identify beta-cell function or insulin sensitivity from CGM. The lab exposes these assumptions, the reference basal glucose, weight and absorption time; recorded fasting glucose/weight initialize the controls when present, and missing values are explicitly labelled as assumed.
+
+The simulation rejects invalid events and stops outside its stated numerical domain instead of clipping an implausible curve into a convincing-looking flat result. Event effects cannot precede their event time. Changing the horizon clears events that may no longer fit. The lab never automatically selects an insulin dose.
+
+## Research and product references
+
+1. [Dalla Man et al., GIM: Simulation Software of Meal Glucose–Insulin Model, 2007](https://pmc.ncbi.nlm.nih.gov/articles/PMC2769591/). Supports separating meal absorption, glucose kinetics, insulin secretion and insulin action; includes normal, T1D and T2D simulation contexts. Our reduced model is inspired by this structure, not its validated implementation or fitted parameter sets.
+2. [Dalla Man, Rizza and Cobelli, Meal Simulation Model of the Glucose–Insulin System, 2007](https://www.research.unipd.it/handle/11577/2471009?mode=complete). Physiological flux/compartment modelling reference, including endogenous production and secretion. DOI: 10.1109/TBME.2007.893506.
+3. [NIDDK diabetes mathematical models](https://www.niddk.nih.gov/research-funding/at-niddk/labs-branches/laboratory-biological-modeling/mathematical-models/diabetes-models). Explains the interaction of insulin resistance and impaired beta-cell compensation, with links to research implementations. CGM alone cannot uniquely identify these latent mechanisms.
+4. [simglucose GitHub](https://github.com/jxx123/simglucose). Reviewed as an open research simulator. It targets T1D; directly treating its physiology as a T2D endogenous-insulin model would be inappropriate. Its open implementation is not a regulatory approval of this application.
+5. [Tidepool provider workflow](https://www.tidepool.org/providers/how-it-works) and [Tidepool's Blip repository](https://github.com/tidepool-org/blip). Inspired the combined observation/insulin/meal context, cohort-to-record navigation, and explicit record summaries. No Tidepool code was copied.
+6. [Twin Health](https://usa.twinhealth.com/). Product reference for personalized sensor-informed context and care-team workflow. Its proprietary model and outcome claims are not evidence that our model is validated.
+7. [International Consensus on Time in Range, 2019](https://pmc.ncbi.nlm.nih.gov/articles/PMC6973648/). Reference for glucose bands and checking recording coverage before clinical interpretation. Individual targets vary.
+
+## Verification and deployment
+
+- Frontend: `node --test tests/*.test.mjs`, `npm run build`.
+- Browser: start Vite on port 3000, then `npm run test:navigation`; set `CHROME_PATH` for a nonstandard Chrome installation. Browser fixtures are local, synthetic test records and do not write to the real project.
+- Backend: `python -m unittest discover -s web/backend/tests -v` using the existing Python 3 environment.
+- Additional manual browser verification reads the real project, checks the complete row counts, navigation, graph and report, and compares hypothetical carbohydrate events with a no-added-event scenario on desktop and mobile.
+- The existing local server configuration was also used for read-only GRU inference on a real cloud record: 3/6/12-hour requests returned 13/25/49 finite forecast points from 585 prepared observations. No forecast-save call was made. Successful inference is not a prospective accuracy validation.
+- At verification time, all 51 frontend tests and all 43 backend tests passed. The browser regression also covered an authenticated Patient fixture, database-denied and empty-cohort cases, complete paging, scenario events and a 390-pixel mobile viewport.
+
+Live GRU deployment, forecast-storage installation and a real Patient login require the deployed services/account configuration. None is implied by a successful local UI or simulation test. Prospective, patient-separated, multi-horizon validation and parameter-identifiability analysis remain necessary before presenting physiology scenarios as personalized clinical predictions.
+
+Account-management actions in the separately labelled Admin demo and clinician-published recommendation storage are not implemented by the clinical dataset tables. The clinical workspace does not invent either account activity or care plans from laboratory values.

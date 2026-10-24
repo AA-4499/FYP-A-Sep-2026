@@ -12,6 +12,25 @@ ROLE_CLAIMS = ("role", "user_role")
 APP_ROLES = frozenset({"admin", "patient", "doctor"})
 
 
+def _patient_record_link(user_id: str, token: str) -> str | None:
+    """Read the account's immutable profile using its own RLS-bound token."""
+    import requests
+    from models.training.supabase_io import supabase_config, supabase_headers
+    url, key = supabase_config()
+    try:
+        response = requests.get(f'{url}/rest/v1/profiles',
+            headers={**supabase_headers(key), 'Authorization': f'Bearer {token}'},
+            params={'select': 'patient_id', 'id': f'eq.{user_id}', 'limit': '1'}, timeout=15)
+        response.raise_for_status()
+        rows = response.json()
+    except (requests.RequestException, ValueError):
+        raise RuntimeError('Your patient record link could not be verified.') from None
+    if not isinstance(rows, list) or len(rows) != 1:
+        return None
+    value = rows[0].get('patient_id')
+    return value if isinstance(value, str) and value else None
+
+
 def _token_from_request() -> str | None:
     value = request.headers.get("Authorization", "")
     if value.lower().startswith("bearer "):
@@ -68,6 +87,12 @@ def require_auth(roles: AbstractSet[str] | None = None) -> Callable:
                 role = "doctor"
             if metadata.get("patient_id"):
                 claims["patient_id"] = metadata["patient_id"]
+            elif role == 'patient' and not claims.get('patient_id'):
+                try:
+                    claims['patient_id'] = _patient_record_link(claims['sub'], token)
+                except RuntimeError:
+                    # No verified link means patient routes fail closed (403).
+                    claims['patient_id'] = None
             if roles and role not in roles:
                 return jsonify({"error": "Insufficient role for this endpoint."}), 403
             g.current_user = {"id": claims["sub"], "email": claims.get("email"), "role": role or "patient", "claims": claims}

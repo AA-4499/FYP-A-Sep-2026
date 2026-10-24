@@ -35,6 +35,17 @@ class PlatformRoleTests(unittest.TestCase):
         self.client = dashboard.app.test_client()
         self.url = '/api/patients/record-a'
 
+    def test_profile_link_supports_new_patients_without_embedded_record_claims(self):
+        with patch('auth._patient_record_link', return_value='record-a') as resolve:
+            response = self.client.get(self.url, headers=headers(app_metadata={'role': 'patient'}))
+            self.assertEqual(200, response.status_code)
+            resolve.assert_called_once()
+
+    def test_failed_profile_link_verification_does_not_grant_record_access(self):
+        with patch('auth._patient_record_link', side_effect=RuntimeError('Unavailable')):
+            response = self.client.get(self.url, headers=headers(app_metadata={'role': 'patient'}))
+            self.assertEqual(403, response.status_code)
+
     def test_three_platform_roles_can_access_permitted_record(self):
         for role in ('admin', 'patient', 'doctor'):
             with self.subTest(role=role):

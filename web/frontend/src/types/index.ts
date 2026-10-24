@@ -3,42 +3,48 @@
  * Grounded in Figma specifications across Clinic, Patient Twin, and Auth modules.
  */
 
-export type UserRole = 'admin' | 'doctor' | 'patient';
+export type UserRole = "admin" | "doctor" | "patient";
 
-export type AdminModule = 'admin_overview' | 'admin_users' | 'admin_approvals' | 'admin_assignments' | 'admin_activity';
+export type AdminModule =
+  | "admin_overview"
+  | "admin_users"
+  | "admin_approvals"
+  | "admin_assignments"
+  | "admin_activity";
 
 export type DoctorModule =
-  | 'doctor_overview'
-  | 'doctor_patients'
-  | 'doctor_monitoring'
-  | 'doctor_digital_twin'
-  | 'doctor_knowledge_graph'
-  | 'doctor_reports'
-  | 'doctor_settings';
+  | "doctor_overview"
+  | "doctor_patients"
+  | "doctor_monitoring"
+  | "doctor_digital_twin"
+  | "doctor_knowledge_graph"
+  | "doctor_reports"
+  | "doctor_settings"
+  | "doctor_predictions";
 
 export type PatientModule =
-  | 'patient_dashboard'
-  | 'monitoring'
-  | 'risk'
-  | 'explain_ai'
-  | 'digital_twin'
-  | 'reports'
-  | 'patient_home'
-  | 'patient_profile'
-  | 'patient_monitoring'
-  | 'patient_digital_twin'
-  | 'patient_insights'
-  | 'patient_recommendations'
-  | 'patient_reports';
+  | "patient_dashboard"
+  | "monitoring"
+  | "risk"
+  | "explain_ai"
+  | "digital_twin"
+  | "reports"
+  | "patient_home"
+  | "patient_profile"
+  | "patient_monitoring"
+  | "patient_digital_twin"
+  | "patient_insights"
+  | "patient_recommendations"
+  | "patient_reports";
 
 export type NavigationModule = PatientModule | AdminModule | DoctorModule;
 
 export type AuthFlow =
-  | 'signin'
-  | 'register_patient'
-  | 'register_doctor'
-  | 'forgot_password'
-  | 'verify_email';
+  | "signin"
+  | "register_patient"
+  | "register_doctor"
+  | "forgot_password"
+  | "verify_email";
 
 export interface CGMReading {
   date: string;
@@ -94,7 +100,9 @@ export interface Patient {
   currentRiskPct: number;
   timeInRangePct: number;
   latestSignal: string;
-  riskCategory: 'High' | 'Moderate' | 'Stable';
+  riskCategory: "High" | "Moderate" | "Stable" | "Unknown";
+  dataSource?: "supabase" | "sample";
+  recordedFields?: Record<string, unknown>;
   avatarInitials: string;
   hasContinuousCGM?: boolean;
   cgmReadings?: CGMReading[];
@@ -110,18 +118,39 @@ export interface Patient {
     label: string;
   }[];
   organs: {
-    pancreas: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
-    kidneys: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
-    cardio: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
-    liver: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
-    retina: { status: 'High Strain' | 'Moderate' | 'Normal'; stress: number; color: string };
+    pancreas: {
+      status: "High Strain" | "Moderate" | "Normal" | "Not assessed";
+      stress: number;
+      color: string;
+    };
+    kidneys: {
+      status: "High Strain" | "Moderate" | "Normal" | "Not assessed";
+      stress: number;
+      color: string;
+    };
+    cardio: {
+      status: "High Strain" | "Moderate" | "Normal" | "Not assessed";
+      stress: number;
+      color: string;
+    };
+    liver: {
+      status: "High Strain" | "Moderate" | "Normal" | "Not assessed";
+      stress: number;
+      color: string;
+    };
+    retina: {
+      status: "High Strain" | "Moderate" | "Normal" | "Not assessed";
+      stress: number;
+      color: string;
+    };
   };
 }
 
 export interface KnowledgeGraphNode {
   id: string;
   label: string;
-  category: 'Patient' | 'Demographics' | 'Clinical Data' | 'Medical Data' | 'Lifestyle';
+  category:
+    "Patient" | "Demographics" | "Clinical Data" | "Medical Data" | "Lifestyle";
   entityType: string;
   value?: string;
   description: string;
@@ -139,7 +168,7 @@ export interface KnowledgeGraphEdge {
 export interface ServiceHealthItem {
   id: string;
   name: string;
-  status: 'Operational' | 'Degraded' | 'Down';
+  status: "Operational" | "Degraded" | "Down";
   latencyMs: number;
   uptimePct: number;
   endpoint: string;
@@ -159,15 +188,15 @@ export interface DataCoverageItem {
   totalRecords: number;
   validRecords: number;
   missingRecords: number;
-  status: 'Excellent' | 'Good' | 'Needs Attention';
+  status: "Excellent" | "Good" | "Needs Attention";
 }
 
 export interface AdminUserRecord {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'doctor' | 'patient';
-  status: 'Active' | 'Inactive';
+  role: "admin" | "doctor" | "patient";
+  status: "Active" | "Inactive";
   assignedCohort?: string;
   lastLogin: string;
   createdAt: string;
@@ -192,7 +221,7 @@ export interface TwinIndicatorRule {
   id: string;
   indicator: string;
   sourceDataset: string;
-  timeWindow: 'Hourly' | 'Daily' | 'Per-Visit' | 'Continuous (CGM)';
+  timeWindow: "Hourly" | "Daily" | "Per-Visit" | "Continuous (CGM)";
   weight: number;
   enabled: boolean;
   algorithm: string;
@@ -200,7 +229,7 @@ export interface TwinIndicatorRule {
 
 export interface QuickLogEntry {
   id: string;
-  type: 'meal' | 'activity';
+  type: "meal" | "activity";
   timestamp: string;
   title: string;
   carbsOrMinutes: number;

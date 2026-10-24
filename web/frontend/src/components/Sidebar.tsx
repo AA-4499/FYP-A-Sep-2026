@@ -1,5 +1,5 @@
 /** Navigation for the Doctor dashboard and Patient workspace. */
-import React from 'react';
+import React from "react";
 import {
   LayoutDashboard,
   Users,
@@ -9,11 +9,11 @@ import {
   Sparkles,
   Share2,
   ArrowLeft,
-} from 'lucide-react';
-import type { NavigationModule } from '../types';
+} from "lucide-react";
+import type { NavigationModule } from "../types";
 
 interface SidebarProps {
-  mode: 'patient' | 'doctor';
+  mode: "patient" | "doctor";
   activeModule: NavigationModule;
   onSelectModule: (module: NavigationModule) => void;
   onReturnToCareTeam?: () => void;
@@ -29,24 +29,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentPatientName,
   selfService = false,
 }) => {
-  if (mode === 'doctor') {
+  if (mode === "doctor") {
     const items = [
-          { id: 'doctor_overview', label: 'Overview', icon: LayoutDashboard },
-          { id: 'doctor_patients', label: 'Patient management', icon: Users },
-          { id: 'doctor_monitoring', label: 'Health monitoring', icon: Activity },
-          { id: 'doctor_digital_twin', label: 'Digital twin', icon: Sparkles },
-          { id: 'doctor_knowledge_graph', label: 'Knowledge graph', icon: Share2 },
-          { id: 'doctor_reports', label: 'Reports', icon: FileText },
-          { id: 'doctor_settings', label: 'Settings', icon: Settings },
-        ];
+      { id: "doctor_overview", label: "Overview", icon: LayoutDashboard },
+      { id: "doctor_patients", label: "Patient management", icon: Users },
+      { id: "doctor_monitoring", label: "Health monitoring", icon: Activity },
+      { id: "doctor_predictions", label: "Prediction lab", icon: Sparkles },
+      { id: "doctor_digital_twin", label: "Digital twin", icon: Sparkles },
+      { id: "doctor_knowledge_graph", label: "Knowledge graph", icon: Share2 },
+      { id: "doctor_reports", label: "Reports", icon: FileText },
+      { id: "doctor_settings", label: "Settings", icon: Settings },
+    ];
 
     return (
-      <aside className="w-64 shrink-0 rounded-3xl border p-5 flex flex-col justify-between min-h-[720px] shadow-2xs bg-white border-slate-200/90">
+      <aside className="w-full md:w-60 shrink-0 rounded-3xl border p-5 flex flex-col justify-between md:min-h-[720px] shadow-2xs bg-white border-slate-200/90">
         <div className="space-y-7">
           <div className="flex items-center gap-2.5 px-1">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base bg-teal-600 text-white">+</div>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base bg-teal-600 text-white">
+              +
+            </div>
             <div>
-              <h2 className="text-xs font-bold leading-tight text-slate-900">DiaTwin</h2>
+              <h2 className="text-xs font-bold leading-tight text-slate-900">
+                DiaTwin
+              </h2>
               <p className="text-[10px] text-slate-400">Doctor dashboard</p>
             </div>
           </div>
@@ -58,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Assigned Care Cohort
             </p>
           </div>
-          <nav className="space-y-1">
+          <nav className="grid grid-cols-2 gap-1 md:block md:space-y-1">
             {items.map((item) => {
               const Icon = item.icon;
               const active = activeModule === item.id;
@@ -68,8 +73,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onSelectModule(item.id as NavigationModule)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition ${
                     active
-                      ? 'bg-teal-50 text-teal-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? "bg-teal-50 text-teal-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -81,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <div className="pt-4 border-t text-[11px] border-slate-100 text-slate-400">
           <p className="font-semibold">Doctor workspace</p>
-          <p className="mt-1">Demo data environment</p>
+          <p className="mt-1">Recorded observations & research tools</p>
         </div>
       </aside>
     );
@@ -104,36 +109,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Menu */}
-        <nav className="space-y-1">
+        <nav className="grid grid-cols-2 gap-1 md:block md:space-y-1">
           {[
-            { id: 'patient_home', label: 'Home' },
-            { id: 'patient_profile', label: 'My profile' },
-            { id: 'patient_monitoring', label: 'My health' },
-            { id: 'patient_digital_twin', label: 'My digital twin' },
-            { id: 'patient_insights', label: 'Risk prediction & what-if' },
-            { id: 'patient_recommendations', label: 'My recommendations' },
-            { id: 'patient_reports', label: 'Reports' },
+            { id: "patient_home", label: "Home" },
+            { id: "patient_profile", label: "My profile" },
+            { id: "patient_monitoring", label: "My health" },
+            { id: "patient_digital_twin", label: "My digital twin" },
+            { id: "patient_insights", label: "Risk prediction & what-if" },
+            { id: "patient_recommendations", label: "My recommendations" },
+            { id: "patient_reports", label: "Reports" },
           ].map((item) => {
             const isActive = activeModule === item.id;
             return (
               <button
                 key={item.id}
-                  aria-current={isActive ? 'page' : undefined}
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => onSelectModule(item.id as NavigationModule)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${
                   isActive
-                    ? 'bg-purple-100/80 text-purple-700'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? "bg-purple-100/80 text-purple-700"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 <span
                   className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center text-[8px] shrink-0 ${
                     isActive
-                      ? 'border-purple-600 text-purple-600 bg-white font-bold'
-                      : 'border-slate-300 text-slate-300'
+                      ? "border-purple-600 text-purple-600 bg-white font-bold"
+                      : "border-slate-300 text-slate-300"
                   }`}
                 >
-                  {isActive ? '▪' : ''}
+                  {isActive ? "▪" : ""}
                 </span>
                 <span>{item.label}</span>
               </button>
@@ -155,8 +160,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <div className="px-1 text-[11px] text-slate-400">
-          <p className="font-semibold text-slate-500">{selfService ? 'Patient workspace' : 'v2.4 Prototype'}</p>
-          <p>{selfService ? 'Your personal health record' : 'ShanghaiT2DM Cohort'}</p>
+          <p className="font-semibold text-slate-500">
+            {selfService ? "Patient workspace" : "Patient record view"}
+          </p>
+          <p>
+            {selfService
+              ? "Your personal health record"
+              : "ShanghaiT2DM Cohort"}
+          </p>
         </div>
       </div>
     </aside>

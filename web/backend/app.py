@@ -32,10 +32,15 @@ from services import (
 )
 
 from forecast_routes import forecast_api
+from models.training.supabase_io import SupabaseStorageError
 
 app = Flask(__name__)
 app.register_blueprint(forecast_api)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+
+@app.errorhandler(SupabaseStorageError)
+def clinical_data_unavailable(error):
+    return jsonify(error=str(error), source='supabase'), 503
 
 @app.before_request
 def authorize_api_request():
@@ -50,6 +55,11 @@ def authorize_api_request():
         return jsonify({"error": "Patients cannot browse the patient directory."}), 403
     if patient_id and user.get("role") == "patient" and user.get("claims", {}).get("patient_id") != patient_id:
         return jsonify({"error": "Patients may only access their own records."}), 403
+    # These older services generate illustrative profiles, timelines and scores.
+    # Keep them inaccessible rather than returning fabricated clinical results.
+    if request.endpoint in {'patient_timeline', 'patient_risk', 'patient_xai', 'patient_insights',
+                            'patient_digital_twin', 'patient_simulate', 'patient_report'}:
+        return jsonify(error='This prototype endpoint does not provide validated clinical results. Use the recorded-data workspace or the glucose-forecast endpoint.', available=False), 501
     return None
 
 if CORS is not None:

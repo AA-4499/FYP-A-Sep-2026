@@ -129,7 +129,7 @@
    {'Patient Number':'test-a','Age (years)':55,'HbA1c (mmol/mol)':66,'Weight (kg)':70,'Fasting Plasma Glucose (mg/dl)':130,'Type of Diabetes':'T2D'},
    {'Patient Number':'test-b','Age (years)':null,'HbA1c (mmol/mol)':null},
  ];
- const details = empty ? [] : Array.from({length:48}, (_,i) => ({id:i,'Patient Number':'test-a',Date:new Date(Date.UTC(2020,0,1,0,i*15)).toISOString(),'CGM (mg / dl)':140+20*Math.sin(i/6)}));
+ const details = empty ? [] : Array.from({length:96}, (_,i) => ({id:i,'Patient Number':'test-a',Date:new Date(Date.UTC(2020,0,1+Math.floor(i/48),0,(i%48)*15)).toISOString(),'CGM (mg / dl)':140+100*Math.sin((i%48)/6)+20*Math.floor(i/48)}));
  const client = getSupabaseClient()!;
  const user = {id:'browser-patient',email:'patient@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:'patient'}};
  client.auth.getUser = async () => ({data:{user},error:null}) as any;
@@ -191,6 +191,35 @@
       ["Settings", "Workspace settings"],
     ])
       await expectPage(label, text);
+    await expectPage("Health monitoring", "Ambulatory Glucose Profile (AGP)");
+    const assertMonitoringColors = async () => {
+      assert(
+        await evaluate(`(() => {
+        const svg = document.querySelector('svg[aria-label="Ambulatory glucose profile showing median glucose and glucose percentile bands by time of day"]');
+        return svg && ['#86EFAC','#15803D','#F97316','#DC2626'].every(color => [...svg.querySelectorAll('path')].some(path => path.getAttribute('fill') === color && !!path.getAttribute('d')));
+      })()`),
+        "Monitoring lost its green/orange/red percentile zones",
+      );
+      assert(
+        !(await evaluate(
+          "document.querySelector('main').innerText.includes('NaN')",
+        )),
+        "Missing measurements rendered NaN",
+      );
+    };
+    await assertMonitoringColors();
+    await screenshot("restored-monitoring-risk-zones.png");
+    await evaluate(
+      `(() => { const select = [...document.querySelectorAll('select')].find(s => [...s.options].some(o => o.value === 'day')); select.value = 'day'; select.dispatchEvent(new Event('change', {bubbles:true})); })()`,
+    );
+    await ready("Continuous Glucose Monitoring (CGM)");
+    await evaluate(
+      `document.querySelector('[aria-label="Choose CGM date"]').click()`,
+    );
+    assert(
+      await evaluate("document.querySelector('.rdp-root') !== null"),
+      "Original monitoring date picker is missing",
+    );
     await expectPage("Knowledge graph", "Patient and medical concept map");
     assert(
       await evaluate("document.querySelectorAll('canvas').length > 0"),
@@ -295,6 +324,18 @@
       )),
       "Patient login leaked cohort navigation",
     );
+    await expectPage("My health", "Ambulatory Glucose Profile (AGP)");
+    await assertMonitoringColors();
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 1,
+      mobile: true,
+    });
+    await delay(400);
+    assert(await evaluate("document.documentElement.scrollWidth<=window.innerWidth+2"), "Mobile My health horizontal overflow");
+    await screenshot("restored-my-health-mobile.png");
+    await expectPage("Risk prediction & what-if", "CGM forecast");
     await click("Physiology lab");
     await ready("Glucose response and recovery");
     await send("Emulation.setDeviceMetricsOverride", {

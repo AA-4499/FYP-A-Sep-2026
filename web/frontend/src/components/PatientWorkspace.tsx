@@ -271,7 +271,11 @@ export function PatientWorkspace({
                   </section>
                 )}
                 {page === "patient_monitoring" && (
-                  <RecordedMonitoring patient={patient} />
+                  <RecordedMonitoring
+                    patient={patient}
+                    onNavigate={navigate}
+                    allowPatientSelection={false}
+                  />
                 )}
                 {page === "patient_reports" && (
                   <RecordedReport patient={patient} />

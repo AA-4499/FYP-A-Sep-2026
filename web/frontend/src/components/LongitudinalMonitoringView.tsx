@@ -16,20 +16,23 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import type { Patient, AGPProfileBin } from '../types';
+import { clinicalValue } from '../lib/clinicalData';
+import type { Patient, AGPProfileBin, NavigationModule } from '../types';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 
 interface LongitudinalMonitoringViewProps {
   patient: Patient;
-  onNavigate: (module: any) => void;
+  onNavigate: (module: NavigationModule) => void;
+  allowPatientSelection?: boolean;
 }
 
 export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProps> = ({
   patient,
   onNavigate,
+  allowPatientSelection = true,
 }) => {
-  const [selectedDayRange, setSelectedDayRange] = useState('All 14 days');
+  const [selectedDayRange, setSelectedDayRange] = useState('All available days');
   const hasCGM = Boolean(patient.hasContinuousCGM && patient.cgmReadings && patient.cgmReadings.length > 0);
   const cgmSummary = patient.cgmSummary;
   const [selectedAgpRange, setSelectedAgpRange] = useState('14');
@@ -539,28 +542,28 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">HbA1c</p>
           <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {patient.hba1c}%
+            {clinicalValue(patient.hba1c, '%')}
           </p>
         </div>
 
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Fasting glucose</p>
           <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {patient.fastingGlucose} <span className="text-xs font-normal text-slate-500">mmol/L</span>
+            {clinicalValue(patient.fastingGlucose)} <span className="text-xs font-normal text-slate-500">mmol/L</span>
           </p>
         </div>
 
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">BMI</p>
           <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            {patient.bmi}
+            {clinicalValue(patient.bmi)}
           </p>
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">Current risk</p>
-          <p className="text-2xl sm:text-3xl font-bold text-[#b91c1c] tracking-tight">
-            {patient.currentRiskPct}%
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">Risk assessment</p>
+          <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${Number.isFinite(patient.currentRiskPct) ? 'text-[#b91c1c]' : 'text-slate-500'}`}>
+            {Number.isFinite(patient.currentRiskPct) ? clinicalValue(patient.currentRiskPct, '%') : 'Not assessed'}
           </p>
         </div>
       </div>
@@ -570,31 +573,31 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4">
           <div className="space-y-0.5 border-r border-slate-100 pr-3">
             <span className="text-[11px] text-slate-500 font-medium">Time In Range (TIR)</span>
-            <p className="text-xl font-bold text-emerald-600">{cgmSummary.timeInRangePct}%</p>
+            <p className="text-xl font-bold text-emerald-600">{clinicalValue(cgmSummary.timeInRangePct, '%')}</p>
             <span className="text-[10px] text-slate-400">70–180 mg/dL target</span>
           </div>
 
           <div className="space-y-0.5 border-r border-slate-100 pr-3">
             <span className="text-[11px] text-slate-500 font-medium">Time Above Range</span>
-            <p className="text-xl font-bold text-rose-600">{cgmSummary.timeAboveRangePct}%</p>
+            <p className="text-xl font-bold text-rose-600">{clinicalValue(cgmSummary.timeAboveRangePct, '%')}</p>
             <span className="text-[10px] text-slate-400">&gt; 180 mg/dL</span>
           </div>
 
           <div className="space-y-0.5 border-r border-slate-100 pr-3">
             <span className="text-[11px] text-slate-500 font-medium">Time Below Range</span>
-            <p className="text-xl font-bold text-amber-600">{cgmSummary.timeBelowRangePct}%</p>
+            <p className="text-xl font-bold text-amber-600">{clinicalValue(cgmSummary.timeBelowRangePct, '%')}</p>
             <span className="text-[10px] text-slate-400">&lt; 70 mg/dL</span>
           </div>
 
           <div className="space-y-0.5 border-r border-slate-100 pr-3">
             <span className="text-[11px] text-slate-500 font-medium">Mean CGM Glucose</span>
-            <p className="text-xl font-bold text-slate-900">{cgmSummary.meanGlucose} <span className="text-xs font-normal text-slate-500">mg/dL</span></p>
+            <p className="text-xl font-bold text-slate-900">{clinicalValue(cgmSummary.meanGlucose)} <span className="text-xs font-normal text-slate-500">mg/dL</span></p>
             <span className="text-[10px] text-slate-400">{(cgmSummary.meanGlucose / 18.0182).toFixed(1)} mmol/L</span>
           </div>
 
           <div className="space-y-0.5">
             <span className="text-[11px] text-slate-500 font-medium">Glycemic Variability</span>
-            <p className="text-xl font-bold text-slate-800">{cgmSummary.cvPct}% <span className="text-xs font-normal text-slate-500">CV</span></p>
+            <p className="text-xl font-bold text-slate-800">{clinicalValue(cgmSummary.cvPct, '%')} <span className="text-xs font-normal text-slate-500">CV</span></p>
             <span className="text-[10px] text-slate-400">Target &le; 36%</span>
           </div>
         </div>
@@ -900,12 +903,12 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   </span>
 
                   <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-blue-100 border border-blue-200" />
+                    <span className="w-3 h-3 rounded-sm bg-green-300 border border-green-400" />
                     10th–90th percentile
                   </span>
 
                   <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-blue-500" />
+                    <span className="w-3 h-3 rounded-sm bg-green-700" />
                     25th–75th percentile
                   </span>
 
@@ -1616,10 +1619,10 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
             <p className="text-xs text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
               {hasCGM
                 ? "The available sensor data could not be grouped into valid time-of-day intervals."
-                : `This patient has no continuous CGM readings. Baseline fasting glucose is ${patient.fastingGlucose} and HbA1c is ${patient.hba1c}%. An AGP cannot be calculated without sensor readings.`}
+                : `This patient has no continuous CGM readings. Recorded fasting glucose: ${clinicalValue(patient.fastingGlucose, 'mmol/L')}; HbA1c: ${clinicalValue(patient.hba1c, '%')}. An AGP cannot be calculated without sensor readings.`}
             </p>
 
-            {!hasCGM && (
+            {!hasCGM && allowPatientSelection && (
               <button
                 onClick={() => onNavigate("doctor_patients")}
                 className="mt-4 px-3 py-2 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 rounded-lg text-xs font-bold transition"
@@ -1638,7 +1641,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
           <span className="font-semibold text-blue-700">
             Blue:
           </span>{" "}
-          glucose distribution and median
+          median glucose · Orange: below 70 mg/dL · Red: above 180 mg/dL
         </div>
       </div>
 
@@ -1661,7 +1664,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                 onChange={(e) => setSelectedDayRange(e.target.value)}
                 className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 pr-6 appearance-none focus:outline-hidden cursor-pointer"
               >
-                <option>All 14 days</option>
+                <option>All available days</option>
                 <option>First 7 days</option>
                 <option>Last 7 days</option>
               </select>
@@ -1681,7 +1684,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
               return (
                 <div key={item.dayLabel} className="flex-1 min-w-[40px] flex flex-col items-center gap-1.5 h-full justify-end group">
                   <span className="text-[10px] font-bold text-slate-700">
-                    {item.mean}
+                    {clinicalValue(item.mean)}
                   </span>
                   <div className="w-full max-w-[34px] bg-slate-100 rounded-t-lg h-full max-h-40 flex items-end overflow-hidden">
                     <div
@@ -1693,14 +1696,14 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                           : 'bg-rose-500 hover:bg-rose-600'
                       }`}
                       style={{ height: `${barHeightPct}%` }}
-                      title={`${item.dayLabel}: Mean ${item.mean} mg/dL, TIR ${item.tir}%`}
+                      title={`${item.dayLabel}: Mean ${item.mean} mg/dL, TIR ${clinicalValue(item.tir, '%')}`}
                     />
                   </div>
                   <span className="text-[9px] text-slate-500 font-semibold truncate max-w-[50px] text-center">
                     D{item.dayNumber}
                   </span>
                   <span className={`text-[9px] font-bold ${isOptimal ? 'text-emerald-600' : isModerate ? 'text-blue-600' : 'text-rose-600'}`}>
-                    {item.tir}%
+                    {clinicalValue(item.tir, '%')}
                   </span>
                 </div>
               );
@@ -1713,8 +1716,8 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
         )}
 
         {hasCGM && (
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <div className="flex items-center gap-4">
+          <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-4">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500" />
                 <span>TIR &ge; 70% (Optimal)</span>

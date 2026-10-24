@@ -19,6 +19,8 @@ The Knowledge Graph uses the interactive Cytoscape component from `origin/Knowle
 
 The patient Home page uses JodyTesting's dashboard/compact AGP work (`1445bcd`) with the subsequent missing-data protections and recommendation layout. The database source, newer monitoring/reporting pages and physiology lab remain available. Temporary authentication bypasses from the older branch are not used.
 
+Doctor Health monitoring and Patient My health share the original KnowledgeGraph-branch longitudinal monitor, including its date-range/single-day views, calendar and daily distribution. AGP bands retain green in-range shading, orange below 70 mg/dL and red above 180 mg/dL, with a blue median; legends now match the actual fills. The same database-record adapter supplies both pages, and unavailable risk/measurements remain explicitly unassessed/unrecorded. Original meal/insulin annotations remain available underneath the monitor.
+
 Legacy backend endpoints that generated synthetic timelines, risk probabilities, organ scores and reports now return explicit `501` unavailability. Patient directory/profile endpoints use Supabase instead of generated profiles.
 
 ## Prediction versus mechanism exploration

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -11,21 +11,17 @@ import {
   Users,
 } from "lucide-react";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
-  ComposedChart,
-  Line,
-  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { Patient } from "../types";
-import { clinicalNumber, clinicalValue } from "../lib/clinicalData";
+import { LongitudinalMonitoringView } from "./LongitudinalMonitoringView";
+import type { Patient, NavigationModule } from "../types";
+import { clinicalValue } from "../lib/clinicalData";
 
 const panel =
   "rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6";
@@ -205,7 +201,7 @@ export function CohortOverview({
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Bar
-                  isAnimationActive={false}
+                    isAnimationActive={false}
                     dataKey="count"
                     name="Patient records"
                     fill="#0f766e"
@@ -466,155 +462,31 @@ export function PatientSnapshot({
   );
 }
 
-export function RecordedMonitoring({ patient }: { patient: Patient }) {
-  const [range, setRange] = useState("all");
-  const rows = useMemo(() => {
-    const all = patient.cgmReadings ?? [];
-    const cutoff =
-      all.length && range !== "all"
-        ? all[all.length - 1].timestamp - Number(range) * 86400000
-        : -Infinity;
-    return all
-      .filter((row) => row.timestamp >= cutoff)
-      .map((row) => ({ ...row, label: dateLabel(row.date) }));
-  }, [patient, range]);
-  const values = rows.map((r) => r.cgm);
-  const mean = values.length
-    ? values.reduce((a, b) => a + b, 0) / values.length
-    : NaN;
-  const share = (test: (n: number) => boolean) =>
-    values.length ? (values.filter(test).length / values.length) * 100 : NaN;
-  const events = rows.filter(
+export function RecordedMonitoring({
+  patient,
+  onNavigate = () => {},
+  allowPatientSelection = true,
+}: {
+  patient: Patient;
+  onNavigate?: (module: NavigationModule) => void;
+  allowPatientSelection?: boolean;
+}) {
+  const events = (patient.cgmReadings ?? []).filter(
     (row) => observed(row.diet) || observed(row.insulin),
   );
   return (
     <div className="space-y-5">
       <RecordSource patient={patient} />
-      <Heading
-        eyebrow="Health monitoring"
-        title="Longitudinal glucose observations"
-        description="Glucose, meal notes, and insulin annotations from this record. Date ranges end at the last available observation, not today."
+      <LongitudinalMonitoringView
+        patient={patient}
+        onNavigate={onNavigate}
+        allowPatientSelection={allowPatientSelection}
       />
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric
-          label="Mean CGM"
-          value={clinicalValue(mean, "mg/dL")}
-          note={`${rows.length} observations in the selected window`}
-        />
-        <Metric
-          label="Readings in 70–180"
-          value={clinicalValue(
-            share((v) => v >= 70 && v <= 180),
-            "%",
-          )}
-          note="Reference glucose band, not an individual treatment target"
-        />
-        <Metric
-          label="Readings below 70"
-          value={clinicalValue(
-            share((v) => v < 70),
-            "%",
-          )}
-          note="Percentage of recorded readings"
-        />
-        <Metric
-          label="Readings above 180"
-          value={clinicalValue(
-            share((v) => v > 180),
-            "%",
-          )}
-          note="Percentage of recorded readings"
-        />
-      </div>
-      <section className={panel}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-bold">Recorded CGM · mg/dL</h2>
-          <select
-            aria-label="Recorded glucose range"
-            value={range}
-            onChange={(e) => setRange(e.target.value)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
-          >
-            <option value="all">All available dates</option>
-            <option value="7">Last 7 recorded days</option>
-            <option value="14">Last 14 recorded days</option>
-          </select>
-        </div>
-        {rows.length ? (
-          <div className="mt-6 h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={rows}>
-                <defs>
-                  <linearGradient
-                    id="recorded-glucose"
-                    x1="0"
-                    x2="0"
-                    y1="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor="#0d9488" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#0d9488" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="#f1f5f9" />
-                <ReferenceArea
-                  y1={70}
-                  y2={180}
-                  fill="#ccfbf1"
-                  fillOpacity={0.25}
-                />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={(n) =>
-                    new Date(n).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }
-                  tick={{ fontSize: 10 }}
-                  minTickGap={45}
-                />
-                <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-                <Tooltip
-                  labelFormatter={(n) => new Date(Number(n)).toLocaleString()}
-                  formatter={(v: unknown) => [
-                    clinicalValue(v, "mg/dL"),
-                    "Observed CGM",
-                  ]}
-                />
-                <Area
-                  type="linear"
-                  dataKey="cgm"
-                  stroke="#0f766e"
-                  strokeWidth={1.5}
-                  fill="url(#recorded-glucose)"
-                  isAnimationActive={false}
-                  connectNulls={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="mt-5">
-            <Empty>
-              No valid dated CGM measurements are available for this record.
-            </Empty>
-          </div>
-        )}
-        <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
-          Lines connect recorded samples for visual orientation; gaps are not
-          measured glucose. Times use your browser timezone; source timestamps
-          without a timezone retain their recorded local time.
-        </p>
-      </section>
-      <RecordedAGP rows={rows} />
       <section className={panel}>
         <h2 className="text-sm font-bold">Meal and insulin context</h2>
         <p className="mt-2 text-xs text-slate-500">
-          Original annotations, with no inferred carbohydrate or insulin
-          quantities.
+          Original annotations across the available record. No inferred
+          carbohydrate or insulin quantities.
         </p>
         <div className="mt-5 max-h-64 divide-y divide-slate-100 overflow-auto">
           {events
@@ -625,7 +497,7 @@ export function RecordedMonitoring({ patient }: { patient: Patient }) {
                 key={row.timestamp}
                 className="grid gap-2 py-3 text-xs sm:grid-cols-[150px_1fr_1fr]"
               >
-                <span className="text-slate-400">{row.label}</span>
+                <span className="text-slate-400">{dateLabel(row.date)}</span>
                 <span>{row.diet || "No meal annotation"}</span>
                 <span>{row.insulin || "No insulin annotation"}</span>
               </div>
@@ -638,125 +510,6 @@ export function RecordedMonitoring({ patient }: { patient: Patient }) {
         </div>
       </section>
     </div>
-  );
-}
-
-function RecordedAGP({
-  rows,
-}: {
-  rows: Array<{ timestamp: number; cgm: number }>;
-}) {
-  const bins = Array.from({ length: 96 }, (_, index) => ({
-    minute: index * 15,
-    values: [] as number[],
-  }));
-  rows.forEach((row) => {
-    const date = new Date(row.timestamp);
-    bins[
-      Math.floor((date.getHours() * 60 + date.getMinutes()) / 15)
-    ].values.push(row.cgm);
-  });
-  const percentile = (values: number[], fraction: number) => {
-    const position = (values.length - 1) * fraction;
-    const lower = Math.floor(position);
-    return (
-      values[lower] +
-      (values[Math.ceil(position)] - values[lower]) * (position - lower)
-    );
-  };
-  const profile = bins.map((bin) => {
-    const sorted = [...bin.values].sort((a, b) => a - b);
-    return {
-      minute: bin.minute,
-      median: sorted.length ? percentile(sorted, 0.5) : null,
-      outer: sorted.length
-        ? [percentile(sorted, 0.1), percentile(sorted, 0.9)]
-        : null,
-      inner: sorted.length
-        ? [percentile(sorted, 0.25), percentile(sorted, 0.75)]
-        : null,
-      samples: sorted.length,
-    };
-  });
-  const days = new Set(
-    rows.map((row) => new Date(row.timestamp).toLocaleDateString()),
-  ).size;
-  return (
-    <section className={panel}>
-      <h2 className="text-sm font-bold">Ambulatory Glucose Profile (AGP)</h2>
-      <p className="mt-2 text-xs leading-relaxed text-slate-500">
-        Time-of-day median and percentile bands from {days} observed calendar
-        days. These are the spread of observations, not prediction confidence
-        intervals.
-      </p>
-      {rows.length ? (
-        <div className="mt-5 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={profile}>
-              <CartesianGrid vertical={false} stroke="#f1f5f9" />
-              <ReferenceArea
-                y1={70}
-                y2={180}
-                fill="#ccfbf1"
-                fillOpacity={0.3}
-              />
-              <XAxis
-                dataKey="minute"
-                type="number"
-                domain={[0, 1440]}
-                ticks={[0, 360, 720, 1080, 1440]}
-                tickFormatter={(value) =>
-                  `${Math.floor(value / 60)
-                    .toString()
-                    .padStart(2, "0")}:00`
-                }
-                tick={{ fontSize: 10 }}
-              />
-              <YAxis tick={{ fontSize: 10 }} domain={["auto", "auto"]} />
-              <Tooltip
-                labelFormatter={(value) =>
-                  `${Math.floor(Number(value) / 60)}:${String(Number(value) % 60).padStart(2, "0")}`
-                }
-              />
-              <Area
-                dataKey="outer"
-                name="10th–90th percentile"
-                fill="#99f6e4"
-                stroke="none"
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-              <Area
-                dataKey="inner"
-                name="25th–75th percentile"
-                fill="#5eead4"
-                stroke="none"
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-              <Line
-                dataKey="median"
-                name="Median CGM"
-                stroke="#0f766e"
-                strokeWidth={2}
-                dot={false}
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      ) : (
-        <div className="mt-5">
-          <Empty>CGM observations are required to calculate an AGP.</Empty>
-        </div>
-      )}
-      <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
-        15-minute clock-time bins. Empty bins remain gaps. Short or incomplete
-        recordings may not represent usual glucose patterns; the clinical
-        consensus recommends checking coverage across 14 days.
-      </p>
-    </section>
   );
 }
 

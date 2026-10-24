@@ -298,7 +298,11 @@ function Workspace({
                 "patient_monitoring",
                 "monitoring",
               ].includes(page) && (
-                <RecordedMonitoring key={patient.id} patient={patient} />
+                <RecordedMonitoring
+                  key={patient.id}
+                  patient={patient}
+                  onNavigate={navigate}
+                />
               )}
               {[
                 "doctor_digital_twin",

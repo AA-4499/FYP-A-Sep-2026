@@ -13,6 +13,7 @@
     "test:auth": "node --test tests/accountAuth.test.mjs",
     "test:patient": "node --test tests/patientDashboard.test.mjs",
     "test:database": "node --test tests/patientProvisioning.test.mjs",
+    "test:navigation": "node tests/workspaceNavigation.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

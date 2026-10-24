@@ -8,8 +8,11 @@
  */
 import type { Patient } from '../types';
 
-export const PATIENTS: Patient[] = [
-  /** 
+// Live requests must never fall back to sample medical records.
+export const PATIENTS: Patient[] = [];
+
+// Used only by the explicitly selected sample dashboard preview.
+export const DEMO_PATIENTS: Patient[] = [
   {
     id: '2000_0_20201230',
     displayId: 'P07',
@@ -166,7 +169,6 @@ export const PATIENTS: Patient[] = [
       retina: { status: 'Normal', stress: 20, color: '#10b981' },
     },
   },
-  */
 ];
 
 export function getPatientById(id: string): Patient {

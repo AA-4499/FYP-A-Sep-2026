@@ -16,7 +16,7 @@ import type { Patient } from '../types';
 
 interface TopBarProps {
   mode: 'patient' | 'doctor';
-  currentPatient: Patient;
+  currentPatient: Patient | undefined;
   patientsList: Patient[];
   isSupabaseConnected: boolean;
   onSelectPatient: (patientId: string) => void;
@@ -54,7 +54,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Left: Mode Context */}
-      {mode === 'doctor' ? (
+      {mode === 'doctor' || !currentPatient ? (
         <div className="flex items-center gap-3">
           <div className="relative w-64 sm:w-80">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />

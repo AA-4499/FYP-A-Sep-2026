@@ -17,7 +17,7 @@ import { AdminWorkspace } from './components/admin/AdminWorkspace';
 import { DoctorOverviewView } from './components/doctor/DoctorOverviewView';
 import { DoctorPatientListView } from './components/doctor/DoctorPatientListView';
 import type { NavigationModule, Patient, UserRole } from './types';
-import { PATIENTS, getPatientById } from './data/patientsData';
+import { PATIENTS, DEMO_PATIENTS } from './data/patientsData';
 import { createDemoRecommendations } from './data/knowledgeGraphDemoData';
 import type { ClinicalRecommendation, RecommendationStatus } from './data/knowledgeGraphDemoData';
 import {
@@ -38,8 +38,8 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
   const [workspaceModule, setWorkspaceModule] = useState<NavigationModule>('doctor_overview');
   const [patientModule, setPatientModule] = useState<NavigationModule>('patient_home');
 
-  // Patients dataset: initialized with Figma replica, synchronized dynamically with Supabase
-  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
+  // Sample records are available only in the explicit dashboard preview.
+  const [patients, setPatients] = useState<Patient[]>(() => isDemo ? DEMO_PATIENTS : PATIENTS);
   const [currentPatientId, setCurrentPatientId] = useState<string>('2000_0_20201230');
   const [activePatientOverride, setActivePatientOverride] = useState<Patient | null>(null);
 
@@ -86,11 +86,10 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
   }, [syncSupabaseData]);
 
   // Determine current active patient object
-  const currentPatient: Patient =
+  const currentPatient: Patient | undefined =
     activePatientOverride && activePatientOverride.id === currentPatientId
       ? activePatientOverride
       : patients.find((p) => p.id === currentPatientId || p.displayId === currentPatientId) ||
-        getPatientById(currentPatientId) ||
         patients[0];
 
   // The recommendation review and patient sharing flow use mock data until the AI and database connections are implemented.
@@ -173,13 +172,6 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
     return <AdminWorkspace onExit={onExit} />;
   }
 
-  if (appMode === 'patient' && !currentPatient) {
-    return <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 p-6 text-slate-600">
-      <p>Waiting for patient records.</p>
-      <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" onClick={() => syncSupabaseData()}>Retry loading records</button>
-    </div>;
-  }
-
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans p-3 sm:p-5 lg:p-7 flex justify-center selection:bg-blue-600 selection:text-white">
       <div className="max-w-[1400px] w-full flex flex-col md:flex-row gap-5 lg:gap-6 items-start">
@@ -220,6 +212,14 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
             onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
           />
 
+          {!currentPatient && (appMode === 'patient' || !['doctor_overview', 'doctor_settings'].includes(workspaceModule)) && (
+            <section role="status" className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">
+              <h1 className="text-lg font-bold text-slate-900">No patient records available</h1>
+              <p className="mt-2 text-sm">Connect to your care cohort or retry loading records to open this page.</p>
+              <button className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white" onClick={() => syncSupabaseData()}>Retry loading records</button>
+            </section>
+          )}
+
           {/* ========================================================= */}
           {/* A. DOCTOR WORKSPACE */}
           {/* ========================================================= */}
@@ -234,7 +234,7 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
                   onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_patients' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_patients' && currentPatient && (
                 <DoctorPatientListView
                   patients={patients}
                   currentPatient={currentPatient}
@@ -242,19 +242,19 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
                   onOpenDigitalTwin={handleSelectPatient}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_monitoring' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_monitoring' && currentPatient && (
                 <LongitudinalMonitoringView
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_digital_twin' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_digital_twin' && currentPatient && (
                 <DigitalTwinView
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_knowledge_graph' && currentPatient && (
                 <KnowledgeGraphView
                   patient={currentPatient}
                   patientId={currentPatientId}
@@ -267,20 +267,18 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
                   }}
                 />
               )}
-              {appMode === 'doctor' && workspaceModule === 'doctor_reports' && (
+              {appMode === 'doctor' && workspaceModule === 'doctor_reports' && currentPatient && (
                 <ReportView
                   patient={currentPatient}
                   onNavigate={navigateWorkspace}
                 />
               )}
               {appMode === 'doctor' && workspaceModule === 'doctor_settings' && (
-                <DoctorOverviewView
-                  patients={patients}
-                  onSelectPatient={handleWorkspacePatientSelect}
-                  onOpenPatientTwin={handleSelectPatient}
-                  onViewAllPatients={() => setWorkspaceModule('doctor_patients')}
-                  onViewMonitoring={() => setWorkspaceModule('doctor_monitoring')}
-                />
+                <section className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <h1 className="text-xl font-bold">Workspace settings</h1>
+                  <p className="mt-3 text-sm text-slate-600">{isDemo ? 'You are previewing sample dashboards.' : isSupabaseConnected ? 'Your care cohort is connected to Supabase.' : 'Connect to Supabase to load your care cohort.'}</p>
+                  <button onClick={() => setIsSupabaseModalOpen(true)} className="mt-5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Supabase Database Settings</button>
+                </section>
               )}
             </>
           )}
@@ -288,7 +286,7 @@ const Workspace: React.FC<{ initialRole: UserRole; isDemo: boolean; onExit: () =
           {/* ========================================================= */}
           {/* B. PATIENT DIGITAL TWIN WORKSPACE (DiabetesTwin - Figma Image 3) */}
           {/* ========================================================= */}
-          {appMode === 'patient' && (
+          {appMode === 'patient' && currentPatient && (
             <>
               {/* 1. Patient Overview Dashboard (4 vitals + 2x2 grid) */}
               {(patientModule === 'patient_dashboard' || patientModule === 'patient_home') && (

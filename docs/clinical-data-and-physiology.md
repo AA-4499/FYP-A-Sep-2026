@@ -25,7 +25,7 @@ Legacy backend endpoints that generated synthetic timelines, risk probabilities,
 
 ## Prediction versus mechanism exploration
 
-**CGM forecast** defaults to Supabase for database records. It calls the authenticated Python GRU service and uses the selected record's history. Online inference still needs a deployed API, server-side Supabase credentials and the existing forecast-storage RPC. A public publishable key cannot replace the server secret. The interface shows connection errors rather than silently substituting a local forecast snapshot.
+**CGM forecast** temporarily defaults to the [browser GRU](browser-gru.md) while Render is being configured. It runs the repository checkpoint and exact matching workbook history locally in a Worker, including new what-if calculations. Repository history is clearly distinguished from fresh Supabase observations, with no database writes. Explicit **Supabase Cloud** mode still calls the authenticated Python service and requires its existing server credentials/storage setup. Cloud connection errors never silently switch input sources.
 
 The existing GRU is a next-step predictor rolled forward in 15-minute steps. A held-out one-step MAE is not evidence of validated 3-, 6- or 12-hour accuracy. The separate direct multi-step candidate already present in `models/training/t2dm/conditional_pipeline.py` remains an experimental candidate; no claim of new predictive accuracy is made here. See [the existing conditional model audit](conditional-model-audit.md).
 

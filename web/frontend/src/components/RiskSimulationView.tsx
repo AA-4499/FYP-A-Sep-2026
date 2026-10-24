@@ -176,10 +176,9 @@ function GlucoseChart({
 }
 
 function ForecastPanel({ patient, onNavigate }: Props) {
-  const [source, setSource] = useState<ForecastSource>(
-    patient.dataSource === "supabase" ? "supabase" : "preview",
-  );
+  const [source, setSource] = useState<ForecastSource>("browser");
   const preview = source === "preview";
+  const browser = source === "browser";
   const [horizon, setHorizon] = useState(3);
   const [mealEnabled, setMealEnabled] = useState(false);
   const [insulinEnabled, setInsulinEnabled] = useState(false);
@@ -392,7 +391,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
         >
           <Settings2 size={14} />
-          Service connection
+          {browser ? "Online service (optional)" : "Service connection"}
         </button>
       </header>
 
@@ -405,15 +404,34 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           <p className="mt-1 text-xs leading-relaxed">
             Charts use precomputed predictions from the local Excel records and
             the saved GRU model. No Python service is required. These results do
-            not update from Supabase and are not saved to Supabase. Interactive
-            what-if simulation becomes available when you switch to the online
-            service.
+            not update from Supabase and are not saved to Supabase. Choose
+            Repository GRU or the online service to calculate new what-if
+            scenarios.
           </p>
           {current?.generated_at && (
             <p className="mt-2 text-xs">
               Snapshot generated: {displayTime(current.generated_at)} UTC
             </p>
           )}
+        </div>
+      )}
+      {browser && (
+        <div
+          className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900"
+          data-testid="browser-model-notice"
+        >
+          <p className="font-semibold">Repository GRU · runs in your browser</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Uses the trained model and this exact record's history bundled from
+            the GitHub repository. Forecasts and what-if events are calculated
+            here without Render or sign-in. This is repository workbook history,
+            not refreshed Supabase observations. Results are not saved to the
+            database.
+          </p>
+          <p className="mt-2 text-[11px]">
+            The historical evaluation charts are checkpoint-matched saved
+            diagnostics; the forecast and scenario curves are newly computed.
+          </p>
         </div>
       )}
 
@@ -463,7 +481,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           Forecast settings
         </span>
         <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          Data source
+          Execution / data source
           <select
             aria-label="Data source"
             className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800"
@@ -475,6 +493,9 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               baselineRequest();
             }}
           >
+            <option value="browser">
+              Repository GRU · browser (no Render)
+            </option>
             <option value="supabase">Supabase Cloud (online service)</option>
             {patient.dataSource !== "supabase" && (
               <>
@@ -513,7 +534,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
           [
-            "Latest observed CGM",
+            browser ? "Latest repository CGM" : "Latest observed CGM",
             current
               ? `${displayNumber(current.latest_glucose)} mg/dL`
               : "\u2014",
@@ -576,6 +597,19 @@ function ForecastPanel({ patient, onNavigate }: Props) {
                     >
                       Check service connection
                     </button>
+                    {!browser && (
+                      <button
+                        onClick={() => {
+                          setSource("browser");
+                          setMealEnabled(false);
+                          setInsulinEnabled(false);
+                          baselineRequest();
+                        }}
+                        className="underline"
+                      >
+                        Use repository model without Render
+                      </button>
+                    )}
                   </div>
                   {current && (
                     <p className="mt-2 text-xs">
@@ -590,9 +624,11 @@ function ForecastPanel({ patient, onNavigate }: Props) {
                 <RefreshCw size={14} className="animate-spin" />
                 {preview
                   ? "Loading local chart snapshot..."
-                  : current
-                    ? "Updating forecast; showing the last completed result."
-                    : "Loading CGM history and running the GRU model..."}
+                  : browser
+                    ? "Running the repository GRU in a background worker..."
+                    : current
+                      ? "Updating forecast; showing the last completed result."
+                      : "Loading CGM history and running the GRU model..."}
               </p>
             )}
             {!loading && !error && current && (
@@ -600,9 +636,11 @@ function ForecastPanel({ patient, onNavigate }: Props) {
                 <CheckCircle2 size={14} />
                 {preview
                   ? "Local snapshot loaded; no database write"
-                  : current.storage?.saved
-                    ? `Saved to Supabase · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves`
-                    : "Forecast loaded; no storage receipt"}
+                  : browser
+                    ? "Browser GRU computed successfully; no database write"
+                    : current.storage?.saved
+                      ? `Saved to Supabase · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves`
+                      : "Forecast loaded; no storage receipt"}
               </p>
             )}
           </div>
@@ -628,7 +666,9 @@ function ForecastPanel({ patient, onNavigate }: Props) {
             <p className="mt-2 text-xs leading-relaxed text-slate-400">
               {current
                 ? `Forecast begins ${displayTime(current.forecast_start)}. Future points use recursive 15-minute predictions.`
-                : "Connect the prediction service to load the selected patient's model results."}
+                : browser
+                  ? "Loading the model and exact repository record history."
+                  : "Connect the prediction service to load the selected patient's model results."}
             </p>
           </section>
 
@@ -822,7 +862,22 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               {[
                 ["Model", "One-step GRU (legacy)"],
                 ["Patient record", patient.id],
-                ["Data source", current?.source ?? source],
+                [
+                  "Execution",
+                  browser
+                    ? "Browser GRU · no Render"
+                    : (current?.source ?? source),
+                ],
+                [
+                  "Input history",
+                  browser
+                    ? "Exact repository workbook record (not live Supabase)"
+                    : "Selected service data source",
+                ],
+                [
+                  "Checkpoint SHA-256",
+                  current?.model_sha256 ?? "Awaiting model",
+                ],
                 [
                   "Observed readings",
                   current?.observed.length.toLocaleString() ?? "\u2014",
@@ -836,8 +891,8 @@ function ForecastPanel({ patient, onNavigate }: Props) {
                 ["Forecast begins", displayTime(current?.forecast_start)],
                 [
                   "Supabase run ID",
-                  preview
-                    ? "Not saved (local preview)"
+                  preview || browser
+                    ? "Not saved (local browser session)"
                     : (current?.storage?.run_id ?? "No completed run"),
                 ],
               ].map(([label, value]) => (
@@ -868,7 +923,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
           </div>
           <p className="mt-2 text-xs leading-relaxed text-slate-500">
             {preview
-              ? "Unavailable in the precomputed preview. Connect the online prediction service to calculate new event scenarios."
+              ? "This static preview cannot calculate new scenarios. Choose Repository GRU or the online service."
               : "Add hypothetical events to compare their projected effect with the baseline prediction."}
           </p>
           {current?.scenario_enabled && (
@@ -982,7 +1037,7 @@ function ForecastPanel({ patient, onNavigate }: Props) {
             </fieldset>
             <p className="text-[11px] leading-relaxed text-slate-400">
               {preview
-                ? "The local preview contains baseline results only. Online inference is required to calculate a new scenario."
+                ? "The static preview contains baseline results only. Choose Repository GRU or the online service for new scenarios."
                 : `Use 15-minute intervals within the selected ${horizon}-hour horizon. Changes apply when you run the simulation.`}
             </p>
             <button
@@ -1014,7 +1069,9 @@ function ForecastPanel({ patient, onNavigate }: Props) {
               curves show model sensitivity, not validated treatment effects.{" "}
               {preview
                 ? "Local previews are not saved to Supabase."
-                : "Completed online forecasts are saved to Supabase."}
+                : browser
+                  ? "Browser GRU forecasts are not saved to Supabase."
+                  : "Completed online forecasts are saved to Supabase."}
             </p>
           </form>
         </aside>

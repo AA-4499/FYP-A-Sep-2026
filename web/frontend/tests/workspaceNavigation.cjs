@@ -130,6 +130,7 @@
    {'Patient Number':'test-b','Age (years)':null,'HbA1c (mmol/mol)':null},
  ];
  const details = empty ? [] : Array.from({length:96}, (_,i) => ({id:i,'Patient Number':'test-a',Date:new Date(Date.UTC(2020,0,1+Math.floor(i/48),0,(i%48)*15)).toISOString(),'CGM (mg / dl)':140+100*Math.sin((i%48)/6)+20*Math.floor(i/48)}));
+ if(parameters.has('repo')) { summaries[0]['Patient Number']='2000_0_20201230'; details.forEach(row=>row['Patient Number']='2000_0_20201230'); }
  const client = getSupabaseClient()!;
  const user = {id:'browser-patient',email:'patient@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:'patient'}};
  client.auth.getUser = async () => ({data:{user},error:null}) as any;
@@ -260,9 +261,9 @@
     await expectPage("Prediction lab", "CGM forecast");
     assert(
       await evaluate(
-        `document.querySelector('[aria-label="Data source"]').value==='supabase'`,
+        `document.querySelector('[aria-label="Data source"]').value==='browser'`,
       ),
-      "Clinical record used a local preview",
+      "Temporary default did not use the actual browser GRU",
     );
     await click("Physiology lab");
     await ready("Glucose response and recovery");
@@ -333,7 +334,12 @@
       mobile: true,
     });
     await delay(400);
-    assert(await evaluate("document.documentElement.scrollWidth<=window.innerWidth+2"), "Mobile My health horizontal overflow");
+    assert(
+      await evaluate(
+        "document.documentElement.scrollWidth<=window.innerWidth+2",
+      ),
+      "Mobile My health horizontal overflow",
+    );
     await screenshot("restored-my-health-mobile.png");
     await expectPage("Risk prediction & what-if", "CGM forecast");
     await click("Physiology lab");
@@ -352,6 +358,50 @@
       "Mobile horizontal overflow",
     );
     assert(!exceptions.length, exceptions.join("\n"));
+    await open("?repo");
+    await ready("2 accessible records");
+    await expectPage("Prediction lab", "Repository GRU");
+    await ready("Browser GRU computed successfully");
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="forecast-values-panel"] tbody tr').length === 12`,
+      ),
+      "3-hour browser predictions were not rendered",
+    );
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="browser-model-notice"]').textContent.includes('not refreshed Supabase')`,
+      ),
+      "Repository history was not distinguished from cloud readings",
+    );
+    await evaluate(
+      `document.querySelector('[data-testid="simulator-panel"] input[type="checkbox"]').click()`,
+    );
+    await click("Run what-if simulation");
+    await ready("Largest curve difference");
+    await ready("Browser GRU computed successfully");
+    await screenshot("browser-gru-what-if.png");
+    await evaluate(
+      `(() => {const select=document.querySelector('[aria-label="Forecast horizon"]');select.value='12';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+    );
+    await ready("Browser GRU computed successfully");
+    await click("Show all 48 forecast rows");
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="forecast-values-panel"] tbody tr').length === 48`,
+      ),
+      "12-hour browser predictions are incomplete",
+    );
+    assert(
+      !(await evaluate(
+        `document.querySelector('main').innerText.includes('NaN') || document.querySelector('main').innerText.includes('Infinity')`,
+      )),
+      "Invalid browser model results",
+    );
+    assert(!exceptions.length, exceptions.join("\n"));
+    console.log(
+      "PASS: actual repository GRU worker, 3/12-hour forecasts, interactive what-if, no model service or login",
+    );
     console.log(
       "PASS: complete paging, database failures, all navigation, Patient isolation, physiology events, and mobile layout",
     );

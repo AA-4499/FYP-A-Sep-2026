@@ -1,8 +1,14 @@
 # Prediction service setup: GitHub, Render, Supabase and Vercel
 
-## Temporary local chart preview
+## Temporary browser model (no Render)
 
-The Risk Prediction page currently defaults to **Local data preview (no server)** while the Python deployment is being completed. Vercel serves precomputed chart snapshots from `web/frontend/public/forecast-preview/`. They contain baseline GRU predictions, observed CGM, training/validation/testing curves and evaluation metrics for the exact selected local record. The original model and workbook data are used; no synthetic curve is substituted.
+The page now defaults to **Repository GRU · browser (no Render)**. It executes the checked-in trained weights in a Web Worker with the exact repository record's history. New 3/6/12-hour forecasts and meal/insulin scenarios run without a model-service URL, model-service login or database write. Repository workbook history is explicitly distinguished from refreshed Supabase observations. See [Browser GRU implementation and checks](browser-gru.md).
+
+Regenerate the browser assets with `python -m models.training.export_browser_gru`, commit `web/frontend/public/browser-model/`, and deploy the `TrainingModel` frontend. The frontend host serves these static assets; it does not need Python or Render for this mode.
+
+### Older static chart preview
+
+The older explicit **Local data preview (no server)** mode uses snapshots from `web/frontend/public/forecast-preview/`. Those snapshots also supply checkpoint-matched historical diagnostics to the browser mode; its forecasts and scenarios are newly calculated.
 
 The preview supports 3-, 6- and 12-hour baseline views and CSV downloads. It does not perform browser-side training or new what-if inference, refresh cloud readings, or save outputs to Supabase. The simulator stays visible but is disabled. Records without a matching snapshot show an explicit unavailable message instead of another patient's data. Snapshot files are public static assets; they contain chart series and record IDs, without account credentials or patient summary fields.
 

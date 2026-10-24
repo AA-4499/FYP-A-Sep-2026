@@ -206,7 +206,8 @@ function Workspace({
           {isPreview && (
             <p className="text-[11px] leading-relaxed text-slate-500">
               This preview reads records permitted by the database. Sign in with
-              your authorized account to use the prediction service. Database
+              your authorized account for cloud prediction; the repository GRU
+              runs in your browser without model-service sign-in. Database
               permissions determine which records are visible.
             </p>
           )}

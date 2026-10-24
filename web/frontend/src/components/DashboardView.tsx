@@ -555,6 +555,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
           </div>
 
           {/* Disclaimer at bottom */}
+          {!canSimulate && <button type="button" onClick={() => onNavigate('risk')} className="text-left text-xs font-semibold text-teal-700 hover:underline">Open prediction and what-if lab →</button>}
           <p className="text-[11px] text-slate-400">
             {canSimulate ? 'Simulated result, not a clinical outcome.' : 'Simulation becomes available when your measurements and risk assessment are ready.'}
           </p>

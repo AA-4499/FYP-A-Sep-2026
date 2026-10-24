@@ -191,6 +191,43 @@
       ["Settings", "Workspace settings"],
     ])
       await expectPage(label, text);
+    await expectPage("Knowledge graph", "Patient and medical concept map");
+    assert(
+      await evaluate("document.querySelectorAll('canvas').length > 0"),
+      "KnowledgeGraph branch canvas did not render",
+    );
+    await screenshot("restored-knowledge-graph-desktop.png");
+    await evaluate(
+      `Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Recommendation review')).click()`,
+    );
+    await ready("AI recommendation interface preview");
+    await click("Approve");
+    await click("Share with patient");
+    await ready("Visible in patient view");
+    await click("Preview patient view");
+    await ready("Continuous CGM Waveform");
+    assert(
+      await evaluate(
+        `document.querySelector('[aria-label="Compact ambulatory glucose profile with percentile bands and median glucose"]') !== null`,
+      ),
+      "Jody compact AGP did not render",
+    );
+    await screenshot("restored-jody-patient-home.png");
+    await expectPage(
+      "My recommendations",
+      "Review the glucose monitoring plan",
+    );
+    await click("Doctor dashboard", "document.querySelector('aside')");
+    await expectPage("Patient management", "Patient List & Clinical Profiles");
+    await evaluate(
+      `Array.from(document.querySelectorAll('tbody button')).find(b => b.textContent.includes('Patient test-b')).click()`,
+    );
+    await expectPage("Knowledge graph", "Patient and medical concept map");
+    await click("Preview patient view");
+    await expectPage("My recommendations", "No recommendations shared yet");
+    // A newly opened workspace starts a new prototype recommendation session.
+    await open("");
+    await ready("2 accessible records");
     await expectPage("Prediction lab", "CGM forecast");
     assert(
       await evaluate(
@@ -213,7 +250,7 @@
     );
     await click("Switch to Patient workspace");
     for (const [label, text] of [
-      ["Home", "Observation window"],
+      ["Home", "Continuous CGM Waveform"],
       ["My profile", "Complete recorded summary"],
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],
@@ -244,7 +281,7 @@
     );
     await open("?patient");
     await ready("Test Patient");
-    await ready("Observation window");
+    await ready("Continuous CGM Waveform");
     for (const [label, text] of [
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],

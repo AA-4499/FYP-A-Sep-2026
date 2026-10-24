@@ -15,7 +15,11 @@ The project is `dgtaujhgwxmoghqdqkti`. A read-only REST check found 111 `patient
 - Reports export recorded summary fields as CSV with spreadsheet formula escaping. No synthetic predicted improvement, clinical signature or prescribed therapy is generated.
 - The public research preview reads only what the existing database permissions allow. An authenticated Patient still uses the account-bound dashboard RPC and exact-record, RLS-governed reads. It cannot browse the cohort through that workspace.
 
-The previous browser prototype components remain in source history, but the application shell no longer routes clinical pages through them. Legacy backend endpoints that generated synthetic timelines, risk probabilities, organ scores and reports now return explicit `501` unavailability. Patient directory/profile endpoints use Supabase instead of generated profiles.
+The Knowledge Graph uses the interactive Cytoscape component from `origin/KnowledgeGraph` (`f7176bd`) with its filters, node details and recommendation review/share prototype. Its measurements come from the selected database record, including CGM counts and available insulin/C-peptide laboratories; conceptual links and example suggestions remain labelled as a prototype. Suggestions are isolated by record and browser session, with only approved items eligible to be shared into the patient preview. They are not sent to a real Patient account or saved to a medical record.
+
+The patient Home page uses JodyTesting's dashboard/compact AGP work (`1445bcd`) with the subsequent missing-data protections and recommendation layout. The database source, newer monitoring/reporting pages and physiology lab remain available. Temporary authentication bypasses from the older branch are not used.
+
+Legacy backend endpoints that generated synthetic timelines, risk probabilities, organ scores and reports now return explicit `501` unavailability. Patient directory/profile endpoints use Supabase instead of generated profiles.
 
 ## Prediction versus mechanism exploration
 

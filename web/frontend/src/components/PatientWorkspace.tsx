@@ -7,7 +7,6 @@ import type { PatientDashboardData } from "../lib/patientDashboard";
 import type { NavigationModule } from "../types";
 import { Sidebar } from "./Sidebar";
 import {
-  PatientSnapshot,
   RecordedMonitoring,
   OrganEvidence,
   RecordedReport,
@@ -16,6 +15,7 @@ import { RiskSimulationView } from "./RiskSimulationView";
 import { mapClinicalRecord } from "../lib/clinicalData";
 import { readClinicalRows } from "../lib/supabaseRows";
 import { PatientRecommendationsView } from "./PatientRecommendationsView";
+import { PatientHomeView } from "./PatientHomeView";
 
 const card =
   "rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs sm:p-6";
@@ -247,10 +247,7 @@ export function PatientWorkspace({
                   </section>
                 )}
                 {page === "patient_home" && (
-                  <PatientSnapshot
-                    patient={patient}
-                    onPredict={() => navigate("patient_insights")}
-                  />
+                  <PatientHomeView patient={patient} onNavigate={navigate} />
                 )}
                 {page === "patient_profile" && (
                   <section className={card}>

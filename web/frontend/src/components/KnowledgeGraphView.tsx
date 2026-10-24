@@ -58,7 +58,7 @@ const formatValue = (value: number | string | undefined, suffix = ''): string =>
 };
 
 function buildGraphModel(patient: Patient, patientId: string): GraphModel {
-  const conditionName = patient.condition || 'Diabetes (condition not specified)';
+  const conditionName = patient.condition || 'Condition not recorded';
   const patientName = patient.name || 'Selected patient';
   const displayId = patient.displayId || patientId || patient.id;
 
@@ -68,7 +68,7 @@ function buildGraphModel(patient: Patient, patientId: string): GraphModel {
       label: displayId,
       group: 'patient',
       value: patientName,
-      description: 'The patient currently selected in the doctor workspace. Patient context in this prototype is shown for interface demonstration only.',
+      description: 'The currently selected patient record. Recorded measurements come from the clinical database; general concept relationships remain an interface prototype.',
       details: [
         { label: 'Patient', value: patientName },
         { label: 'Record ID', value: patientId || patient.id },
@@ -102,10 +102,10 @@ function buildGraphModel(patient: Patient, patientId: string): GraphModel {
       id: 'fasting-glucose',
       label: 'Fasting glucose',
       group: 'patient-data',
-      value: formatValue(patient.fastingGlucose),
+      value: formatValue(patient.fastingGlucose, ' mmol/L'),
       description: 'A fasting glucose value from the selected patient summary, represented in the prototype as a patient-context node.',
       details: [
-        { label: 'Displayed value', value: formatValue(patient.fastingGlucose) },
+        { label: 'Displayed value', value: formatValue(patient.fastingGlucose, ' mmol/L') },
         { label: 'Data role', value: 'Patient measurement' },
         { label: 'Clinical note', value: 'Confirm units and collection context in the real data source' },
       ],
@@ -139,11 +139,12 @@ function buildGraphModel(patient: Patient, patientId: string): GraphModel {
       label: 'Glucose monitoring',
       group: 'monitoring',
       value: 'Monitoring concept',
-      description: 'A general concept for monitoring glucose over time. Real CGM/CBG observations will be connected after backend integration.',
+      description: 'Monitoring context from the selected record. Counts and summaries below use recorded CGM; the conceptual links do not imply a new diagnosis.',
       details: [
         { label: 'Concept type', value: 'Monitoring' },
-        { label: 'Potential data', value: 'CGM and CBG observations' },
-        { label: 'Current state', value: 'Illustrative node; no live readings loaded here' },
+        { label: 'Dated CGM readings', value: String(patient.cgmReadings?.length ?? 0) },
+        { label: 'Mean recorded CGM', value: formatValue(patient.cgmSummary?.meanGlucose, ' mg/dL') },
+        { label: 'Data source', value: 'patient_detail for the selected Patient Number' },
       ],
     },
     {
@@ -211,6 +212,15 @@ function buildGraphModel(patient: Patient, patientId: string): GraphModel {
     { id: 'e-followup-lifestyle', source: 'follow-up', target: 'lifestyle-context', label: 'may include' },
   ];
 
+  // Extend the branch graph with measured insulin-related evidence, without
+  // interpreting a laboratory value as beta-cell capacity or insulin action.
+  for (const [index, key] of ['Fasting C-peptide (nmol/L)', 'Fasting Insulin (pmol/L)', '2-hour Postprandial C-peptide (nmol/L)'].entries()) {
+    const raw = patient.recordedFields?.[key];
+    if (raw == null || raw === '' || (typeof raw !== 'number' && typeof raw !== 'string')) continue;
+    const id = `recorded-lab-${index}`;
+    nodes.push({ id, label: key, group: 'patient-data', value: formatValue(raw), description: 'Recorded laboratory evidence; not a fitted physiological parameter.', details: [{ label: 'Recorded value', value: formatValue(raw) }, { label: 'Source', value: 'patient_summary' }] });
+    edges.push({ id: `edge-${id}`, source: 'patient-record', target: id, label: 'has measurement' });
+  }
   const elements: ElementDefinition[] = [
     ...nodes.map((node) => ({
       data: {
@@ -473,7 +483,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
               Doctor workspace only
             </span>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-              UI prototype · mock KG data
+              Recorded patient context · concept graph prototype
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Knowledge Graph</h1>
@@ -495,9 +505,9 @@ export const KnowledgeGraphView: React.FC<Props> = ({
         <div className="flex items-start gap-3">
           <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
           <div>
-            <p className="text-sm font-semibold text-amber-950">Prototype mode — no live Knowledge Graph or AI is connected</p>
+            <p className="text-sm font-semibold text-amber-950">Recorded measurements · prototype concepts and recommendation workflow</p>
             <p className="mt-1 text-xs leading-5 text-amber-900/90">
-              The graph relationships and recommendation cards below are examples for UI testing. Approval and sharing change this demo interface only; they do not update Aura, call an AI service, or send a real patient notification.
+              Patient measurements are loaded from the selected database record. General concept links and recommendation cards are examples from the KnowledgeGraph branch. Approval and sharing affect this session only; they do not update Aura, call an AI service, or send a real patient notification.
             </p>
           </div>
         </div>

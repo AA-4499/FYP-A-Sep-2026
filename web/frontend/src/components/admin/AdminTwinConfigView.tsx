@@ -258,11 +258,11 @@ export const AdminTwinConfigView: React.FC = () => {
             <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 text-blue-950 space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-xs text-blue-700">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Explainable AI (XAI) Attribution</span>
+                <span>Risk Factor Attribution (heuristic)</span>
               </div>
               <p className="text-[11px] text-slate-600 leading-relaxed">
-                SHAP (SHapley Additive exPlanations) values are automatically recomputed whenever indicator weights change.
-                This guarantees doctor and patient interfaces display fully calibrated risk factor attributions.
+                Factor attributions are recomputed from fixed indicator weights whenever those weights change.
+                They are hand-set linear weights, not Shapley values, and are not calibrated against outcomes.
               </p>
             </div>
 

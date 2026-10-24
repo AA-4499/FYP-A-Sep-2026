@@ -3,7 +3,7 @@
  * Features:
  * - Patient Vitals Header (HbA1c 8.1%, Fasting glucose 9.4 mmol/L, BMI 27.3, Current risk 68%)
  * - Interactive AI Chat with simulated domain-expert explanations
- * - TreeSHAP feature attributions
+ * - Heuristic risk-factor attributions (illustrative, not SHAP)
  * - Clickable prompt chips
  */
 import React, { useState } from 'react';
@@ -92,11 +92,11 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ patient, onNavigate }) =
       if (lower.includes('7.0%') || lower.includes('drop') || lower.includes('what if')) {
         reply = `Simulating a target HbA1c reduction from ${patient.hba1c}% to 7.0% yields a projected risk decrease from ${patient.currentRiskPct}% to 43% (-25% absolute risk drop). This primarily relieves the endocrine pancreas stress index from 78 down to 45.`;
       } else if (lower.includes('bmi') || lower.includes('weight')) {
-        reply = `With BMI at ${patient.bmi} kg/m² (Class I Overweight), hepatic glucose output is elevated and peripheral GLUT-4 translocation efficiency is reduced. TreeSHAP assigns a +0.08 additive hazard coefficient to this factor.`;
+        reply = `With BMI at ${patient.bmi} kg/m² (Class I Overweight), hepatic glucose output is elevated and peripheral GLUT-4 translocation efficiency is reduced. BMI is weighted as a contributing risk factor in the platform's heuristic risk score.`;
       } else if (lower.includes('beta-cell') || lower.includes('pancreas')) {
         reply = `The physiological digital twin models progressive beta-cell exhaustion driven by sustained glucotoxicity. Currently, high basal secretion demand is required to compensate for postprandial glucose surges above 180 mg/dL.`;
       } else {
-        reply = `Based on longitudinal multi-visit telemetry across ${patient.visitsCount} visits, targeted carbohydrate damping and GLP-1/SGLT2 consideration would address the leading SHAP risk drivers for ${patient.name}.`;
+        reply = `Based on longitudinal multi-visit telemetry across ${patient.visitsCount} visits, targeted carbohydrate damping and GLP-1/SGLT2 consideration would address the leading risk factors for ${patient.name}.`;
       }
 
       setMessages((prev) => [
@@ -216,7 +216,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ patient, onNavigate }) =
           {isTyping && (
             <div className="flex items-center gap-2 text-xs text-slate-400 p-2">
               <Bot className="w-3.5 h-3.5 animate-spin text-blue-600" />
-              <span>Model analyzing SHAP feature weights...</span>
+              <span>Analyzing risk factors...</span>
             </div>
           )}
         </div>

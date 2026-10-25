@@ -151,7 +151,10 @@ function GlucoseChart({
               : Math.floor(minimum - padding),
             Math.ceil(maximum + padding),
           ]
-        : [Math.min(40, minimum), Math.max(280, maximum)];
+        : [
+            Math.floor(Math.min(40, minimum)),
+            Math.ceil(Math.max(280, maximum)),
+          ];
   return (
     <>
       {!history && (
@@ -238,7 +241,17 @@ function GlucoseChart({
               minTickGap={50}
               tick={{ fontSize: 10 }}
             />
-            <YAxis domain={domain} tick={{ fontSize: 11 }} width={48} />
+            <YAxis
+              domain={domain}
+              tick={{ fontSize: 11 }}
+              width={58}
+              allowDecimals={false}
+              tickFormatter={(value) =>
+                Number.isFinite(Number(value))
+                  ? String(Math.round(Number(value)))
+                  : ""
+              }
+            />
             <Tooltip
               labelFormatter={(value) => formatTime(Number(value))}
               formatter={(value: unknown) =>

@@ -506,6 +506,15 @@
       ),
       "Prediction range lost its Health monitoring zone colours",
     );
+    await click("Show reference range");
+    assert(
+      await evaluate(
+        `(() => {const chart=document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]');const ticks=[...chart.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value')];const left=chart.getBoundingClientRect().left;return ticks.length>=3 && ticks.every(tick=>/^-?\\d{1,4}$/.test(tick.textContent) && tick.getBoundingClientRect().left>=left);})()`,
+      ),
+      "Blood-glucose axis shows clipped labels or long decimal strings in reference-range view",
+    );
+    await chartScreenshot("prediction-reference-axis-readable.png");
+    await click("Fit forecast range");
     await chartScreenshot("range-gru-desktop.png");
     assert(
       await evaluate(
@@ -636,6 +645,7 @@
       ),
       "Reference-scale view did not activate",
     );
+
     await click("Fit forecast range");
     assert(
       await evaluate(

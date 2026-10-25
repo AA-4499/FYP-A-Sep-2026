@@ -211,6 +211,29 @@ function Workspace({
               permissions determine which records are visible.
             </p>
           )}
+          {isPreview && !loading && !error && patients.length === 0 && (
+            <section
+              data-testid="preview-signin-required"
+              className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-950"
+            >
+              <h2 className="text-sm font-bold">
+                Patient data requires sign-in
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed">
+                No clinical records are visible in this preview. Sign in with an
+                authorized Doctor or Admin account to view the cohort. Patient
+                accounts can view only their own linked record. An empty
+                response does not mean that the database has no patient data.
+              </p>
+              <button
+                type="button"
+                onClick={onExit}
+                className="mt-4 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700"
+              >
+                Sign in to view patient data
+              </button>
+            </section>
+          )}
           {error && (
             <div
               role="alert"
@@ -232,7 +255,9 @@ function Workspace({
               <p className="mt-3 text-sm text-slate-500">
                 {loading
                   ? "Retrieving all available pages from the clinical database."
-                  : "Check your connection and account permissions, then refresh. No sample medical values will be substituted."}
+                  : isPreview
+                    ? "This preview cannot display records hidden by database permissions. Use the sign-in button above to access your authorized records."
+                    : "No records are visible to this account. Check the account's role and record assignment, then refresh. No sample medical values will be substituted."}
               </p>
             </section>
           )}

@@ -208,7 +208,7 @@
       });
       if (!query.includes("patient")) {
         await ready("Welcome back");
-        await click("Explore database records");
+        await click("Preview workspace");
       }
     };
     await open("");
@@ -332,6 +332,13 @@
     await ready("A clearer view of your cohort.");
     await open("?empty");
     await ready("0 accessible records");
+    await ready("Patient data requires sign-in");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="preview-signin-required"]').innerText.includes('does not mean that the database has no patient data')`,
+      ),
+      "Anonymous empty response was presented as deleted data",
+    );
     for (const label of [
       "Patient management",
       "Health monitoring",
@@ -342,6 +349,8 @@
     ])
       await expectPage(label, "No patient records available");
     await expectPage("Settings", "Workspace settings");
+    await click("Sign in to view patient data");
+    await ready("Welcome back");
     await open("?denied");
     await ready("Database access denied");
     assert(

@@ -22,6 +22,9 @@ interface SidebarProps {
   canViewPredictions?: boolean;
 }
 
+const sidebarShell =
+  "w-full shrink-0 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between gap-6 md:sticky md:top-5 md:w-60 md:self-start md:h-[calc(100dvh-2.5rem)] md:overflow-y-auto md:overscroll-contain lg:top-7 lg:h-[calc(100dvh-3.5rem)]";
+
 export const Sidebar: React.FC<SidebarProps> = ({
   mode,
   activeModule,
@@ -44,7 +47,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     return (
-      <aside className="w-full md:w-60 shrink-0 rounded-3xl border p-5 flex flex-col justify-between md:min-h-[720px] shadow-2xs bg-white border-slate-200/90">
+      <aside
+        className={sidebarShell}
+        data-testid="workspace-sidebar"
+        aria-label="Doctor navigation"
+      >
         <div className="space-y-7">
           <div className="flex items-center gap-2.5 px-1">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base bg-teal-600 text-white">
@@ -101,7 +108,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // PATIENT SELF-CARE MODE
   return (
-    <aside className="w-full md:w-60 shrink-0 bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between md:min-h-[720px]">
+    <aside
+      className={sidebarShell}
+      data-testid="workspace-sidebar"
+      aria-label="Patient navigation"
+    >
       <div className="space-y-6">
         {/* Brand Header */}
         <div className="px-1">

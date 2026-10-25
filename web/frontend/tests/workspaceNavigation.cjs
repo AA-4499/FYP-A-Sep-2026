@@ -112,6 +112,22 @@
       });
       fs.writeFileSync(path.join(out, name), Buffer.from(shot.data, "base64"));
     };
+    const assertSidebarPinned = async () => {
+      await evaluate(`window.scrollTo(0,0)`);
+      await delay(100);
+      const before = await evaluate(
+        `document.querySelector('[data-testid="workspace-sidebar"]').getBoundingClientRect().top`,
+      );
+      await evaluate(`window.scrollTo(0,650)`);
+      await delay(150);
+      assert(
+        await evaluate(
+          `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');const r=sidebar.getBoundingClientRect();return window.scrollY>100 && Math.abs(r.top-${before})<2 && r.top>=0 && r.bottom<=window.innerHeight;})()`,
+        ),
+        "Workspace navigation must remain inside the viewport while the page scrolls",
+      );
+      await evaluate(`window.scrollTo(0,0)`);
+    };
     await send("Page.enable");
     await send("Page.bringToFront");
     await send("Runtime.enable");
@@ -440,6 +456,7 @@
     );
     await expectPage("My health", "Ambulatory Glucose Profile (AGP)");
     await assertMonitoringColors();
+    await assertSidebarPinned();
     await send("Emulation.setDeviceMetricsOverride", {
       width: 390,
       height: 844,
@@ -447,6 +464,12 @@
       mobile: true,
     });
     await delay(400);
+    assert(
+      await evaluate(
+        `getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).position==='static'`,
+      ),
+      "Mobile navigation must remain in normal page flow",
+    );
     assert(
       await evaluate(
         "document.documentElement.scrollWidth<=window.innerWidth+2",
@@ -484,6 +507,33 @@
     await ready("2 accessible records");
     await expectPage("Prediction lab", "Repository GRU");
     await ready("Browser GRU computed successfully");
+    await assertSidebarPinned();
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 560,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await delay(200);
+    await assertSidebarPinned();
+    await evaluate(
+      `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');sidebar.scrollTop=sidebar.scrollHeight;})()`,
+    );
+    assert(
+      await evaluate(
+        `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');const footer=sidebar.lastElementChild.getBoundingClientRect();return sidebar.scrollTop>0 && footer.bottom<=window.innerHeight && footer.top>=0;})()`,
+      ),
+      "Short screens must allow scrolling the navigation to its footer",
+    );
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 1050,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await evaluate(
+      `document.querySelector('[data-testid="workspace-sidebar"]').scrollTop=0`,
+    );
     assert(
       await evaluate(
         `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.display === 'range' && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length === 1`,

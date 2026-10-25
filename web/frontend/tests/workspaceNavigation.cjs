@@ -494,6 +494,18 @@
       ),
       "Historical reference must not claim calibrated coverage",
     );
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-risk-legend"]').innerText.includes('range average') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-line-curve').length >= 1`,
+      ),
+      "Range view must include its middle average line",
+    );
+    assert(
+      await evaluate(
+        `(() => {const panel=document.querySelector('[data-testid="prediction-panel"]');const colours=[...panel.querySelectorAll('linearGradient stop')].map(stop=>stop.getAttribute('stop-color'));return ['#86EFAC','#15803D','#F97316'].every(colour=>colours.includes(colour));})()`,
+      ),
+      "Prediction range lost its Health monitoring zone colours",
+    );
     await chartScreenshot("range-gru-desktop.png");
     assert(
       await evaluate(
@@ -579,7 +591,7 @@
       ),
       "Physiology sensitivity bands were not generated",
     );
-    await click("Show centre estimates");
+    await click("Show model estimates only");
     assert(
       await evaluate(
         `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.display === 'point'`,
@@ -593,7 +605,30 @@
       )) === forecastValues,
       "Switching chart view altered values or bounds",
     );
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="prediction-panel"] .recharts-line-curve').length >= 2`,
+      ),
+      "Baseline and what-if average lines must remain visible with bands",
+    );
     await chartScreenshot("range-physiology-desktop.png");
+    assert(
+      await evaluate(`(async () => {
+      const originalCreate=URL.createObjectURL, originalRevoke=URL.revokeObjectURL, originalClick=HTMLAnchorElement.prototype.click;
+      let csv;
+      try {
+        URL.createObjectURL=blob=>{csv=blob;return 'blob:range-export-test';}; URL.revokeObjectURL=()=>{}; HTMLAnchorElement.prototype.click=()=>{};
+        document.querySelector('[data-testid="forecast-values-panel"] button').click();
+        const rows=(await csv.text()).trim().split('\\n').map(row=>row.split(','));const header=rows.shift();
+        for(const prefix of ['baseline','scenario']) {
+          const low=header.indexOf(prefix+'_reference_low'),high=header.indexOf(prefix+'_reference_high'),average=header.indexOf(prefix+'_range_average');
+          if(low<0||high<0||average<0||!rows.every(row=>Math.abs(Number(row[average])-(Number(row[low])/2+Number(row[high])/2))<1e-9)) return false;
+        }
+        return true;
+      } finally {URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;HTMLAnchorElement.prototype.click=originalClick;}
+    })()`),
+      "CSV range averages do not match the plotted bounds midpoints",
+    );
     await click("Show reference range");
     assert(
       await evaluate(
@@ -765,6 +800,12 @@
     );
     const successfulRice = await evaluate(
       `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+    );
+    assert(
+      await evaluate(
+        `(() => {const colours=[...document.querySelectorAll('[data-testid="prediction-panel"] linearGradient stop')].map(stop=>stop.getAttribute('stop-color'));return colours.includes('#DC2626') && colours.includes('#991B1B');})()`,
+      ),
+      "High and very-high glucose regions were not separately coloured",
     );
     await chartScreenshot("what-if-cooked-rice-working.png");
     await evaluate(

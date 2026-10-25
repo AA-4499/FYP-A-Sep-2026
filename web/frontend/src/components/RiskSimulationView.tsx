@@ -16,7 +16,12 @@ import {
   type ScenarioDraft,
   type compileScenario,
 } from "../lib/scenario";
-import React, { useEffect, useMemo, useState } from "react";
+import {
+  glucoseGradientStops,
+  glucoseReferenceZones,
+  rangeAverage,
+} from "../lib/glucoseRangeDisplay";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import {
   ArrowLeft,
   RefreshCw,
@@ -92,6 +97,7 @@ function chartRows(series: Series[]) {
       if (row) {
         row[`${key}_outer`] = point.outer;
         row[`${key}_inner`] = point.inner;
+        row[`${key}_average`] = rangeAverage(point.outer);
       }
     });
   });
@@ -109,6 +115,7 @@ function GlucoseChart({
   loading: boolean;
   history?: boolean;
 }) {
+  const chartId = useId().replace(/:/g, "");
   const [fitForecast, setFitForecast] = useState(true);
   const [showCentre, setShowCentre] = useState(false);
   const hasRanges = !history && series.some((s) => !!s.range?.points.length);
@@ -162,7 +169,7 @@ function GlucoseChart({
                 onClick={() => setShowCentre((value) => !value)}
                 className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-[11px] font-semibold text-teal-800"
               >
-                {showCentre ? "Show range bands" : "Show centre estimates"}
+                {showCentre ? "Show range bands" : "Show model estimates only"}
               </button>
             )}
             <button
@@ -193,6 +200,34 @@ function GlucoseChart({
             data={rows}
             margin={{ top: 15, right: 15, left: 0, bottom: 5 }}
           >
+            <defs>
+              {!history &&
+                series
+                  .filter((s) => s.range)
+                  .flatMap((s) =>
+                    (["outer", "inner"] as const).map((band) => (
+                      <linearGradient
+                        key={`${s.key}-${band}`}
+                        id={`${chartId}-${s.key}-${band}`}
+                        x1="0%"
+                        y1="0%"
+                        x2="0%"
+                        y2="100%"
+                      >
+                        {glucoseGradientStops(
+                          s.range!.points.map((point) => point[band]),
+                          band === "inner",
+                        ).map((stop, index) => (
+                          <stop
+                            key={index}
+                            offset={stop.offset}
+                            stopColor={stop.color}
+                          />
+                        ))}
+                      </linearGradient>
+                    )),
+                  )}
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="timestamp"
@@ -214,10 +249,10 @@ function GlucoseChart({
             />
             <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
             {[
-              { value: 70, color: "#c2410c" },
-              { value: 140, color: "#16a34a" },
-              { value: 180, color: "#ca8a04" },
-              { value: 250, color: "#dc2626" },
+              { value: 54, color: "#C2410C" },
+              { value: 70, color: "#F97316" },
+              { value: 180, color: "#DC2626" },
+              { value: 250, color: "#991B1B" },
             ].map((line) => (
               <ReferenceLine
                 key={line.value}
@@ -244,8 +279,9 @@ function GlucoseChart({
                       dataKey={`${s.key}_outer`}
                       name={`${s.label} · wider range`}
                       stroke="none"
-                      fill={s.color}
-                      fillOpacity={0.14}
+                      legendType="none"
+                      fill={`url(#${chartId}-${s.key}-outer)`}
+                      fillOpacity={0.5}
                       isAnimationActive={false}
                     />
                     <Area
@@ -254,39 +290,34 @@ function GlucoseChart({
                       name={`${s.label} · inner spread`}
                       legendType="none"
                       stroke="none"
-                      fill={s.color}
-                      fillOpacity={0.28}
+                      fill={`url(#${chartId}-${s.key}-inner)`}
+                      fillOpacity={0.55}
                       isAnimationActive={false}
                     />
                   </React.Fragment>
                 ))}
-            {series
-              .filter(
-                (s) =>
-                  history ||
-                  showCentre ||
-                  !s.range ||
-                  s.range.points.every(
-                    (point) => point.outer[0] === point.outer[1],
-                  ),
-              )
-              .map((s) => (
-                <Line
-                  key={s.key}
-                  type="linear"
-                  dataKey={s.key}
-                  name={s.label}
-                  legendType={
-                    hasRanges && !showCentre && s.range ? "none" : "line"
-                  }
-                  stroke={s.color}
-                  strokeWidth={s.key === "observed" ? 1 : 2}
-                  strokeDasharray={s.key === "scenario" ? "6 3" : undefined}
-                  dot={false}
-                  connectNulls
-                  isAnimationActive={false}
-                />
-              ))}
+            {series.map((s) => (
+              <Line
+                key={s.key}
+                type="linear"
+                dataKey={
+                  !history && !showCentre && s.range
+                    ? `${s.key}_average`
+                    : s.key
+                }
+                name={
+                  !history && !showCentre && s.range
+                    ? `${s.label} · range average`
+                    : s.label
+                }
+                stroke={s.color}
+                strokeWidth={s.key === "observed" ? 1 : 2.5}
+                strokeDasharray={s.key === "scenario" ? "6 3" : undefined}
+                dot={false}
+                connectNulls
+                isAnimationActive={false}
+              />
+            ))}
           </ComposedChart>
         </ResponsiveContainer>
         {!hasData && (
@@ -312,6 +343,40 @@ function GlucoseChart({
           </div>
         )}
       </div>
+      {!history && (
+        <div
+          data-testid="prediction-risk-legend"
+          className="mt-4 space-y-2 rounded-xl border border-slate-100 bg-slate-50/70 p-3"
+        >
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {glucoseReferenceZones.map((zone) => (
+              <span
+                key={zone.label}
+                className="inline-flex items-center gap-1.5 text-[10px] text-slate-600"
+              >
+                <span
+                  className="h-2.5 w-2.5 rounded-sm"
+                  style={{ backgroundColor: zone.color }}
+                />
+                {zone.label}
+              </span>
+            ))}
+          </div>
+          <p className="text-[10px] leading-relaxed text-slate-500">
+            Glucose reference zones · mg/dL; personal targets may differ.
+            Colours mark the glucose level inside the band, not a risk
+            probability.
+          </p>
+          {hasRanges && !showCentre && (
+            <p className="text-[10px] leading-relaxed text-slate-500">
+              Middle line: range average = (lower + upper bound) ÷ 2. Light
+              shading is the outer reference; darker shading is the inner
+              spread. This midpoint is not a population mean or a new model
+              prediction.
+            </p>
+          )}
+        </div>
+      )}
       {!history && (
         <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
           Axis zoom changes the display only. Centre estimates and range bounds
@@ -544,10 +609,10 @@ function ForecastPanel({
   function download() {
     if (!current) return;
     const lines = [
-      "engine,timestamp,baseline_glucose_mg_dl,scenario_glucose_mg_dl,baseline_reference_low,baseline_reference_high,scenario_reference_low,scenario_reference_high,range_method",
+      "engine,timestamp,baseline_glucose_mg_dl,scenario_glucose_mg_dl,baseline_reference_low,baseline_reference_high,scenario_reference_low,scenario_reference_high,range_method,baseline_range_average,scenario_range_average",
       ...output!.baseline.map(
         (point, index) =>
-          `${activeSimulation ? "unvalidated-physiology" : "gru"},${point.timestamp},${point.value},${output!.scenario[index]?.value ?? ""},${baselineRange?.points[index]?.outer[0] ?? ""},${baselineRange?.points[index]?.outer[1] ?? ""},${scenarioRange?.points[index]?.outer[0] ?? ""},${scenarioRange?.points[index]?.outer[1] ?? ""},${baselineRange?.method ?? "unavailable"}`,
+          `${activeSimulation ? "unvalidated-physiology" : "gru"},${point.timestamp},${point.value},${output!.scenario[index]?.value ?? ""},${baselineRange?.points[index]?.outer[0] ?? ""},${baselineRange?.points[index]?.outer[1] ?? ""},${scenarioRange?.points[index]?.outer[0] ?? ""},${scenarioRange?.points[index]?.outer[1] ?? ""},${baselineRange?.method ?? "unavailable"},${baselineRange?.points[index] ? rangeAverage(baselineRange.points[index].outer) : ""},${scenarioRange?.points[index] ? rangeAverage(scenarioRange.points[index].outer) : ""}`,
       ),
     ];
     const url = URL.createObjectURL(
@@ -577,7 +642,7 @@ function ForecastPanel({
             label: activeSimulation
               ? "Scheduled events (physiology)"
               : "What-if prediction",
-            color: "#e07a36",
+            color: "#7c3aed",
             points: output?.scenario ?? [],
             range: scenarioRange,
           },
@@ -1056,6 +1121,11 @@ function ForecastPanel({
                     ? "Hypothetical CGM at each 15-minute step; not a validated patient prediction"
                     : "Predicted CGM at each future 15-minute step"}
                 </p>
+                <p className="mt-1 text-[10px] text-slate-400">
+                  Centre columns retain the original estimates. Chart
+                  range-average lines use the bounds' midpoint, which is also
+                  included in the CSV.
+                </p>
               </div>
               <button
                 disabled={!current}
@@ -1496,7 +1566,7 @@ function ForecastPanel({
               <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-400">
                 Research and education only; not for diagnosis, treatment, or
                 insulin dosing. Meal and insulin effects are learned from sparse
-                historical events. Reference lines are shown at 70, 140, 180 and
+                historical events. Reference lines are shown at 54, 70, 180 and
                 250 mg/dL.
               </p>
             </section>

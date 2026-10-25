@@ -3,6 +3,8 @@ import { Plus, Trash2, CalendarClock } from "lucide-react";
 import {
   clockInput,
   compileScenario,
+  cookedRiceCarbohydrate,
+  cookedRiceReferenceUrl,
   eventNames,
   recordTime,
   type ScenarioDraft,
@@ -25,14 +27,27 @@ export function ScenarioBuilder({
   start?: string;
   hours: number;
   disabled?: boolean;
-  onRun: (events: ReturnType<typeof compileScenario>) => void;
+  onRun: (events: ReturnType<typeof compileScenario>) => boolean | void;
   onReset: () => void;
 }) {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState("");
   const origin = start ? recordTime(start) : NaN;
   const patch = (id: string, update: Partial<ScenarioDraft>) => {
-    onChange(value.map((row) => (row.id === id ? { ...row, ...update } : row)));
+    onChange(
+      value.map((row) => {
+        if (row.id !== id) return row;
+        const next = { ...row, ...update };
+        if (
+          next.kind === "meal" &&
+          next.carbohydrateSource === "usda-cooked-white-rice"
+        ) {
+          const estimate = cookedRiceCarbohydrate(Number(next.amount));
+          next.carbohydrate = estimate === null ? "" : String(estimate);
+        }
+        return next;
+      }),
+    );
     setError("");
   };
   return (
@@ -46,8 +61,8 @@ export function ScenarioBuilder({
       onSubmit={(event) => {
         event.preventDefault();
         try {
-          onRun(compileScenario(value, start || "", hours));
-          setSubmitted(JSON.stringify(value));
+          const completed = onRun(compileScenario(value, start || "", hours));
+          if (completed !== false) setSubmitted(JSON.stringify(value));
           setError("");
         } catch (reason) {
           setError(
@@ -210,7 +225,28 @@ export function ScenarioBuilder({
               {row.kind === "meal" && (
                 <>
                   <label className="block text-[11px] text-slate-500">
-                    Available carbohydrate (g)
+                    Carbohydrate entry method
+                    <select
+                      aria-label={`Event ${index + 1} carbohydrate source`}
+                      className={input}
+                      value={row.carbohydrateSource || "manual"}
+                      onChange={(event) =>
+                        patch(row.id, {
+                          carbohydrateSource: event.target
+                            .value as ScenarioDraft["carbohydrateSource"],
+                        })
+                      }
+                    >
+                      <option value="manual">
+                        Manual · food label / measured estimate
+                      </option>
+                      <option value="usda-cooked-white-rice">
+                        Cooked white rice · USDA reference estimate
+                      </option>
+                    </select>
+                  </label>
+                  <label className="block text-[11px] text-slate-500">
+                    Carbohydrate excluding fibre (g), not food weight
                     <input
                       aria-label={`Event ${index + 1} carbohydrate`}
                       type="number"
@@ -219,6 +255,9 @@ export function ScenarioBuilder({
                       max={200}
                       step={0.1}
                       className={input}
+                      readOnly={
+                        row.carbohydrateSource === "usda-cooked-white-rice"
+                      }
                       value={row.carbohydrate}
                       onChange={(event) =>
                         patch(row.id, { carbohydrate: event.target.value })
@@ -229,6 +268,41 @@ export function ScenarioBuilder({
                       not carbohydrate weight; names do not determine nutrients.
                     </span>
                   </label>
+                  {row.carbohydrateSource === "usda-cooked-white-rice" ? (
+                    <p className="rounded-lg bg-teal-50 p-3 text-[10px] leading-relaxed text-teal-900">
+                      Reference estimate: {row.amount || "—"} g cooked white
+                      rice → {row.carbohydrate || "—"} g carbohydrate excluding
+                      fibre. Uses (28.17 − 0.4) g / 100 g; recipes and water
+                      content vary. Only use if the entire portion is cooked
+                      white rice, not dry rice or a mixed meal.{" "}
+                      <a
+                        href={cookedRiceReferenceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        USDA source
+                      </a>
+                    </p>
+                  ) : (
+                    Number(row.amount) > 0 &&
+                    Number(row.carbohydrate) / Number(row.amount) >= 0.9 && (
+                      <p
+                        role="status"
+                        className="rounded-lg bg-amber-50 p-3 text-[10px] leading-relaxed text-amber-950"
+                      >
+                        Check units: this specifies{" "}
+                        {(
+                          (Number(row.carbohydrate) / Number(row.amount)) *
+                          100
+                        ).toFixed(0)}
+                        % carbohydrate by food weight. Food weight and
+                        carbohydrate weight are different. If this is cooked
+                        rice, select the cooked-rice reference instead of
+                        copying the portion weight.
+                      </p>
+                    )
+                  )}
                   <label className="block text-[11px] text-slate-500">
                     Assumed absorption speed
                     <select

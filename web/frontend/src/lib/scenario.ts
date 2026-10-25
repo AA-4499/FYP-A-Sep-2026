@@ -9,8 +9,18 @@ export interface ScenarioDraft {
   description: string;
   amount: string;
   carbohydrate: string;
+  carbohydrateSource?: "manual" | "usda-cooked-white-rice";
   absorption: string;
   intensity: "moderate" | "intense";
+}
+// USDA SR28 NDB 20045: 28.17 g carbohydrate by difference and 0.4 g fibre / 100 g.
+// Subtracting fibre is an explicit approximate available-carbohydrate convention.
+export const cookedRiceReferenceUrl =
+  "https://www.ars.usda.gov/ARSUserFiles/80400535/Data/SR/SR28/reports/sr28fg20.pdf#page=325";
+export function cookedRiceCarbohydrate(foodGrams: number): number | null {
+  if (!Number.isFinite(foodGrams) || foodGrams <= 0 || foodGrams > 2000)
+    return null;
+  return Number(((foodGrams * (28.17 - 0.4)) / 100).toFixed(1));
 }
 export const eventNames: Record<ScenarioKind, string> = {
   meal: "Food / drink",
@@ -73,6 +83,13 @@ export function compileScenario(
       if (draft.kind === "meal") {
         const carbohydrate = Number(draft.carbohydrate);
         const absorptionMinutes = Number(draft.absorption);
+        if (
+          draft.carbohydrateSource === "usda-cooked-white-rice" &&
+          carbohydrate !== cookedRiceCarbohydrate(amount)
+        )
+          throw new Error(
+            `${label}: the cooked-rice estimate no longer matches the portion. Re-select the reference or choose manual entry.`,
+          );
         if (
           !draft.carbohydrate.trim() ||
           !Number.isFinite(carbohydrate) ||

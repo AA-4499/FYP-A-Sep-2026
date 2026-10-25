@@ -144,6 +144,7 @@
  ];
  const details = empty ? [] : Array.from({length:96}, (_,i) => ({id:i,'Patient Number':'test-a',Date:new Date(Date.UTC(2020,0,1+Math.floor(i/48),0,(i%48)*15)).toISOString(),'CGM (mg / dl)':140+100*Math.sin((i%48)/6)+20*Math.floor(i/48)}));
  if(parameters.has('repo')) { summaries[0]['Patient Number']='2000_0_20201230'; details.forEach(row=>row['Patient Number']='2000_0_20201230'); }
+ if(parameters.has('edge')) { summaries[0]['Patient Number']='2097_0_20201116'; details.forEach(row=>row['Patient Number']='2097_0_20201116'); }
  const client = getSupabaseClient()!;
  (window as any).__clinicalReads = 0;
  let authCallback:any;
@@ -718,6 +719,85 @@
     );
     console.log(
       "PASS: complete paging, database failures, all navigation, Patient isolation, physiology events, and mobile layout",
+    );
+    await open("?edge");
+    await ready("2 accessible records");
+    await expectPage("Prediction lab", "Repository GRU");
+    await ready("Browser GRU computed successfully");
+    assert(
+      await evaluate(`document.body.innerText.includes('217.8 mg/dL')`),
+      "Screenshot record did not use its actual repository seed",
+    );
+    await addScenarioEvent("meal", {
+      description: "rice",
+      amount: "200",
+      carbohydrate: "200",
+    });
+    const riceTime = await eventClock(120);
+    await evaluate(
+      `(() => {const input=document.querySelector('[aria-label="Event 1 time"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(riceTime)});input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+    );
+    await click("Run what-if simulation");
+    await ready("What-if scenario was not calculated");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="simulation-failure"]').innerText.includes('200.0 g carbohydrate') && document.querySelector('[data-testid="simulation-failure"]').innerText.includes('only the baseline GRU') && !document.querySelector('[data-testid="scenario-result"]')`,
+      ),
+      "Failed scenario was presented as an applied result",
+    );
+    await chartScreenshot("what-if-invalid-carbohydrate.png");
+    await evaluate(
+      `(() => {const select=document.querySelector('[aria-label="Event 1 carbohydrate source"]');select.value='usda-cooked-white-rice';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+    );
+    assert(
+      await evaluate(
+        `document.querySelector('[aria-label="Event 1 carbohydrate"]').value==='55.5' && document.querySelector('[aria-label="Event 1 carbohydrate"]').readOnly`,
+      ),
+      "Cooked rice portion was not explicitly converted to carbohydrate",
+    );
+    await click("Run what-if simulation");
+    await ready("Physiology scenario computed");
+    assert(
+      await evaluate(
+        `!document.querySelector('[data-testid="simulation-failure"]') && document.querySelector('[data-testid="scenario-result"]').innerText.includes('55.5 g carbohydrate (USDA cooked-rice estimate)')`,
+      ),
+      "Corrected cooked-rice scenario did not recover",
+    );
+    const successfulRice = await evaluate(
+      `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+    );
+    await chartScreenshot("what-if-cooked-rice-working.png");
+    await evaluate(
+      `(() => {const select=document.querySelector('[aria-label="Event 1 carbohydrate source"]');select.value='manual';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+    );
+    await evaluate(
+      `(() => {const input=document.querySelector('[aria-label="Event 1 carbohydrate"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'200');input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+    );
+    await click("Run what-if simulation");
+    await ready("What-if scenario was not calculated");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="simulation-failure"]').innerText.includes('last successful applied schedule')`,
+      ),
+      "Retry failure did not identify the retained prior result",
+    );
+    assert(
+      (await evaluate(
+        `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+      )) === successfulRice,
+      "A failed draft replaced the last successful scenario",
+    );
+    await ready("Draft changes are not applied");
+    await click("Clear events and return to baseline");
+    await ready("Browser GRU computed successfully");
+    assert(
+      await evaluate(
+        `!document.querySelector('[data-testid="simulation-failure"]') && !document.querySelector('[data-testid="scenario-result"]')`,
+      ),
+      "Reset did not clear failed scenario state",
+    );
+    console.log(
+      "PASS: exact screenshot record, 200g carbohydrate failure, explicit 200g cooked-rice conversion, successful recovery and honest retained-result/reset states",
     );
     await send("Page.navigate", {
       url: "http://127.0.0.1:3000/.ui-check/navigation-fixture.html?recovery",

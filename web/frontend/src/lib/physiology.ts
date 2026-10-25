@@ -27,6 +27,17 @@ export interface PhysiologyPoint {
   gutGrams: number;
   insulinOnBoard: number;
 }
+export class PhysiologyDomainError extends Error {
+  constructor(
+    public minute: number,
+    public simulatedGlucose: number,
+  ) {
+    super(
+      `The simulated plasma glucose ${Number.isFinite(simulatedGlucose) ? `reached ${simulatedGlucose.toFixed(0)} mg/dL` : "became non-finite"} at +${minute} minutes, outside this model's 20–600 mg/dL domain. Review carbohydrate grams, event amounts and model assumptions. This is a model limit, not a measured patient result.`,
+    );
+    this.name = "PhysiologyDomainError";
+  }
+}
 export function simulatePhysiology(
   initialGlucose: number,
   hours: number,
@@ -169,9 +180,7 @@ export function simulatePhysiology(
     sensor += (glucose - sensor) / 10;
     glucose += glucoseChange;
     if (!Number.isFinite(glucose) || glucose < 20 || glucose > 600)
-      throw new Error(
-        "This scenario left the model domain (20–600 mg/dL). No trustworthy curve can be shown for these assumptions.",
-      );
+      throw new PhysiologyDomainError(minute + 1, glucose);
     if ((minute + 1) % 5 === 0) points.push(point(minute + 1));
   }
   return points;

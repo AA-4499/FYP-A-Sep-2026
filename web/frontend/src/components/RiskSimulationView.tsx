@@ -2,6 +2,7 @@ import { PhysiologyLab } from "./PhysiologyLab";
 import { ScenarioBuilder } from "./ScenarioBuilder";
 import {
   simulatePhysiology,
+  PhysiologyDomainError,
   type PhysiologyAssumptions,
 } from "../lib/physiology";
 import { clinicalNumber } from "../lib/clinicalData";
@@ -460,7 +461,7 @@ function ForecastPanel({
   }
 
   function runScenario(plan: ReturnType<typeof compileScenario>) {
-    if (!current) return;
+    if (!current) return false;
     try {
       const baseline = simulatePhysiology(
         current.latest_glucose,
@@ -506,11 +507,19 @@ function ForecastPanel({
         ),
       });
       setSimulationError("");
+      return true;
     } catch (reason) {
-      setSimulation(null);
+      const carbohydrate = plan.events
+        .filter((event) => event.kind === "carbohydrate")
+        .reduce((sum, event) => sum + event.amount, 0);
       setSimulationError(
-        reason instanceof Error ? reason.message : "Simulation unavailable.",
+        reason instanceof PhysiologyDomainError
+          ? `${reason.message} This draft supplies ${carbohydrate.toFixed(1)} g carbohydrate in total; that is not the total food weight. Check the meal entry method and carbohydrate amount before rerunning.`
+          : reason instanceof Error
+            ? reason.message
+            : "Simulation unavailable.",
       );
+      return false;
     }
   }
 
@@ -883,7 +892,7 @@ function ForecastPanel({
                       : "Loading CGM history and running the GRU model..."}
               </p>
             )}
-            {!loading && !error && current && (
+            {!loading && !error && !simulationError && current && (
               <p className="flex items-center gap-2 text-xs text-emerald-700">
                 <CheckCircle2 size={14} />
                 {activeSimulation
@@ -900,6 +909,21 @@ function ForecastPanel({
           </div>
 
           <section className={card} data-testid="prediction-panel">
+            {simulationError && (
+              <div
+                role="alert"
+                data-testid="simulation-failure"
+                className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-950"
+              >
+                <p className="font-bold">What-if scenario was not calculated</p>
+                <p className="mt-2">{simulationError}</p>
+                <p className="mt-2 font-semibold">
+                  {activeSimulation
+                    ? "The chart and table still show the last successful applied schedule below, not the failed draft."
+                    : "The chart and table below show only the baseline GRU forecast. No what-if event from the failed draft has been applied."}
+                </p>
+              </div>
+            )}
             {!!activeSimulation?.unmodelled.length && (
               <p
                 role="status"
@@ -1159,10 +1183,11 @@ function ForecastPanel({
           )}
           {simulationError && (
             <p
-              role="alert"
+              role="status"
               className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-900"
             >
-              {simulationError}
+              Scenario not calculated. Review the explanation above the chart
+              and check the carbohydrate entry method and amount.
             </p>
           )}
           {activeSimulation && (
@@ -1179,7 +1204,7 @@ function ForecastPanel({
                   <li key={row.id}>
                     {row.at.replace("T", " ")} - {row.description}
                     {row.kind === "meal"
-                      ? ` - ${row.carbohydrate} g carbohydrate`
+                      ? ` - ${row.carbohydrate} g carbohydrate${row.carbohydrateSource === "usda-cooked-white-rice" ? " (USDA cooked-rice estimate)" : " (manual entry)"}`
                       : row.kind === "insulin"
                         ? ` - ${row.amount} units`
                         : row.kind === "activity"

@@ -18,8 +18,10 @@ async function moduleFor(name) {
     `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`
   );
 }
-const { compileScenario, clockInput, recordTime } = await moduleFor("scenario");
-const { simulatePhysiology } = await moduleFor("physiology");
+const { compileScenario, clockInput, recordTime, cookedRiceCarbohydrate } =
+  await moduleFor("scenario");
+const { simulatePhysiology, PhysiologyDomainError } =
+  await moduleFor("physiology");
 const start = "2020-01-01T23:00:00";
 const meal = {
   id: "meal-a",
@@ -38,6 +40,50 @@ const assumptions = {
   sensitivity: 0.7,
   absorptionMinutes: 45,
 };
+
+test("cooked-rice reference converts portion mass explicitly and cannot reuse a stale estimate", () => {
+  assert.equal(cookedRiceCarbohydrate(200), 55.5);
+  assert.equal(cookedRiceCarbohydrate(400), 111.1);
+  for (const invalid of [0, -1, NaN, Infinity, 2001])
+    assert.equal(cookedRiceCarbohydrate(invalid), null);
+  const rice = {
+    ...meal,
+    amount: "200",
+    carbohydrate: "55.5",
+    carbohydrateSource: "usda-cooked-white-rice",
+  };
+  const plan = compileScenario([rice], start, 6);
+  assert.equal(plan.events[0].amount, 55.5);
+  assert.equal(plan.schedule[0].amount, "200");
+  assert.equal(plan.schedule[0].carbohydrateSource, "usda-cooked-white-rice");
+  assert.throws(
+    () => compileScenario([{ ...rice, amount: "400" }], start, 6),
+    /estimate no longer matches/,
+  );
+});
+
+test("screenshot scenario distinguishes 200 g carbohydrate from 200 g cooked rice without relaxing model bounds", () => {
+  const seeded = { ...assumptions, basalGlucose: 217.8 };
+  assert.throws(
+    () =>
+      simulatePhysiology(217.8, 6, seeded, [
+        { kind: "carbohydrate", minute: 120, amount: 200 },
+      ]),
+    (error) => {
+      assert.ok(error instanceof PhysiologyDomainError);
+      assert.ok(error.minute > 120 && error.minute < 360);
+      assert.ok(error.simulatedGlucose > 600);
+      assert.match(error.message, /not a measured patient result/);
+      return true;
+    },
+  );
+  const rows = simulatePhysiology(217.8, 6, seeded, [
+    { kind: "carbohydrate", minute: 120, amount: cookedRiceCarbohydrate(200) },
+  ]);
+  assert.ok(rows.every((row) => Number.isFinite(row.glucose)));
+  assert.ok(Math.max(...rows.map((row) => row.glucose)) > 217.8);
+  assert.ok(Math.max(...rows.map((row) => row.glucose)) < 600);
+});
 
 test("record-clock schedule crosses midnight and preserves two meals and an injection in chronological order", () => {
   const plan = compileScenario(

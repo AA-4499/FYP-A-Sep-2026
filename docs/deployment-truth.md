@@ -10,14 +10,22 @@ verified, so a reader can re-run the check instead of trusting this file.
 | Vercel project | `smart-diabetes-digital-twin-and-personalised-health-management-platform` | Vercel project API |
 | Public URL | https://frontend-ecru-nine-89.vercel.app | HTTP GET returned 200 with the app shell |
 | Production branch | `main` | Vercel project settings |
-| Production deployment | `dpl_86x5yNtEfNJtFu1fm1SDToxV8VFf`, commit `09c5867`, built 2026-10-15 01:24 UTC | Vercel deployments API |
+| Production deployment | commit `09c5867` on 2026-10-15, superseded by `f1500be` on 2026-10-25 | Vercel deployments API; `git rev-parse origin/main` |
+| Branch shape | `origin/main` == `origin/TrainingModel` == `f1500be` | `git rev-parse` on both refs |
 | Root Directory | `web/frontend` | Vercel project settings |
-| Node.js at build | 24.x for `main`; becomes 22.x once `package.json` `engines` ships | Vercel build log |
-| Custom environment variables | **none in Production, Preview or Development** | Vercel environment-variable API returned an empty list |
+| Node.js at build | 24.x for `09c5867`; `22.x` once `package.json` `engines` ships | Vercel build log |
+| Custom environment variables | **verified empty on 2026-10-25** across Production, Preview and Development | Vercel environment-variable API returned an empty list |
 
-Because there are no `VITE_*` variables in Production, the deployed `main`
-bundle has no Supabase URL/key and no model-service URL. It renders the local
-fallback dataset only.
+`09c5867` carried no model assets: its `public/` held only `favicon.svg`, so
+`/browser-model/gru.json` fell through the SPA rewrite and returned HTML. After
+`f1500be` both asset paths return real JSON:
+
+```text
+GET /browser-model/gru.json                          -> 200 application/json, 222540 bytes
+GET /forecast-preview/2000_0_20201230.json           -> 200 application/json, 110677 bytes
+```
+
+Re-check with `curl.exe -sI <url>` and assert on `content-type`, never on status.
 
 ## 2. Deployment protection
 
@@ -43,16 +51,16 @@ pattern for new assets.
 
 ## 4. Clinical data access (open issue)
 
-The Supabase project `dgtaujhgwxmoghqdqkti` currently allows **anonymous reads**
-with the publishable key:
+**Status: closed and verified on 2026-10-25.** An anonymous read with the
+publishable key previously returned real rows from both tables; after the
+migrations below were applied it returns `[]`:
 
 ```text
-GET /rest/v1/patient_detail?select=Patient Number&limit=1&apikey=<publishable>  ->  200, one row
-GET /rest/v1/patient_summary?select=Patient Number&limit=1&apikey=<publishable> ->  200, one row
+GET /rest/v1/patient_detail?select=Patient Number&limit=1&apikey=<publishable>  ->  []
+GET /rest/v1/patient_summary?select=Patient Number&limit=1&apikey=<publishable> ->  []
 ```
 
-The migrations that close this already exist in the repository and only need to
-be applied, in this order:
+The migrations that close it, in the order they must be applied:
 
 1. `docs/supabase_doctor_role_migration.sql`
 2. `docs/supabase_patient_registration.sql`
@@ -63,8 +71,8 @@ be applied, in this order:
 tables. That comment is superseded by `supabase_patient_dashboard.sql`; do not
 implement a second, competing policy set.
 
-Do not add `VITE_SUPABASE_ANON_KEY` to Vercel Production until the anonymous
-read above returns `[]` or 401.
+Re-run the two commands above after any policy change. A non-empty array means
+the regression is back, and `VITE_SUPABASE_ANON_KEY` must be treated as leaked.
 
 ## 5. Prototype clinical endpoints are gated
 

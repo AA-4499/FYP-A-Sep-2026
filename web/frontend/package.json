@@ -11,10 +11,13 @@
     "build": "tsc && vite build",
     "test:admin": "node --test tests/adminDemo.test.mjs",
     "test:auth": "node --test tests/accountAuth.test.mjs",
+    "test:browser": "node --test tests/browserGru.test.mjs",
     "test:patient": "node --test tests/patientDashboard.test.mjs",
     "test:database": "node --test tests/patientProvisioning.test.mjs",
     "test:navigation": "node tests/workspaceNavigation.cjs",
     "test:clinical": "node --test tests/clinicalData.test.mjs",
+    "test:scenario": "node --test tests/scenario.test.mjs",
+    "test": "node --test tests && node tests/workspaceNavigation.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

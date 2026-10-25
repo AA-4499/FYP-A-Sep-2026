@@ -47,12 +47,15 @@ From `web/frontend`:
 
 ```powershell
 node --test tests/browserGru.test.mjs
+npm test
 npm run build
 ```
 
 Numerical tests compare 3/6/12-hour baseline and legacy combined meal/insulin forecasts for two actual repository records against Python/PyTorch, with a maximum permitted deviation of 0.001 mg/dL. Legacy learned event features remain available internally for compatibility, but the updated UI uses a carbohydrate-based mechanistic scenario instead of treating food mass as carbohydrate. Tests also verify the original checkpoint digest, all bundled histories, event timing, deterministic resets, invalid events and corrupted weights. The browser regression executes the real Worker, checks scheduled physiological scenarios and complete 12-hour GRU outputs, and retains missing-record and Patient-isolation checks.
 
 This is numerical compatibility with the existing research model, not evidence of clinical accuracy. Long-horizon forecast validity and causal treatment effects are not established by parity tests. The legacy model's food-mass and insulin feature limitations remain described in [the model audit](conditional-model-audit.md). The separate Physiology lab still uses explicit hypothetical mechanisms and is not the GRU.
+
+`npm test` runs all `*.test.mjs` unit/numerical suites, including range tests, in CI without Chrome or a dev server. The separate `npm run test:navigation` browser regression requires Vite on port 3000 and a configured Chrome installation; it is not launched implicitly by the unit-test command.
 
 ## Switch back to cloud history later
 

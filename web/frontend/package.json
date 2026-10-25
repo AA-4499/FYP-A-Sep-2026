@@ -17,7 +17,8 @@
     "test:navigation": "node tests/workspaceNavigation.cjs",
     "test:clinical": "node --test tests/clinicalData.test.mjs",
     "test:scenario": "node --test tests/scenario.test.mjs",
-    "test": "node --test tests && node tests/workspaceNavigation.cjs",
+    "test:ranges": "node --test tests/forecastRanges.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

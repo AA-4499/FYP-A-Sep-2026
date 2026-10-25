@@ -137,6 +137,7 @@
  const denied = parameters.has('denied');
  const patientLogin = parameters.has('patient');
  const anonymous = parameters.has('anonymous') || empty;
+ const recovering = parameters.has('recovery');
  const summaries = empty ? [] : [
    {'Patient Number':'test-a','Age (years)':55,'HbA1c (mmol/mol)':66,'Weight (kg)':70,'Fasting Plasma Glucose (mg/dl)':130,'Type of Diabetes':'T2D'},
    {'Patient Number':'test-b','Age (years)':null,'HbA1c (mmol/mol)':null},
@@ -144,12 +145,19 @@
  const details = empty ? [] : Array.from({length:96}, (_,i) => ({id:i,'Patient Number':'test-a',Date:new Date(Date.UTC(2020,0,1+Math.floor(i/48),0,(i%48)*15)).toISOString(),'CGM (mg / dl)':140+100*Math.sin((i%48)/6)+20*Math.floor(i/48)}));
  if(parameters.has('repo')) { summaries[0]['Patient Number']='2000_0_20201230'; details.forEach(row=>row['Patient Number']='2000_0_20201230'); }
  const client = getSupabaseClient()!;
+ (window as any).__clinicalReads = 0;
+ let authCallback:any;
  const user = {id:patientLogin?'browser-patient':'browser-doctor',email:patientLogin?'patient@example.test':'doctor@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:patientLogin?'patient':'doctor'},user_metadata:{role:'doctor'}};
  client.auth.getUser = async () => ({data:{user},error:null}) as any;
  client.auth.getSession = async () => ({data:{session:anonymous?null:{user,access_token:'fixture-token'}},error:null}) as any;
- client.auth.onAuthStateChange = (callback:any) => {setTimeout(()=>callback('INITIAL_SESSION',anonymous ? null : {user}),0);return {data:{subscription:{unsubscribe(){}}}};};
- client.rpc = async () => ({data:{profile:{id:user.id,full_name:'Test Patient',patient_id:'test-a'},summary:summaries[0],readings:[]},error:null}) as any;
+ client.auth.onAuthStateChange = (callback:any) => {authCallback=callback;setTimeout(()=>callback(recovering?'PASSWORD_RECOVERY':'INITIAL_SESSION',anonymous ? null : {user}),0);return {data:{subscription:{unsubscribe(){}}}};};
+ client.auth.signInWithPassword = async ({password}:any) => {if(password!=='fixture-password') return {data:{session:null},error:{message:'Invalid login credentials'}} as any;const session={user,access_token:'fixture-token'};authCallback('SIGNED_IN',session);return {data:{session,user},error:null} as any;};
+ (window as any).__backgroundSignIn = () => authCallback('SIGNED_IN',{user});
+ client.auth.updateUser = async () => ({data:{user},error:null}) as any;
+ client.auth.signOut = async () => {authCallback('SIGNED_OUT',null);return {error:null};};
+ client.rpc = async () => ((window as any).__clinicalReads++, {data:{profile:{id:user.id,full_name:'Test Patient',patient_id:'test-a'},summary:summaries[0],readings:[]},error:null}) as any;
  client.from = (table:string) => {
+   (window as any).__clinicalReads++;
    let selected:string|undefined;
    const query:any={select:()=>query,order:()=>query,eq:(_key:string,value:string)=>{selected=value;return query;},range:async(start:number,end:number)=>{
      if(denied) return {data:null,count:null,error:{message:'Database access denied'}};
@@ -207,12 +215,41 @@
       await send("Page.navigate", {
         url: "http://127.0.0.1:3000/.ui-check/navigation-fixture.html" + query,
       });
+      await ready("Welcome back");
+      await evaluate(`window.__backgroundSignIn()`);
+      await delay(100);
+      assert(
+        await evaluate(
+          `!document.querySelector('aside') && window.__clinicalReads===0`,
+        ),
+        "Restored account skipped the login page or loaded patient data before sign-in",
+      );
       if (query.includes("empty") || query.includes("anonymous")) {
-        await ready("Welcome back");
         await click("Preview workspace");
+      } else {
+        await evaluate(
+          `(() => {for(const [selector,value] of [['input[type="email"]','fixture@example.test'],['input[type="password"]','fixture-password']]) {const input=document.querySelector(selector);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));}})()`,
+        );
+        if (query.includes("logincheck")) {
+          await evaluate(
+            `(() => {const input=document.querySelector('input[type="password"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'wrong-fixture-password');input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+          );
+          await click("Sign in");
+          await ready("Invalid login credentials");
+          assert(
+            await evaluate(
+              `!document.querySelector('aside') && window.__clinicalReads===0`,
+            ),
+            "Failed login opened a restored account",
+          );
+          await evaluate(
+            `(() => {const input=document.querySelector('input[type="password"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'fixture-password');input.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+          );
+        }
+        await click("Sign in");
       }
     };
-    await open("");
+    await open("?logincheck");
     await ready("2 accessible records");
     for (const [label, text] of [
       ["Patient management", "Patient List & Clinical Profiles"],
@@ -681,6 +718,30 @@
     );
     console.log(
       "PASS: complete paging, database failures, all navigation, Patient isolation, physiology events, and mobile layout",
+    );
+    await send("Page.navigate", {
+      url: "http://127.0.0.1:3000/.ui-check/navigation-fixture.html?recovery",
+    });
+    await ready("Choose a new password");
+    assert(
+      await evaluate(
+        `!document.querySelector('aside') && window.__clinicalReads===0`,
+      ),
+      "Password recovery opened an account workspace",
+    );
+    await evaluate(
+      `(() => {for(const input of document.querySelectorAll('input[type="password"]')) {Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'new-fixture-password');input.dispatchEvent(new Event('input',{bubbles:true}));}})()`,
+    );
+    await click("Update password");
+    await ready("Welcome back");
+    assert(
+      await evaluate(
+        `!document.querySelector('aside') && window.__clinicalReads===0`,
+      ),
+      "Password reset automatically logged into a workspace",
+    );
+    console.log(
+      "PASS: login first despite restored/background sessions, invalid password stays signed out, explicit Doctor/Patient sign-in, and password recovery returns to login",
     );
     await send("Browser.close");
   } catch (error) {

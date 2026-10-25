@@ -1,9 +1,11 @@
 # Patient registration and personal dashboard
 
 This milestone connects Patient signup, email confirmation/resend, email/password login,
-session restoration, local sign-out, and password recovery to Supabase. Doctor applications
+explicit sign-in, local sign-out, and password recovery to Supabase. Doctor applications
 and live Admin approvals remain a separate next step. The old `AuthView.tsx` is an unused
 design prototype; the active form is `AccountAuthView.tsx`.
+
+Opening or reloading the app starts at the login page. Supabase sessions are held in memory (`persistSession: false`), and `AuthGateway` ignores restored/background sign-in events until the user successfully submits this page's login form. Patient data is not loaded before that action. Current-page token refresh continues to work after sign-in. Password-recovery links open the reset form and return to login when complete; they do not open a workspace automatically.
 
 ## 1. Supabase setup (you do this once)
 

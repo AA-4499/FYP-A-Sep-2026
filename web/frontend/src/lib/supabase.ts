@@ -62,7 +62,9 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 
   try {
-    cachedClient = createClient(url, anonKey);
+    cachedClient = createClient(url, anonKey, {
+      auth: { persistSession: false },
+    });
     lastClientKey = clientKey;
     return cachedClient;
   } catch (err) {

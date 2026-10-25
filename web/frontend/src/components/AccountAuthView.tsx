@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { ArrowLeft, ArrowRight, Mail, ShieldCheck } from 'lucide-react';
 import { getSupabaseClient } from '../lib/supabase';
 import { authErrorMessage, confirmationUrl, registerPatient, validateRegistration } from '../lib/accountAuth';
 
 type Flow = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
-interface Props { recovery: boolean; initialError?: string; onPasswordUpdated: () => void; onPreview: () => void }
+interface Props { recovery: boolean; initialError?: string; onSignedIn: (session: Session) => void; onPasswordUpdated: () => void; onPreview: () => void }
 
-export function AccountAuthView({ recovery, initialError = '', onPasswordUpdated, onPreview }: Props) {
+export function AccountAuthView({ recovery, initialError = '', onSignedIn, onPasswordUpdated, onPreview }: Props) {
   const [flow, setFlow] = useState<Flow>(recovery ? 'reset' : 'signin');
   const [name, setName] = useState('');
   const [identityNumber, setIdentityNumber] = useState('');
@@ -31,9 +32,11 @@ export function AccountAuthView({ recovery, initialError = '', onPasswordUpdated
         setPassword(''); setConfirm(''); setIdentityNumber(''); setFlow('verify'); setResendAfter(Date.now() + 60000);
         setNotice('If this address can be registered, a confirmation link will be emailed to you. For an existing account, try signing in or resetting your password.');
       } else if (activeFlow === 'signin') {
-        const { error: failure } = await client.auth.signInWithPassword({ email: email.trim(), password });
+        const { data, error: failure } = await client.auth.signInWithPassword({ email: email.trim(), password });
         if (failure) throw failure;
+        if (!data.session) throw new Error('Sign-in did not return a session. Please try again.');
         setPassword('');
+        onSignedIn(data.session);
       } else if (activeFlow === 'forgot') {
         const { error: failure } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${confirmationUrl(window.location.origin)}?auth=recovery` });
         if (failure) throw failure;

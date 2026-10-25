@@ -20,6 +20,7 @@ interface DashboardViewProps {
   onNavigate: (module: NavigationModule) => void;
   sharedRecommendations?: ClinicalRecommendation[];
   selfService?: boolean;
+  canViewPredictions?: boolean;
 }
 
 
@@ -242,7 +243,7 @@ const CompactAgpChart: React.FC<{ bins: AgpBin[] }> = ({ bins }) => {
   );
 };
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate, sharedRecommendations = [], selfService = false }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigate, sharedRecommendations = [], selfService = false, canViewPredictions = false }) => {
   const metric = (value: number, suffix = '') => Number.isFinite(value) ? `${value}${suffix}` : '—';
   const canSimulate = [patient.currentRiskPct, patient.hba1c, patient.fastingGlucose, patient.bmi].every(Number.isFinite);
   // What-if sliders state (initialized to simulate 43% as in mockup)
@@ -468,7 +469,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
         </div>
 
         {/* CARD 3: What-if simulation */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between min-h-[290px] space-y-4">
+        {canViewPredictions && <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between min-h-[290px] space-y-4">
           <div>
             <h3 className="text-sm sm:text-base font-semibold text-slate-900">
               What-if simulation
@@ -559,7 +560,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
           <p className="text-[11px] text-slate-400">
             {canSimulate ? 'Simulated result, not a clinical outcome.' : 'Simulation becomes available when your measurements and risk assessment are ready.'}
           </p>
-        </div>
+        </div>}
 
         {/* CARD 4: Patient-friendly health summary (knowledge graph is clinician-only) */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between min-h-[290px]">

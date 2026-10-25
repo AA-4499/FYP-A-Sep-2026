@@ -136,6 +136,7 @@
  const empty = parameters.has('empty');
  const denied = parameters.has('denied');
  const patientLogin = parameters.has('patient');
+ const anonymous = parameters.has('anonymous') || empty;
  const summaries = empty ? [] : [
    {'Patient Number':'test-a','Age (years)':55,'HbA1c (mmol/mol)':66,'Weight (kg)':70,'Fasting Plasma Glucose (mg/dl)':130,'Type of Diabetes':'T2D'},
    {'Patient Number':'test-b','Age (years)':null,'HbA1c (mmol/mol)':null},
@@ -143,10 +144,10 @@
  const details = empty ? [] : Array.from({length:96}, (_,i) => ({id:i,'Patient Number':'test-a',Date:new Date(Date.UTC(2020,0,1+Math.floor(i/48),0,(i%48)*15)).toISOString(),'CGM (mg / dl)':140+100*Math.sin((i%48)/6)+20*Math.floor(i/48)}));
  if(parameters.has('repo')) { summaries[0]['Patient Number']='2000_0_20201230'; details.forEach(row=>row['Patient Number']='2000_0_20201230'); }
  const client = getSupabaseClient()!;
- const user = {id:'browser-patient',email:'patient@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:'patient'}};
+ const user = {id:patientLogin?'browser-patient':'browser-doctor',email:patientLogin?'patient@example.test':'doctor@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:patientLogin?'patient':'doctor'},user_metadata:{role:'doctor'}};
  client.auth.getUser = async () => ({data:{user},error:null}) as any;
- client.auth.getSession = async () => ({data:{session:null},error:null}) as any;
- client.auth.onAuthStateChange = (callback:any) => {setTimeout(()=>callback('INITIAL_SESSION',patientLogin ? {user} : null),0);return {data:{subscription:{unsubscribe(){}}}};};
+ client.auth.getSession = async () => ({data:{session:anonymous?null:{user,access_token:'fixture-token'}},error:null}) as any;
+ client.auth.onAuthStateChange = (callback:any) => {setTimeout(()=>callback('INITIAL_SESSION',anonymous ? null : {user}),0);return {data:{subscription:{unsubscribe(){}}}};};
  client.rpc = async () => ({data:{profile:{id:user.id,full_name:'Test Patient',patient_id:'test-a'},summary:summaries[0],readings:[]},error:null}) as any;
  client.from = (table:string) => {
    let selected:string|undefined;
@@ -206,7 +207,7 @@
       await send("Page.navigate", {
         url: "http://127.0.0.1:3000/.ui-check/navigation-fixture.html" + query,
       });
-      if (!query.includes("patient")) {
+      if (query.includes("empty") || query.includes("anonymous")) {
         await ready("Welcome back");
         await click("Preview workspace");
       }
@@ -295,6 +296,26 @@
       ),
       "Temporary default did not use the actual browser GRU",
     );
+    assert(
+      await evaluate(
+        `document.querySelector('[aria-label="Prediction patient"]').options.length===2`,
+      ),
+      "Doctor prediction patient list is missing",
+    );
+    await evaluate(
+      `(() => {const select=document.querySelector('[aria-label="Prediction patient"]');select.value='test-b';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+    );
+    await ready("Patient record test-b");
+    assert(
+      await evaluate(
+        `!document.querySelector('[data-testid="scenario-result"]') && !document.querySelector('[data-testid="scenario-event"]')`,
+      ),
+      "Switching patients retained another patient's scenario",
+    );
+    await evaluate(
+      `(() => {const select=document.querySelector('[aria-label="Prediction patient"]');select.value='test-a';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+    );
+    await ready("Patient record test-a");
     await click("Physiology lab");
     await ready("Glucose response and recovery");
     await addScenarioEvent("meal", {
@@ -345,9 +366,14 @@
       "Digital twin",
       "Knowledge graph",
       "Reports",
-      "Prediction lab",
     ])
       await expectPage(label, "No patient records available");
+    assert(
+      await evaluate(
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Prediction lab'))`,
+      ),
+      "Anonymous preview exposes Doctor-only prediction tools",
+    );
     await expectPage("Settings", "Workspace settings");
     await click("Sign in to view patient data");
     await ready("Welcome back");
@@ -364,7 +390,6 @@
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],
       ["Reports", "Complete recorded summary"],
-      ["Risk prediction & what-if", "CGM forecast"],
     ])
       await expectPage(label, text);
     assert(
@@ -389,9 +414,12 @@
       "Mobile My health horizontal overflow",
     );
     await screenshot("restored-my-health-mobile.png");
-    await expectPage("Risk prediction & what-if", "CGM forecast");
-    await click("Physiology lab");
-    await ready("Glucose response and recovery");
+    assert(
+      await evaluate(
+        `!document.body.innerText.includes('Risk prediction & what-if') && !document.body.innerText.includes('Explore prediction and what-if') && !document.body.innerText.includes('Open prediction and what-if lab')`,
+      ),
+      "Patient account can see Doctor-only prediction entry points",
+    );
     await send("Emulation.setDeviceMetricsOverride", {
       width: 390,
       height: 844,

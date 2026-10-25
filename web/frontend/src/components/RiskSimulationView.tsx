@@ -53,6 +53,8 @@ import {
 type Props = {
   patient: Patient;
   onNavigate: (module: NavigationModule) => void;
+  patients?: Patient[];
+  onSelectPatient?: (patientId: string) => void;
 };
 type Series = {
   key: string;
@@ -1484,6 +1486,46 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
   const [tab, setTab] = useState<"forecast" | "physiology">("forecast");
   return (
     <div className="space-y-5">
+      {props.patients && props.onSelectPatient && (
+        <section
+          className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm"
+          data-testid="prediction-patient-selector"
+        >
+          <div>
+            <p className="text-sm font-bold text-slate-900">
+              Patient for prediction
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Select an accessible record. Changing patient clears the previous
+              forecast and event scenario.
+            </p>
+          </div>
+          <label className="block w-full text-xs font-semibold text-slate-600 sm:w-auto">
+            Patient record
+            <select
+              aria-label="Prediction patient"
+              value={props.patient.id}
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm sm:min-w-64"
+              onChange={(event) => {
+                if (
+                  !props.patients?.some(
+                    (patient) => patient.id === event.target.value,
+                  )
+                )
+                  return;
+                setTab("forecast");
+                props.onSelectPatient?.(event.target.value);
+              }}
+            >
+              {props.patients.map((patient) => (
+                <option key={patient.id} value={patient.id}>
+                  {patient.id} · {patient.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </section>
+      )}
       <div
         className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2"
         role="tablist"

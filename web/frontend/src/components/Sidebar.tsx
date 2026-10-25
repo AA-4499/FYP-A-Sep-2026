@@ -19,6 +19,7 @@ interface SidebarProps {
   onReturnToCareTeam?: () => void;
   currentPatientName?: string;
   selfService?: boolean;
+  canViewPredictions?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,6 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onReturnToCareTeam,
   currentPatientName,
   selfService = false,
+  canViewPredictions = false,
 }) => {
   if (mode === "doctor") {
     const items = [
@@ -64,24 +66,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </p>
           </div>
           <nav className="grid grid-cols-2 gap-1 md:block md:space-y-1">
-            {items.map((item) => {
-              const Icon = item.icon;
-              const active = activeModule === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onSelectModule(item.id as NavigationModule)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition ${
-                    active
-                      ? "bg-teal-50 text-teal-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+            {items
+              .filter(
+                (item) =>
+                  item.id !== "doctor_predictions" || canViewPredictions,
+              )
+              .map((item) => {
+                const Icon = item.icon;
+                const active = activeModule === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onSelectModule(item.id as NavigationModule)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition ${
+                      active
+                        ? "bg-teal-50 text-teal-700"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
           </nav>
         </div>
         <div className="pt-4 border-t text-[11px] border-slate-100 text-slate-400">
@@ -118,32 +125,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: "patient_insights", label: "Risk prediction & what-if" },
             { id: "patient_recommendations", label: "My recommendations" },
             { id: "patient_reports", label: "Reports" },
-          ].map((item) => {
-            const isActive = activeModule === item.id;
-            return (
-              <button
-                key={item.id}
-                aria-current={isActive ? "page" : undefined}
-                onClick={() => onSelectModule(item.id as NavigationModule)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${
-                  isActive
-                    ? "bg-purple-100/80 text-purple-700"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
-              >
-                <span
-                  className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center text-[8px] shrink-0 ${
+          ]
+            .filter(
+              (item) => item.id !== "patient_insights" || canViewPredictions,
+            )
+            .map((item) => {
+              const isActive = activeModule === item.id;
+              return (
+                <button
+                  key={item.id}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => onSelectModule(item.id as NavigationModule)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${
                     isActive
-                      ? "border-purple-600 text-purple-600 bg-white font-bold"
-                      : "border-slate-300 text-slate-300"
+                      ? "bg-purple-100/80 text-purple-700"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
-                  {isActive ? "▪" : ""}
-                </span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+                  <span
+                    className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center text-[8px] shrink-0 ${
+                      isActive
+                        ? "border-purple-600 text-purple-600 bg-white font-bold"
+                        : "border-slate-300 text-slate-300"
+                    }`}
+                  >
+                    {isActive ? "▪" : ""}
+                  </span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
         </nav>
       </div>
 

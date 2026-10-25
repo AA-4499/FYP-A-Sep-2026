@@ -9,10 +9,12 @@ export function PatientHomeView({
   patient,
   onNavigate,
   sharedRecommendations = [],
+  canViewPredictions = false,
 }: {
   patient: Patient;
   onNavigate: (module: NavigationModule) => void;
   sharedRecommendations?: ClinicalRecommendation[];
+  canViewPredictions?: boolean;
 }) {
   return (
     <div className="space-y-5">
@@ -27,13 +29,15 @@ export function PatientHomeView({
             {patient.cgmReadings?.length ?? 0} recorded CGM observations
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onNavigate("patient_insights")}
-          className="rounded-xl bg-teal-700 px-4 py-2.5 text-xs font-semibold text-white hover:bg-teal-800"
-        >
-          Explore prediction and what-if
-        </button>
+        {canViewPredictions && (
+          <button
+            type="button"
+            onClick={() => onNavigate("patient_insights")}
+            className="rounded-xl bg-teal-700 px-4 py-2.5 text-xs font-semibold text-white hover:bg-teal-800"
+          >
+            Explore prediction and what-if
+          </button>
+        )}
       </div>
       <DashboardView
         key={patient.id}
@@ -41,6 +45,7 @@ export function PatientHomeView({
         onNavigate={onNavigate}
         sharedRecommendations={sharedRecommendations}
         selfService
+        canViewPredictions={canViewPredictions}
       />
       {sharedRecommendations.length > 0 && (
         <p className="text-xs text-slate-500">

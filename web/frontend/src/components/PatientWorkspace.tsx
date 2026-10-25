@@ -11,7 +11,6 @@ import {
   OrganEvidence,
   RecordedReport,
 } from "./ClinicalWorkspace";
-import { RiskSimulationView } from "./RiskSimulationView";
 import { mapClinicalRecord } from "../lib/clinicalData";
 import { readClinicalRows } from "../lib/supabaseRows";
 import { PatientRecommendationsView } from "./PatientRecommendationsView";
@@ -24,7 +23,6 @@ const pages = new Set<NavigationModule>([
   "patient_profile",
   "patient_monitoring",
   "patient_digital_twin",
-  "patient_insights",
   "patient_recommendations",
   "patient_reports",
 ]);
@@ -108,7 +106,6 @@ export function PatientWorkspace({
       monitoring: "patient_monitoring",
       digital_twin: "patient_digital_twin",
       reports: "patient_reports",
-      risk: "patient_insights",
       patient_dashboard: "patient_home",
     };
     const next = aliases[module] ?? module;
@@ -285,9 +282,6 @@ export function PatientWorkspace({
                 )}
                 {page === "patient_digital_twin" && (
                   <OrganEvidence patient={patient} />
-                )}
-                {page === "patient_insights" && (
-                  <RiskSimulationView patient={patient} onNavigate={navigate} />
                 )}
               </>
             )

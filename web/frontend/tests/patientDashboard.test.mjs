@@ -84,17 +84,32 @@ async function componentModule(name) {
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 
-test('existing Home layout renders all four cards safely for an unlinked Patient', async () => {
+test('Patient Home retains recorded information and hides Doctor-only simulation', async () => {
   const { DashboardView } = await componentModule('DashboardView');
   const html = renderToStaticMarkup(React.createElement(DashboardView, { patient: toDashboardPatient(unlinked), selfService: true, onNavigate() {} }));
-  for (const title of ['Continuous CGM Waveform', 'Why this risk? Key factors', 'What-if simulation', 'Your health at a glance']) assert.ok(html.includes(title), title);
+  for (const title of ['Continuous CGM Waveform', 'Why this risk? Key factors', 'Your health at a glance']) assert.ok(html.includes(title), title);
   assert.doesNotMatch(html, /NaN|62%|Patient 2000|Patients 2000|Prototype:/);
-  assert.equal((html.match(/disabled=""/g) || []).length, 3);
+  assert.doesNotMatch(html, /What-if simulation|Open prediction and what-if|Simulated HbA1c/);
 });
 
 test('Patient sidebar retains the original navigation without a care-team switch', async () => {
   const { Sidebar } = await componentModule('Sidebar');
   const html = renderToStaticMarkup(React.createElement(Sidebar, { mode: 'patient', activeModule: 'patient_home', selfService: true, onSelectModule() {}, onReturnToCareTeam() {} }));
-  for (const label of ['Home', 'My profile', 'My health', 'My digital twin', 'Risk prediction &amp; what-if', 'My recommendations', 'Reports']) assert.ok(html.includes(label), label);
-  assert.doesNotMatch(html, /Doctor dashboard|ShanghaiT2DM Cohort/);
+  for (const label of ['Home', 'My profile', 'My health', 'My digital twin', 'My recommendations', 'Reports']) assert.ok(html.includes(label), label);
+  assert.doesNotMatch(html, /Doctor dashboard|ShanghaiT2DM Cohort|Risk prediction/);
+});
+
+
+test('Doctor can retain prediction navigation while viewing a patient record', async () => {
+  const { Sidebar } = await componentModule('Sidebar');
+  const html = renderToStaticMarkup(React.createElement(Sidebar, {mode:'patient',activeModule:'patient_home',canViewPredictions:true,onSelectModule(){}}));
+  assert.match(html, /Risk prediction &amp; what-if/);
+});
+
+test('Doctor prediction navigation is denied by default, including anonymous previews', async () => {
+  const { Sidebar } = await componentModule('Sidebar');
+  const hidden = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',onSelectModule(){}}));
+  const doctor = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',canViewPredictions:true,onSelectModule(){}}));
+  assert.doesNotMatch(hidden, /Prediction lab/);
+  assert.match(doctor, /Prediction lab/);
 });

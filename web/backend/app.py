@@ -50,6 +50,8 @@ def authorize_api_request():
     if response is not None:
         return response
     user = getattr(g, "current_user", {})
+    if request.endpoint == "forecast_api.glucose_forecast" and user.get("role") != "doctor":
+        return jsonify({"error": "Glucose prediction is available to Doctor accounts only."}), 403
     patient_id = request.view_args.get("patient_id") if request.view_args else None
     if user.get("role") == "patient" and not patient_id:
         return jsonify({"error": "Patients cannot browse the patient directory."}), 403

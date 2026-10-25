@@ -48,8 +48,8 @@ class ForecastApiTests(unittest.TestCase):
             self.assertEqual(403, response.status_code)
             forecast.assert_not_called()
 
-    def test_platform_roles_and_legacy_doctor_can_access_permitted_record(self):
-        for headers in (token(), token('admin'), token('clinician'), token('patient', '2017_1_20201118')):
+    def test_only_doctor_and_legacy_clinician_can_forecast(self):
+        for headers in (token(), token('clinician')):
             with patch.object(service, 'forecast_patient', return_value={'patient_id': '2017_1_20201118'}) as forecast:
                 response = self.client.post(self.url, json={'horizon_hours': 6}, headers=headers)
                 self.assertEqual(200, response.status_code)

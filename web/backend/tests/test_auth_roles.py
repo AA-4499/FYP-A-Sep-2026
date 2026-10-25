@@ -4,7 +4,7 @@ import sys
 import time
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import jwt
 
@@ -105,6 +105,27 @@ class PlatformRoleTests(unittest.TestCase):
     def test_unauthenticated_request_is_denied(self):
         self.assertEqual(401, self.client.get(self.url).status_code)
         self.patient.assert_not_called()
+
+    def test_prediction_rejects_non_doctors_before_entering_forecast_route(self):
+        route = Mock(return_value=({'accepted': True}, 200))
+        with patch.dict(dashboard.app.view_functions, {'forecast_api.glucose_forecast': route}):
+            for role in ('patient', 'admin'):
+                with self.subTest(role=role):
+                    response = self.client.post('/api/patients/record-a/glucose-forecast',
+                        json={}, headers=headers(app_metadata={'role': role, 'patient_id': 'record-a'}))
+                    self.assertEqual(403, response.status_code)
+                    self.assertIn('Doctor accounts only', response.json['error'])
+            route.assert_not_called()
+
+    def test_doctor_and_legacy_clinician_can_enter_prediction_route(self):
+        route = Mock(return_value=({'accepted': True}, 200))
+        with patch.dict(dashboard.app.view_functions, {'forecast_api.glucose_forecast': route}):
+            for role in ('doctor', 'clinician'):
+                with self.subTest(role=role):
+                    response = self.client.post('/api/patients/record-a/glucose-forecast',
+                        json={}, headers=headers(app_metadata={'role': role}))
+                    self.assertEqual(200, response.status_code, response.json)
+            self.assertEqual(2, route.call_count)
 
 
 if __name__ == '__main__':

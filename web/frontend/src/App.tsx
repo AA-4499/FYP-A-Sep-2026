@@ -50,6 +50,8 @@ function Workspace({
   onExit: () => void;
 }) {
   const [mode, setMode] = useState<UserRole>(initialRole);
+  // initialRole is verified by AuthGateway; changing the displayed workspace grants no role.
+  const canViewPredictions = !isPreview && initialRole === "doctor";
   const [doctorPage, setDoctorPage] =
     useState<NavigationModule>("doctor_overview");
   const [patientPage, setPatientPage] =
@@ -143,6 +145,11 @@ function Workspace({
     setPatientPage("patient_home");
   };
   const navigate = (page: NavigationModule) => {
+    if (
+      ["doctor_predictions", "patient_insights", "risk"].includes(page) &&
+      !canViewPredictions
+    )
+      return;
     if (page.startsWith("doctor_")) {
       setMode("doctor");
       setDoctorPage(page);
@@ -168,6 +175,7 @@ function Workspace({
           onSelectModule={navigate}
           currentPatientName={patient?.name}
           onReturnToCareTeam={backToDoctor}
+          canViewPredictions={canViewPredictions}
         />
         <main className="w-full min-w-0 flex-1 space-y-5">
           <TopBar
@@ -314,6 +322,7 @@ function Workspace({
                   patient={patient}
                   onNavigate={navigate}
                   sharedRecommendations={sharedRecommendations}
+                  canViewPredictions={canViewPredictions}
                 />
               )}
               {page === "patient_profile" && (
@@ -362,13 +371,18 @@ function Workspace({
               ) && <RecordedReport patient={patient} />}
               {["doctor_predictions", "patient_insights", "risk"].includes(
                 page,
-              ) && (
-                <RiskSimulationView
-                  key={patient.id}
-                  patient={patient}
-                  onNavigate={navigate}
-                />
-              )}
+              ) &&
+                canViewPredictions && (
+                  <RiskSimulationView
+                    key={patient.id}
+                    patient={patient}
+                    onNavigate={navigate}
+                    patients={mode === "doctor" ? patients : undefined}
+                    onSelectPatient={
+                      mode === "doctor" ? setSelectedId : undefined
+                    }
+                  />
+                )}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
                   recommendations={sharedRecommendations}

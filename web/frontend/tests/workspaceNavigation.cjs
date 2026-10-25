@@ -99,6 +99,17 @@
       });
       fs.writeFileSync(path.join(out, name), Buffer.from(shot.data, "base64"));
     };
+    const chartScreenshot = async (name) => {
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-panel"]').scrollIntoView({block:'center'})`,
+      );
+      await delay(200);
+      const shot = await send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
+      fs.writeFileSync(path.join(out, name), Buffer.from(shot.data, "base64"));
+    };
     await send("Page.enable");
     await send("Page.bringToFront");
     await send("Runtime.enable");
@@ -398,6 +409,19 @@
     await ready("Browser GRU computed successfully");
     assert(
       await evaluate(
+        `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.display === 'range' && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length >= 2`,
+      ),
+      "GRU range bands must be the initial view",
+    );
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="range-explanation"]').innerText.includes('not a calibrated prediction interval')`,
+      ),
+      "Historical reference must not claim calibrated coverage",
+    );
+    await chartScreenshot("range-gru-desktop.png");
+    assert(
+      await evaluate(
         `(() => { const horizon = document.querySelector('[aria-label="Forecast horizon"]'); return horizon.value === '6' && [...horizon.options].map(o => o.value).join(',') === '6,12'; })()`,
       ),
       "Prediction lab must default to 6h and offer only 6/12h",
@@ -474,6 +498,27 @@
     const forecastValues = await evaluate(
       `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
     );
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="range-explanation"]').textContent.includes('27 settings') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length >= 4`,
+      ),
+      "Physiology sensitivity bands were not generated",
+    );
+    await click("Show centre estimates");
+    assert(
+      await evaluate(
+        `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.display === 'point'`,
+      ),
+      "Centre estimate view did not activate",
+    );
+    await click("Show range bands");
+    assert(
+      (await evaluate(
+        `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
+      )) === forecastValues,
+      "Switching chart view altered values or bounds",
+    );
+    await chartScreenshot("range-physiology-desktop.png");
     await click("Show reference range");
     assert(
       await evaluate(
@@ -558,6 +603,7 @@
       "Scheduled event cards overflow the real mobile viewport",
     );
     await screenshot("scheduled-what-if-mobile.png");
+    await chartScreenshot("range-physiology-mobile.png");
     await evaluate(
       `document.querySelector('[aria-label="Remove event 4"]').click()`,
     );

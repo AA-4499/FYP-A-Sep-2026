@@ -6,11 +6,16 @@ import {
 } from "../lib/physiology";
 import { clinicalNumber } from "../lib/clinicalData";
 import {
+  historicalErrorRange,
+  type RangeEnvelope,
+} from "../lib/forecastRanges";
+import { physiologyRanges } from "../lib/physiologyRanges";
+import {
   recordTime,
   type ScenarioDraft,
   type compileScenario,
 } from "../lib/scenario";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   RefreshCw,
@@ -24,7 +29,8 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer,
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
@@ -53,6 +59,7 @@ type Series = {
   label: string;
   color: string;
   points: ForecastPoint[];
+  range?: RangeEnvelope | null;
 };
 const card = "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
 const input =
@@ -67,17 +74,27 @@ const displayNumber = (value?: number, digits = 1) =>
   value === undefined ? "\u2014" : value.toFixed(digits);
 
 function chartRows(series: Series[]) {
-  const rows = new Map<number, Record<string, number>>();
-  series.forEach(({ key, points }) =>
+  const rows = new Map<number, Record<string, number | [number, number]>>();
+  series.forEach(({ key, points, range }) => {
     points.forEach((point) => {
       const time = timestamp(point.timestamp);
       if (!Number.isFinite(time)) return;
       const row = rows.get(time) || { timestamp: time };
       row[key] = point.value;
       rows.set(time, row);
-    }),
+    });
+    range?.points.forEach((point) => {
+      const time = timestamp(point.timestamp),
+        row = rows.get(time);
+      if (row) {
+        row[`${key}_outer`] = point.outer;
+        row[`${key}_inner`] = point.inner;
+      }
+    });
+  });
+  return [...rows.values()].sort(
+    (a, b) => Number(a.timestamp) - Number(b.timestamp),
   );
-  return [...rows.values()].sort((a, b) => a.timestamp - b.timestamp);
 }
 
 function GlucoseChart({
@@ -90,6 +107,8 @@ function GlucoseChart({
   history?: boolean;
 }) {
   const [fitForecast, setFitForecast] = useState(true);
+  const [showCentre, setShowCentre] = useState(false);
+  const hasRanges = !history && series.some((s) => !!s.range?.points.length);
   const rows = chartRows(series);
   const hasData = rows.length > 0;
   let minimum = Infinity,
@@ -102,6 +121,13 @@ function GlucoseChart({
       }
     }),
   );
+  if (hasRanges && !showCentre)
+    series.forEach((s) =>
+      s.range?.points.forEach((point) => {
+        minimum = Math.min(minimum, point.outer[0]);
+        maximum = Math.max(maximum, point.outer[1]);
+      }),
+    );
   const padding = Math.max(5, (maximum - minimum) * 0.15);
   const focused = !history && fitForecast && Number.isFinite(minimum);
   const domain: [number | string, number | string] = !hasData
@@ -109,7 +135,12 @@ function GlucoseChart({
     : history
       ? ["auto", "auto"]
       : focused
-        ? [Math.floor(minimum - padding), Math.ceil(maximum + padding)]
+        ? [
+            minimum >= 0
+              ? Math.max(0, Math.floor(minimum - padding))
+              : Math.floor(minimum - padding),
+            Math.ceil(maximum + padding),
+          ]
         : [Math.min(40, minimum), Math.max(280, maximum)];
   return (
     <>
@@ -117,24 +148,37 @@ function GlucoseChart({
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] text-slate-500">
             {focused
-              ? "Y-axis fitted to the predicted values · mg/dL"
+              ? "Y-axis fitted to the displayed estimates and ranges · mg/dL"
               : "Reference-range view · mg/dL"}
           </p>
-          <button
-            type="button"
-            aria-label="Fit forecast vertical range"
-            aria-pressed={fitForecast}
-            onClick={() => setFitForecast((value) => !value)}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
-          >
-            {fitForecast ? "Show reference range" : "Fit forecast range"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {hasRanges && (
+              <button
+                type="button"
+                aria-pressed={!showCentre}
+                onClick={() => setShowCentre((value) => !value)}
+                className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-[11px] font-semibold text-teal-800"
+              >
+                {showCentre ? "Show range bands" : "Show centre estimates"}
+              </button>
+            )}
+            <button
+              type="button"
+              aria-label="Fit forecast vertical range"
+              aria-pressed={fitForecast}
+              onClick={() => setFitForecast((value) => !value)}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              {fitForecast ? "Show reference range" : "Fit forecast range"}
+            </button>
+          </div>
         </div>
       )}
       <div
         className="relative mt-5 h-[330px] w-full"
         role="img"
         data-scale={focused ? "fit" : "reference"}
+        data-display={hasRanges && !showCentre ? "range" : "point"}
         aria-label={
           history
             ? "Observed CGM with training, validation, and held-out testing predictions"
@@ -142,7 +186,7 @@ function GlucoseChart({
         }
       >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
+          <ComposedChart
             data={rows}
             margin={{ top: 15, right: 15, left: 0, bottom: 5 }}
           >
@@ -160,7 +204,9 @@ function GlucoseChart({
             <Tooltip
               labelFormatter={(value) => formatTime(Number(value))}
               formatter={(value: unknown) =>
-                `${Number(value).toFixed(1)} mg/dL`
+                Array.isArray(value)
+                  ? `${Number(value[0]).toFixed(1)}–${Number(value[1]).toFixed(1)} mg/dL`
+                  : `${Number(value).toFixed(1)} mg/dL`
               }
             />
             <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
@@ -184,21 +230,61 @@ function GlucoseChart({
                 }}
               />
             ))}
-            {series.map((s) => (
-              <Line
-                key={s.key}
-                type="linear"
-                dataKey={s.key}
-                name={s.label}
-                stroke={s.color}
-                strokeWidth={s.key === "observed" ? 1 : 2}
-                strokeDasharray={s.key === "scenario" ? "6 3" : undefined}
-                dot={false}
-                connectNulls
-                isAnimationActive={false}
-              />
-            ))}
-          </LineChart>
+            {hasRanges &&
+              !showCentre &&
+              series
+                .filter((s) => s.range)
+                .map((s) => (
+                  <React.Fragment key={`${s.key}-range`}>
+                    <Area
+                      type="linear"
+                      dataKey={`${s.key}_outer`}
+                      name={`${s.label} · wider range`}
+                      stroke="none"
+                      fill={s.color}
+                      fillOpacity={0.14}
+                      isAnimationActive={false}
+                    />
+                    <Area
+                      type="linear"
+                      dataKey={`${s.key}_inner`}
+                      name={`${s.label} · inner spread`}
+                      legendType="none"
+                      stroke="none"
+                      fill={s.color}
+                      fillOpacity={0.28}
+                      isAnimationActive={false}
+                    />
+                  </React.Fragment>
+                ))}
+            {series
+              .filter(
+                (s) =>
+                  history ||
+                  showCentre ||
+                  !s.range ||
+                  s.range.points.every(
+                    (point) => point.outer[0] === point.outer[1],
+                  ),
+              )
+              .map((s) => (
+                <Line
+                  key={s.key}
+                  type="linear"
+                  dataKey={s.key}
+                  name={s.label}
+                  legendType={
+                    hasRanges && !showCentre && s.range ? "none" : "line"
+                  }
+                  stroke={s.color}
+                  strokeWidth={s.key === "observed" ? 1 : 2}
+                  strokeDasharray={s.key === "scenario" ? "6 3" : undefined}
+                  dot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              ))}
+          </ComposedChart>
         </ResponsiveContainer>
         {!hasData && (
           <div className="absolute inset-x-10 top-20 flex justify-center pointer-events-none">
@@ -225,8 +311,9 @@ function GlucoseChart({
       </div>
       {!history && (
         <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
-          Axis zoom changes the display only. All curve values are unchanged
-          model outputs; reference lines outside the visible range are hidden.
+          Axis zoom changes the display only. Centre estimates and range bounds
+          are unchanged by zoom; reference lines outside the visible range are
+          hidden.
         </p>
       )}
     </>
@@ -256,6 +343,7 @@ function ForecastPanel({
     unmodelled: string[];
     schedule: ReturnType<typeof compileScenario>["schedule"];
     assumptions: PhysiologyAssumptions;
+    ranges: ReturnType<typeof physiologyRanges>;
   } | null>(null);
   const [simulationError, setSimulationError] = useState("");
   const [assumptions, setAssumptions] = useState<PhysiologyAssumptions>({
@@ -341,6 +429,23 @@ function ForecastPanel({
       ? simulation
       : null;
   const output = activeSimulation || current;
+  const historicalRange = useMemo(
+    () =>
+      current
+        ? historicalErrorRange(
+            current.baseline,
+            current.testing,
+            current.testing_actual,
+          )
+        : null,
+    [current],
+  );
+  const baselineRange = activeSimulation
+    ? activeSimulation.ranges.baseline
+    : historicalRange;
+  const scenarioRange = activeSimulation?.ranges.scenario;
+  const endEnvelope = activeSimulation ? scenarioRange : baselineRange;
+  const endRange = endEnvelope?.points[endEnvelope.points.length - 1]?.outer;
 
   function baselineRequest() {
     setSimulation(null);
@@ -390,6 +495,13 @@ function ForecastPanel({
         unmodelled: plan.unmodelled,
         schedule: plan.schedule,
         assumptions: { ...assumptions },
+        ranges: physiologyRanges(
+          current.latest_glucose,
+          horizon,
+          assumptions,
+          plan.events,
+          recordTime(current.forecast_start),
+        ),
       });
       setSimulationError("");
     } catch (reason) {
@@ -421,10 +533,10 @@ function ForecastPanel({
   function download() {
     if (!current) return;
     const lines = [
-      "engine,timestamp,baseline_glucose_mg_dl,scenario_glucose_mg_dl",
+      "engine,timestamp,baseline_glucose_mg_dl,scenario_glucose_mg_dl,baseline_reference_low,baseline_reference_high,scenario_reference_low,scenario_reference_high,range_method",
       ...output!.baseline.map(
         (point, index) =>
-          `${activeSimulation ? "unvalidated-physiology" : "gru"},${point.timestamp},${point.value},${output!.scenario[index]?.value ?? ""}`,
+          `${activeSimulation ? "unvalidated-physiology" : "gru"},${point.timestamp},${point.value},${output!.scenario[index]?.value ?? ""},${baselineRange?.points[index]?.outer[0] ?? ""},${baselineRange?.points[index]?.outer[1] ?? ""},${scenarioRange?.points[index]?.outer[0] ?? ""},${scenarioRange?.points[index]?.outer[1] ?? ""},${baselineRange?.method ?? "unavailable"}`,
       ),
     ];
     const url = URL.createObjectURL(
@@ -445,6 +557,7 @@ function ForecastPanel({
         : "Baseline prediction (GRU)",
       color: "#2563eb",
       points: output?.baseline ?? [],
+      range: baselineRange,
     },
     ...(output?.scenario_enabled || !current
       ? [
@@ -455,6 +568,7 @@ function ForecastPanel({
               : "What-if prediction",
             color: "#e07a36",
             points: output?.scenario ?? [],
+            range: scenarioRange,
           },
         ]
       : []),
@@ -681,8 +795,10 @@ function ForecastPanel({
               : "\u2014",
           ],
           [
-            `${activeSimulation ? "Simulated CGM" : "Prediction"} after ${horizon} hours`,
-            current ? `${displayNumber(output!.scenario_end)} mg/dL` : "\u2014",
+            `${activeSimulation ? "Assumption range" : "Error reference range"} at ${horizon} hours`,
+            endRange
+              ? `${endRange[0].toFixed(0)}–${endRange[1].toFixed(0)} mg/dL`
+              : "Range unavailable",
           ],
           [
             "What-if at forecast end",
@@ -812,6 +928,65 @@ function ForecastPanel({
               </span>
             </div>
             <GlucoseChart series={forecastSeries} loading={loading} />
+            <div
+              data-testid="range-explanation"
+              className="mt-4 rounded-xl border border-teal-100 bg-teal-50 p-4 text-xs leading-relaxed text-teal-950"
+            >
+              <p className="font-semibold">
+                {activeSimulation
+                  ? "Assumption sensitivity range · not a probability interval"
+                  : "Historical error reference · not a calibrated prediction interval"}
+              </p>
+              <p className="mt-2">
+                {activeSimulation
+                  ? "Light shading spans the selected assumption settings; darker shading shows their middle spread. This is sensitivity to assumptions, not a probability of your future glucose."
+                  : historicalRange
+                    ? "Darker shading shows typical historical error; lighter shading shows a wider error reference. It expands further ahead using an illustrative assumption, not a validated future coverage rate."
+                    : "Range unavailable: there are not enough valid matched historical errors for this record. The centre estimate is shown instead."}
+              </p>
+              <details className="mt-2">
+                <summary className="cursor-pointer font-semibold">
+                  How this range is constructed
+                </summary>
+                <p className="mt-2">
+                  {activeSimulation
+                    ? "Shading compares 27 settings around your selected assumptions: beta response ×0.5/1/1.5, sensitivity ×0.75/1/1.25 and meal absorption time ×0.75/1/1.25, within the supported limits. The outer band spans all settings; the darker band shows the middle parameter-grid spread. These settings are not equally likely patients or a fitted probability distribution."
+                    : historicalRange
+                      ? `Based on ${historicalRange.samples} time-matched historical test errors from this exact record, all at or before the forecast origin. Dark shading uses the median absolute one-step error; light shading uses its 90th percentile. Width is multiplied by √(number of future 15-minute steps), an illustrative growth assumption. This is not 50% or 90% future coverage; multi-step calibration is still required.`
+                      : "At least 30 valid time-matched test errors from this record are needed for an error reference. No band is invented from MAE, another patient or the target glucose range. The centre estimate is shown instead."}
+                </p>
+                <a
+                  href="https://proceedings.mlr.press/v230/galvao-lopes24a.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block underline"
+                >
+                  Why multi-step coverage needs separate calibration
+                </a>
+              </details>
+              {!!activeSimulation?.ranges.error && (
+                <p role="status" className="mt-2 text-amber-900">
+                  {activeSimulation.ranges.error}
+                </p>
+              )}
+              {[baselineRange, scenarioRange].some((range) =>
+                range?.points.some(
+                  (point) => point.outer[0] < 20 || point.outer[1] > 600,
+                ),
+              ) && (
+                <p className="mt-2 font-semibold text-amber-900">
+                  The reference extends beyond the model's physiological domain.
+                  It is not a usable clinical prediction range; bounds have not
+                  been clipped to appear plausible.
+                </p>
+              )}
+              <p className="mt-2">
+                Health monitoring AGP bands describe observed historical
+                glucose. These forward-looking references have a different
+                meaning. A wider band exposes uncertainty; it does not make the
+                centre prediction more accurate.
+              </p>
+            </div>
             <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-xs leading-relaxed text-slate-600">
               <p>
                 {activeSimulation ? (
@@ -872,9 +1047,17 @@ function ForecastPanel({
                     <thead className="border-b border-slate-200 text-slate-500">
                       <tr>
                         <th className="py-2 font-medium">Timestamp</th>
-                        <th className="py-2 font-medium">Baseline</th>
-                        <th className="py-2 font-medium">What-if</th>
+                        <th className="py-2 font-medium">Baseline centre</th>
+                        <th className="py-2 font-medium">What-if centre</th>
                         <th className="py-2 font-medium">Change</th>
+                        <th className="py-2 font-medium">
+                          Baseline reference range
+                        </th>
+                        {activeSimulation && (
+                          <th className="py-2 font-medium">
+                            What-if sensitivity range
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -908,6 +1091,18 @@ function ForecastPanel({
                                 ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}`
                                 : "\u2014"}
                             </td>
+                            <td className="whitespace-nowrap py-2.5 pr-3">
+                              {baselineRange?.points[index + 1]
+                                ? `${baselineRange.points[index + 1].outer[0].toFixed(1)}–${baselineRange.points[index + 1].outer[1].toFixed(1)}`
+                                : "Unavailable"}
+                            </td>
+                            {activeSimulation && (
+                              <td className="whitespace-nowrap py-2.5">
+                                {scenarioRange?.points[index + 1]
+                                  ? `${scenarioRange.points[index + 1].outer[0].toFixed(1)}–${scenarioRange.points[index + 1].outer[1].toFixed(1)}`
+                                  : "Unavailable"}
+                              </td>
+                            )}
                           </tr>
                         );
                       })}

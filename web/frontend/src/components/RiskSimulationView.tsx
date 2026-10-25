@@ -1153,7 +1153,7 @@ function ForecastPanel({
               <div
                 role="alert"
                 data-testid="simulation-failure"
-                className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-950"
+                className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-black"
               >
                 <p className="font-bold">What-if scenario was not calculated</p>
                 <p className="mt-2">{simulationError}</p>
@@ -1167,7 +1167,7 @@ function ForecastPanel({
             {!!activeSimulation?.unmodelled.length && (
               <p
                 role="status"
-                className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+                className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-black"
               >
                 Incomplete scenario: medicine, stress or illness events are
                 context only. Their effects are not included in this curve.
@@ -1175,12 +1175,12 @@ function ForecastPanel({
             )}
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
+                <h2 className="text-base font-semibold tracking-tight text-black sm:text-lg">
                   {activeSimulation
                     ? "Scheduled event response"
                     : "Glucose prediction"}
                 </h2>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-black">
                   {horizon}-hour{" "}
                   {activeSimulation
                     ? "unvalidated physiology comparison; GRU forecast is separate"
@@ -1189,29 +1189,29 @@ function ForecastPanel({
                       : "baseline and what-if comparison"}
                 </p>
               </div>
-              <span className="shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-black">
                 CGM &middot; mg/dL
               </span>
             </div>
             <PredictionChart series={forecastSeries} loading={loading} />
             <div
               data-testid="range-explanation"
-              className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-xs leading-relaxed text-slate-500"
+              className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-xs leading-relaxed text-black"
             >
-              <p className="flex items-center gap-2 font-medium text-slate-600">
-                <Info size={14} className="shrink-0 text-slate-400" />
+              <p className="flex items-center gap-2 font-medium text-black">
+                <Info size={14} className="shrink-0 text-black" />
                 {activeSimulation
                   ? "Research simulation - not a probability interval"
                   : "Historical error reference - not a calibrated prediction interval"}
               </p>
               {!baselineRange && (
-                <p role="status" className="mt-2 text-amber-800">
+                <p role="status" className="mt-2 text-black">
                   Range unavailable. The original centre estimate is shown; no
                   reference band has been invented.
                 </p>
               )}
               {!!activeSimulation?.ranges.error && (
-                <p role="status" className="mt-2 text-amber-800">
+                <p role="status" className="mt-2 text-black">
                   {activeSimulation.ranges.error}
                 </p>
               )}
@@ -1220,7 +1220,7 @@ function ForecastPanel({
                   (point) => point.outer[0] < 20 || point.outer[1] > 600,
                 ),
               ) && (
-                <p className="mt-2 font-medium text-amber-800">
+                <p className="mt-2 font-medium text-black">
                   This reference extends beyond the model's physiological domain
                   and is not a usable clinical prediction range. Bounds have not
                   been clipped.
@@ -1230,7 +1230,7 @@ function ForecastPanel({
                 className="group mt-2"
                 data-testid="prediction-method-details"
               >
-                <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold text-teal-700">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold text-black">
                   How to read this forecast
                   <ChevronDown
                     size={13}
@@ -1261,7 +1261,7 @@ function ForecastPanel({
                     <button
                       type="button"
                       onClick={onOpenPhysiology}
-                      className="font-semibold text-teal-700 hover:underline"
+                      className="font-semibold text-black hover:underline"
                     >
                       Explore the Physiology lab
                     </button>
@@ -1269,7 +1269,7 @@ function ForecastPanel({
                       href="https://proceedings.mlr.press/v230/galvao-lopes24a.html"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-slate-500 underline underline-offset-2"
+                      className="text-black underline underline-offset-2"
                     >
                       Read the calibration reference
                     </a>
@@ -1277,7 +1277,7 @@ function ForecastPanel({
                 </div>
               </details>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+            <p className="mt-2 text-xs leading-relaxed text-black">
               {current
                 ? `${activeSimulation ? "Simulation" : "Forecast"} begins ${displayTime(current.forecast_start)} UTC. ${activeSimulation ? "One-minute integration, sampled every 15 minutes." : "Future points use recursive 15-minute predictions."}`
                 : browser

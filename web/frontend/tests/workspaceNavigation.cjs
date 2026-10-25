@@ -510,6 +510,20 @@
     );
     await click("Show reference range");
     assert(
+      await evaluate(`(() => {
+        const chart=document.querySelector('[data-testid="forecast-chart-design"]');
+        const axes=[...chart.querySelectorAll('.recharts-cartesian-axis-line')];
+        const thresholds=[...chart.querySelectorAll('.recharts-reference-line-line')];
+        const labels=[...chart.querySelectorAll('.recharts-cartesian-axis-tick-value')];
+        return axes.length===2 && axes.every(axis=>axis.getAttribute('stroke')==='#000000') &&
+          thresholds.length===4 && new Set(thresholds.map(line=>line.getAttribute('stroke'))).size===4 &&
+          thresholds.every(line=>line.getAttribute('stroke-dasharray')==='1 6' && Number(line.getAttribute('stroke-width'))>=2) &&
+          labels.every(label=>getComputedStyle(label).fill==='rgb(0, 0, 0)') &&
+          [...chart.querySelectorAll('p,button,span')].filter(el=>el.innerText?.trim()).every(el=>getComputedStyle(el).color==='rgb(0, 0, 0)');
+      })()`),
+      "Chart needs pure-black labels, visible axes, and four distinct coloured dotted thresholds",
+    );
+    assert(
       await evaluate(
         `(() => {const chart=document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]');const ticks=[...chart.querySelectorAll('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value')];const left=chart.getBoundingClientRect().left;return ticks.length>=3 && ticks.every(tick=>/^-?\\d{1,4}$/.test(tick.textContent) && tick.getBoundingClientRect().left>=left);})()`,
       ),

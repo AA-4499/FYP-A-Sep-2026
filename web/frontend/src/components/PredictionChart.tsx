@@ -115,7 +115,7 @@ export function PredictionChart({
     !modelOnly && item.range ? `${item.key}_average` : item.key;
 
   return (
-    <div className="mt-5" data-testid="forecast-chart-design">
+    <div className="mt-5 text-black" data-testid="forecast-chart-design">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div
           className="flex flex-wrap items-center gap-x-5 gap-y-2"
@@ -124,7 +124,7 @@ export function PredictionChart({
           {series.map((item) => (
             <span
               key={item.key}
-              className="inline-flex items-center gap-2 text-xs font-medium text-slate-600"
+              className="inline-flex items-center gap-2 text-xs font-medium text-black"
             >
               <svg width="22" height="10" aria-hidden="true">
                 <line
@@ -142,7 +142,7 @@ export function PredictionChart({
             </span>
           ))}
           {hasRanges && !modelOnly && (
-            <span className="inline-flex items-center gap-2 text-xs text-slate-400">
+            <span className="inline-flex items-center gap-2 text-xs text-black">
               <span className="h-3 w-5 rounded border border-emerald-200 bg-emerald-50" />
               Outer range
             </span>
@@ -154,7 +154,7 @@ export function PredictionChart({
               type="button"
               onClick={() => setModelOnly((value) => !value)}
               aria-pressed={!modelOnly}
-              className="rounded-lg px-2.5 py-2 text-[11px] font-medium text-slate-600 transition hover:bg-white hover:shadow-sm"
+              className="rounded-lg px-2.5 py-2 text-[11px] font-medium text-black transition hover:bg-white hover:shadow-sm"
             >
               {modelOnly ? "Show range bands" : "Show model estimates only"}
             </button>
@@ -164,14 +164,14 @@ export function PredictionChart({
             aria-label="Fit forecast vertical range"
             aria-pressed={focused}
             onClick={() => setFocused((value) => !value)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-medium text-slate-600 transition hover:bg-white hover:shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-medium text-black transition hover:bg-white hover:shadow-sm"
           >
             <SlidersHorizontal size={12} />
             {focused ? "Show reference range" : "Fit forecast range"}
           </button>
         </div>
       </div>
-      <div className="mt-5 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-slate-400">
+      <div className="mt-5 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-black">
         <span>Glucose · mg/dL</span>
         <span>
           {first
@@ -219,11 +219,7 @@ export function PredictionChart({
                   )),
                 )}
             </defs>
-            <CartesianGrid
-              vertical={false}
-              stroke="#e9eef3"
-              strokeDasharray="2 6"
-            />
+            <CartesianGrid vertical stroke="#cbd5e1" strokeDasharray="2 5" />
             <XAxis
               dataKey="timestamp"
               type="number"
@@ -235,9 +231,9 @@ export function PredictionChart({
               minTickGap={32}
               tickMargin={14}
               tickFormatter={(value) => (first ? clock(Number(value)) : "")}
-              tick={{ fontSize: 10, fill: "#94a3b8" }}
-              axisLine={false}
-              tickLine={false}
+              tick={{ fontSize: 11, fill: "#000000" }}
+              axisLine={{ stroke: "#000000", strokeWidth: 1.5 }}
+              tickLine={{ stroke: "#000000", strokeWidth: 1 }}
             />
             <YAxis
               domain={scale.domain}
@@ -245,13 +241,13 @@ export function PredictionChart({
               width={55}
               allowDecimals={false}
               tickFormatter={(value) => String(Math.round(Number(value)))}
-              tick={{ fontSize: 10, fill: "#94a3b8" }}
-              axisLine={false}
-              tickLine={false}
+              tick={{ fontSize: 11, fill: "#000000" }}
+              axisLine={{ stroke: "#000000", strokeWidth: 1.5 }}
+              tickLine={{ stroke: "#000000", strokeWidth: 1 }}
             />
             <Tooltip
               cursor={{
-                stroke: "#94a3b8",
+                stroke: "#000000",
                 strokeDasharray: "3 5",
                 strokeWidth: 1,
               }}
@@ -263,22 +259,6 @@ export function PredictionChart({
                 />
               )}
             />
-            {(focused ? [70, 180] : [54, 70, 180, 250]).map((value) => (
-              <ReferenceLine
-                key={value}
-                y={value}
-                ifOverflow="discard"
-                stroke="#94a3b8"
-                strokeOpacity={0.45}
-                strokeDasharray="4 6"
-                label={{
-                  value: String(value),
-                  position: "insideTopRight",
-                  fontSize: 9,
-                  fill: "#94a3b8",
-                }}
-              />
-            ))}
             {!modelOnly &&
               series
                 .filter((item) => item.range)
@@ -315,6 +295,32 @@ export function PredictionChart({
                     )}
                   </React.Fragment>
                 ))}
+            {[
+              { value: 54, color: "#C2410C", label: "Very low 54" },
+              { value: 70, color: "#F97316", label: "Low 70" },
+              { value: 180, color: "#DC2626", label: "High 180" },
+              { value: 250, color: "#991B1B", label: "Very high 250" },
+            ].map(({ value, color, label }) => (
+              <ReferenceLine
+                key={value}
+                y={value}
+                ifOverflow="discard"
+                stroke={color}
+                strokeWidth={2.2}
+                strokeDasharray="1 6"
+                strokeLinecap="round"
+                label={{
+                  value: label,
+                  position: "insideTopRight",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  fill: "#000000",
+                  stroke: "#ffffff",
+                  strokeWidth: 3,
+                  paintOrder: "stroke",
+                }}
+              />
+            ))}
             {series.map((item) => (
               <Line
                 key={item.key}
@@ -349,7 +355,7 @@ export function PredictionChart({
         </ResponsiveContainer>
         {!rows.length && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <p className="rounded-xl bg-white px-4 py-3 text-sm text-slate-400">
+            <p className="rounded-xl bg-white px-4 py-3 text-sm text-black">
               {loading
                 ? "Preparing the forecast..."
                 : "A forecast will appear here"}
@@ -363,15 +369,15 @@ export function PredictionChart({
           className="mt-4 grid gap-3 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 sm:flex sm:items-center sm:gap-8"
           aria-live="polite"
         >
-          <div className="flex items-center gap-2 text-slate-400">
+          <div className="flex items-center gap-2 text-black">
             <MoveHorizontal size={14} />
             <div>
               <p className="text-[10px] font-medium uppercase tracking-wide">
                 {inspectTime !== null ? "Inspecting" : "Forecast end"}
               </p>
-              <p className="mt-0.5 text-xs font-semibold text-slate-600">
+              <p className="mt-0.5 text-xs font-semibold text-black">
                 {clock(selected.timestamp)}{" "}
-                <span className="font-normal text-slate-400">UTC</span>
+                <span className="font-normal text-black">UTC</span>
               </p>
             </div>
           </div>
@@ -382,21 +388,18 @@ export function PredictionChart({
                   [number, number] | undefined;
               return (
                 <div key={item.key}>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-black">
                     {item.key === "scenario" ? "What-if" : "Baseline"}{" "}
                     {!modelOnly && item.range ? "average" : "estimate"}
                   </p>
-                  <p
-                    className="mt-0.5 text-lg font-semibold tracking-tight"
-                    style={{ color: item.color }}
-                  >
+                  <p className="mt-0.5 text-lg font-semibold tracking-tight">
                     {typeof value === "number" ? value.toFixed(1) : "—"}
-                    <span className="ml-1 text-[10px] font-normal tracking-normal text-slate-400">
+                    <span className="ml-1 text-[10px] font-normal tracking-normal text-black">
                       mg/dL
                     </span>
                   </p>
                   {!modelOnly && bounds && (
-                    <p className="mt-0.5 text-[10px] text-slate-500">
+                    <p className="mt-0.5 text-[10px] text-black">
                       Range {bounds[0].toFixed(0)}–{bounds[1].toFixed(0)}
                     </p>
                   )}
@@ -414,11 +417,11 @@ export function PredictionChart({
           {glucoseReferenceZones.map((zone) => (
             <span
               key={zone.label}
-              className="inline-flex items-center gap-1.5 text-[10px] text-slate-500"
+              className="inline-flex items-center gap-1.5 text-[10px] text-black"
             >
               <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: zone.color }}
+                className="h-0 w-5 border-t-2 border-dotted"
+                style={{ borderColor: zone.color }}
               />
               {zone.label}
             </span>
@@ -429,7 +432,7 @@ export function PredictionChart({
             type="button"
             aria-pressed={innerOpen}
             onClick={() => setInnerOpen((value) => !value)}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition ${innerOpen ? "bg-slate-100 text-slate-700" : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"}`}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition ${innerOpen ? "bg-slate-100 text-black" : "text-black hover:bg-slate-50 hover:text-black"}`}
           >
             <Layers size={12} />
             {innerOpen ? "Hide inner spread" : "Show inner spread"}
@@ -438,14 +441,14 @@ export function PredictionChart({
       </div>
       {innerOpen && !modelOnly && (
         <p
-          className="mt-2 text-[10px] text-slate-500"
+          className="mt-2 text-[10px] text-black"
           data-testid="inner-band-note"
         >
           Outer range: light fill. Inner spread: darker fill. The inner band is
           a central spread, not a confidence level.
         </p>
       )}
-      <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-relaxed text-slate-400">
+      <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-relaxed text-black">
         <ArrowUpRight size={12} className="mt-0.5 shrink-0" />
         {!modelOnly && hasRanges
           ? "Average line = midpoint of the outer bounds. Hover, tap or use the chart arrow keys to inspect a time point."

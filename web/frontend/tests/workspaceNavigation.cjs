@@ -486,7 +486,7 @@
     await ready("Browser GRU computed successfully");
     assert(
       await evaluate(
-        `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.display === 'range' && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length >= 2`,
+        `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').dataset.display === 'range' && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length === 1`,
       ),
       "GRU range bands must be the initial view",
     );
@@ -498,7 +498,7 @@
     );
     assert(
       await evaluate(
-        `document.querySelector('[data-testid="prediction-layer-legend"]').innerText.includes('Range average line') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-line-curve').length >= 1`,
+        `document.querySelector('[data-testid="prediction-layer-legend"]').innerText.includes('Baseline average') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-line-curve').length >= 1`,
       ),
       "Range view must include its middle average line",
     );
@@ -517,18 +517,49 @@
     );
     await chartScreenshot("prediction-reference-axis-readable.png");
     await click("Fit forecast range");
+    await evaluate(
+      `document.querySelector('[aria-label="Baseline and what-if glucose prediction comparison"]').scrollIntoView({block:'center'})`,
+    );
+    const inspectionPoint = await evaluate(
+      `(() => {const r=document.querySelector('[data-testid="forecast-chart-design"] .recharts-wrapper').getBoundingClientRect();return {x:r.left+r.width*0.55,y:r.top+r.height*0.45};})()`,
+    );
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      ...inspectionPoint,
+    });
+    await delay(250);
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-chart-readout"]').innerText.includes('INSPECTING') && !document.querySelector('[data-testid="forecast-chart-design"] .recharts-tooltip-wrapper')?.innerText`,
+      ),
+      "Chart inspection must update the readout without covering the plot",
+    );
     await chartScreenshot("range-gru-desktop.png");
     assert(
       await evaluate(
-        `(() => {const legend=document.querySelector('[data-testid="prediction-layer-legend"]').innerText;return ['Outer range','Inner spread','Light fill','Dark fill'].every(label=>legend.includes(label)) && !document.querySelector('[data-testid="prediction-method-details"]').open;})()`,
+        `(() => {const legend=document.querySelector('[data-testid="prediction-layer-legend"]').innerText;return legend.includes('Outer range') && !document.querySelector('[data-testid="inner-band-note"]') && !document.querySelector('[data-testid="prediction-method-details"]').open;})()`,
       ),
-      "Both band layers must be visibly labelled while technical notes stay collapsed",
+      "Default chart must show one outer band while technical notes stay collapsed",
     );
     assert(
       await evaluate(
         `!!(document.querySelector('[data-testid="simulator-panel"]').compareDocumentPosition(document.querySelector('[data-testid="forecast-values-panel"]')) & Node.DOCUMENT_POSITION_FOLLOWING)`,
       ),
       "Full-width forecast table must follow the scenario builder",
+    );
+    await click("Show inner spread");
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length === 2 && document.querySelector('[data-testid="inner-band-note"]').innerText.includes('darker fill')`,
+      ),
+      "Optional inner spread needs a visible explanation",
+    );
+    await click("Hide inner spread");
+    assert(
+      await evaluate(
+        `document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length === 1`,
+      ),
+      "Hiding inner spread must restore the simple chart",
     );
     await chartScreenshot("prediction-redesigned-desktop.png", false);
     assert(
@@ -624,7 +655,7 @@
     );
     assert(
       await evaluate(
-        `document.querySelector('[data-testid="range-explanation"]').textContent.includes('27 settings') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length >= 4`,
+        `document.querySelector('[data-testid="range-explanation"]').textContent.includes('27 settings') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-area-area').length === 2`,
       ),
       "Physiology sensitivity bands were not generated",
     );

@@ -9,6 +9,43 @@ export const glucoseReferenceZones = [
 export function rangeAverage(bounds: [number, number]): number {
   return bounds[0] / 2 + bounds[1] / 2;
 }
+/** Rounded display domain/ticks only; all plotted data retain their original values. */
+export function glucoseAxisScale(
+  minimum: number,
+  maximum: number,
+  focused = true,
+) {
+  if (
+    !Number.isFinite(minimum) ||
+    !Number.isFinite(maximum) ||
+    maximum < minimum
+  )
+    return {
+      domain: [40, 300] as [number, number],
+      ticks: [50, 100, 150, 200, 250, 300],
+    };
+  const padding = Math.max(5, (maximum - minimum) * 0.12);
+  const low = focused
+    ? minimum >= 0
+      ? Math.max(0, minimum - padding)
+      : minimum - padding
+    : Math.min(40, minimum);
+  const high = focused ? maximum + padding : Math.max(280, maximum);
+  const rawStep = Math.max(1, (high - low) / 5),
+    power = 10 ** Math.floor(Math.log10(rawStep));
+  const step =
+    ([1, 2, 5, 10].find((multiplier) => multiplier * power >= rawStep) || 10) *
+    power;
+  const lower = Math.floor(low / step) * step,
+    upper = Math.ceil(high / step) * step;
+  return {
+    domain: [lower, upper] as [number, number],
+    ticks: Array.from(
+      { length: Math.round((upper - lower) / step) + 1 },
+      (_, i) => lower + i * step,
+    ),
+  };
+}
 export function glucoseZoneColor(value: number, inner = false): string {
   if (value < 54) return "#C2410C";
   if (value < 70) return "#F97316";

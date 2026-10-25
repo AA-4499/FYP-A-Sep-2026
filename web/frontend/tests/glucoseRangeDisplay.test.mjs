@@ -12,9 +12,36 @@ const { outputText } = ts.transpileModule(source, {
     module: ts.ModuleKind.ESNext,
   },
 });
-const { rangeAverage, glucoseZoneColor, glucoseGradientStops } = await import(
+const {
+  rangeAverage,
+  glucoseZoneColor,
+  glucoseGradientStops,
+  glucoseAxisScale,
+} = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`
 );
+
+test("forecast axis uses readable integer steps while retaining every displayed bound", () => {
+  for (const [low, high] of [
+    [83.652343, 280],
+    [101, 103],
+    [-22, 510],
+    [0, 0],
+  ]) {
+    const scale = glucoseAxisScale(low, high);
+    assert.ok(scale.domain[0] <= low && scale.domain[1] >= high);
+    assert.ok(scale.ticks.length >= 3 && scale.ticks.length <= 12);
+    assert.ok(
+      scale.ticks.every(
+        (tick, i) =>
+          Number.isInteger(tick) && (!i || tick > scale.ticks[i - 1]),
+      ),
+    );
+  }
+  assert.ok(glucoseAxisScale(101, 103).domain[1] < 180);
+  assert.ok(glucoseAxisScale(101, 103, false).domain[1] >= 280);
+  assert.ok(glucoseAxisScale(NaN, NaN).ticks.every(Number.isFinite));
+});
 
 test("middle line is the explicit average of bounds, with no mutation or overflow", () => {
   const bounds = [80, 200];

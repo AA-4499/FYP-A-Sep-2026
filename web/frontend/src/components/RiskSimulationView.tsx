@@ -1,5 +1,6 @@
 import { PhysiologyLab } from "./PhysiologyLab";
 import { ScenarioBuilder } from "./ScenarioBuilder";
+import { PredictionChart } from "./PredictionChart";
 import {
   simulatePhysiology,
   PhysiologyDomainError,
@@ -1192,7 +1193,7 @@ function ForecastPanel({
                 CGM &middot; mg/dL
               </span>
             </div>
-            <GlucoseChart series={forecastSeries} loading={loading} />
+            <PredictionChart series={forecastSeries} loading={loading} />
             <div
               data-testid="range-explanation"
               className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-xs leading-relaxed text-slate-500"

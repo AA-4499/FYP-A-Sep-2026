@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Trash2, CalendarClock } from "lucide-react";
+import { Plus, Trash2, CalendarClock, ChevronDown } from "lucide-react";
 import {
   clockInput,
   compileScenario,
@@ -12,7 +12,7 @@ import {
 } from "../lib/scenario";
 
 const input =
-  "mt-1.5 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-teal-600";
+  "mt-1.5 w-full min-w-0 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-xs text-slate-800 outline-none transition focus:border-teal-400 focus:ring-2 focus:ring-teal-50";
 export function ScenarioBuilder({
   value,
   onChange,
@@ -83,8 +83,7 @@ export function ScenarioBuilder({
             : "Waiting for the seed observation."}
         </p>
         <p className="mt-1 text-slate-400">
-          Use this record’s date and time, including the next day if needed.
-          Times are not today’s clock.
+          Use the record date, not today's date. Next-day events are supported.
         </p>
       </div>
       <label className="block text-xs font-semibold text-slate-600">
@@ -112,7 +111,7 @@ export function ScenarioBuilder({
             setError("");
           }}
         >
-          <option value="">Choose food, injection, medicine…</option>
+          <option value="">Choose an event...</option>
           {Object.entries(eventNames).map(([kind, label]) => (
             <option key={kind} value={kind}>
               {label}
@@ -122,8 +121,13 @@ export function ScenarioBuilder({
       </label>
       {!value.length && (
         <div className="rounded-xl border border-dashed border-slate-200 p-5 text-center text-xs leading-relaxed text-slate-400">
-          <Plus size={18} className="mx-auto mb-2" />
-          Build a day, one event at a time. Select an event to open its details.
+          <span className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-600">
+            <Plus size={20} />
+          </span>
+          <p className="font-medium text-slate-600">Start with one event</p>
+          <p className="mt-1 text-[11px]">
+            Add a meal, injection or activity to compare with the baseline.
+          </p>
         </div>
       )}
       <fieldset disabled={disabled} className="min-w-0 space-y-3">
@@ -131,16 +135,25 @@ export function ScenarioBuilder({
           <details
             key={row.id}
             open
-            className="group rounded-xl border border-slate-200 bg-white"
+            className="group overflow-hidden rounded-2xl border border-slate-200/90 bg-white transition open:border-teal-200"
             data-testid="scenario-event"
           >
-            <summary className="cursor-pointer p-3 text-xs font-semibold text-slate-700">
-              {index + 1}. {eventNames[row.kind]}
-              <span className="mt-1 block pl-4 text-[10px] font-normal text-slate-400">
-                {row.at
-                  ? row.at.replace("T", " ") + " UTC"
-                  : "Set the time and details"}
+            <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3.5 text-xs font-semibold text-slate-700">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[11px] font-bold text-teal-700">
+                {index + 1}
               </span>
+              <span className="min-w-0 flex-1">
+                {eventNames[row.kind]}
+                <span className="mt-1 block text-[10px] font-normal text-slate-400">
+                  {row.at
+                    ? row.at.replace("T", " ") + " UTC"
+                    : "Set the time and details"}
+                </span>
+              </span>
+              <ChevronDown
+                size={14}
+                className="shrink-0 text-slate-400 transition group-open:rotate-180"
+              />
             </summary>
             <div className="space-y-3 border-t border-slate-100 p-3">
               <label className="block text-[11px] text-slate-500">
@@ -241,7 +254,7 @@ export function ScenarioBuilder({
                         Manual · food label / measured estimate
                       </option>
                       <option value="usda-cooked-white-rice">
-                        Cooked white rice · USDA reference estimate
+                        Cooked white rice (USDA estimate)
                       </option>
                     </select>
                   </label>

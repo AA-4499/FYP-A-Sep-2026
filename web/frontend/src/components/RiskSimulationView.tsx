@@ -32,6 +32,9 @@ import {
   Download,
   Settings2,
   CheckCircle2,
+  ChevronDown,
+  Info,
+  FlaskConical,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -69,7 +72,8 @@ type Series = {
   points: ForecastPoint[];
   range?: RangeEnvelope | null;
 };
-const card = "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm";
+const card =
+  "rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_-24px_rgba(15,23,42,0.25)] sm:p-6";
 const input =
   "mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100";
 const timestamp = (value: string) =>
@@ -158,11 +162,11 @@ function GlucoseChart({
   return (
     <>
       {!history && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
           <p className="text-[11px] text-slate-500">
             {focused
-              ? "Y-axis fitted to the displayed estimates and ranges · mg/dL"
-              : "Reference-range view · mg/dL"}
+              ? "Focused view · mg/dL · record time in UTC"
+              : "Reference-range view · mg/dL · record time in UTC"}
           </p>
           <div className="flex flex-wrap gap-2">
             {hasRanges && (
@@ -170,7 +174,7 @@ function GlucoseChart({
                 type="button"
                 aria-pressed={!showCentre}
                 onClick={() => setShowCentre((value) => !value)}
-                className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-[11px] font-semibold text-teal-800"
+                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600 transition hover:border-teal-300 hover:text-teal-800"
               >
                 {showCentre ? "Show range bands" : "Show model estimates only"}
               </button>
@@ -180,15 +184,112 @@ function GlucoseChart({
               aria-label="Fit forecast vertical range"
               aria-pressed={fitForecast}
               onClick={() => setFitForecast((value) => !value)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50"
+              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-slate-600 transition hover:border-teal-300 hover:text-teal-800"
             >
               {fitForecast ? "Show reference range" : "Fit forecast range"}
             </button>
           </div>
         </div>
       )}
+      {!history && hasData && (
+        <div
+          data-testid="prediction-layer-legend"
+          className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50/80 p-3.5 sm:flex sm:flex-wrap sm:gap-x-6"
+        >
+          {hasRanges && !showCentre && (
+            <>
+              <div className="flex items-center gap-2.5">
+                <svg
+                  width="28"
+                  height="16"
+                  aria-hidden="true"
+                  className="shrink-0"
+                >
+                  <rect
+                    width="28"
+                    height="16"
+                    rx="5"
+                    fill="#86EFAC"
+                    fillOpacity="0.3"
+                  />
+                </svg>
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">
+                    Outer range
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Light fill - wider spread
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <svg
+                  width="28"
+                  height="16"
+                  aria-hidden="true"
+                  className="shrink-0"
+                >
+                  <rect
+                    width="28"
+                    height="16"
+                    rx="5"
+                    fill="#86EFAC"
+                    fillOpacity="0.3"
+                  />
+                  <rect
+                    width="28"
+                    height="16"
+                    rx="5"
+                    fill="#15803D"
+                    fillOpacity="0.42"
+                  />
+                </svg>
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">
+                    Inner spread
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    Dark fill - central spread
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+          {series.map((s) => (
+            <div key={s.key} className="flex items-center gap-2.5">
+              <svg
+                width="28"
+                height="16"
+                aria-hidden="true"
+                className="shrink-0"
+              >
+                <line
+                  x1="0"
+                  x2="28"
+                  y1="8"
+                  y2="8"
+                  stroke={s.color}
+                  strokeWidth="2.5"
+                  strokeDasharray={s.key === "scenario" ? "5 3" : undefined}
+                />
+              </svg>
+              <div>
+                <p className="text-xs font-semibold text-slate-700">
+                  {s.key === "scenario" ? "What-if" : "Baseline"}{" "}
+                  {s.range && !showCentre ? "average" : "estimate"}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {s.range && !showCentre
+                    ? "Range average line"
+                    : "Original centre estimate"}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div
-        className="relative mt-5 h-[330px] w-full"
+        className={`relative mt-4 w-full ${history ? "h-[330px]" : "h-[300px] sm:h-[360px]"}`}
         role="img"
         data-scale={focused ? "fit" : "reference"}
         data-display={hasRanges && !showCentre ? "range" : "point"}
@@ -231,13 +332,26 @@ function GlucoseChart({
                     )),
                   )}
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid
+              vertical={false}
+              strokeDasharray="3 5"
+              stroke="#e8edf3"
+            />
             <XAxis
               dataKey="timestamp"
               type="number"
               domain={hasData ? ["dataMin", "dataMax"] : [0, 1]}
               scale="time"
-              tickFormatter={hasData ? formatTime : () => ""}
+              tickFormatter={
+                hasData
+                  ? history
+                    ? formatTime
+                    : (value) =>
+                        new Date(Number(value)).toISOString().slice(11, 16)
+                  : () => ""
+              }
+              axisLine={false}
+              tickLine={false}
               minTickGap={50}
               tick={{ fontSize: 10 }}
             />
@@ -246,6 +360,8 @@ function GlucoseChart({
               tick={{ fontSize: 11 }}
               width={58}
               allowDecimals={false}
+              axisLine={false}
+              tickLine={false}
               tickFormatter={(value) =>
                 Number.isFinite(Number(value))
                   ? String(Math.round(Number(value)))
@@ -253,6 +369,24 @@ function GlucoseChart({
               }
             />
             <Tooltip
+              position={{ x: 8, y: 8 }}
+              wrapperStyle={{
+                width: 260,
+                maxWidth: "calc(100% - 16px)",
+                outline: "none",
+              }}
+              contentStyle={{
+                borderRadius: 16,
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 12px 36px -20px rgba(15,23,42,0.35)",
+                fontSize: 11,
+                whiteSpace: "normal",
+              }}
+              itemStyle={{
+                whiteSpace: "normal",
+                overflowWrap: "anywhere",
+                lineHeight: 1.5,
+              }}
               labelFormatter={(value) => formatTime(Number(value))}
               formatter={(value: unknown) =>
                 Array.isArray(value)
@@ -260,7 +394,9 @@ function GlucoseChart({
                   : `${Number(value).toFixed(1)} mg/dL`
               }
             />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+            {history && (
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+            )}
             {[
               { value: 54, color: "#C2410C" },
               { value: 70, color: "#F97316" },
@@ -290,21 +426,21 @@ function GlucoseChart({
                     <Area
                       type="linear"
                       dataKey={`${s.key}_outer`}
-                      name={`${s.label} · wider range`}
+                      name={`${s.key === "scenario" ? "What-if" : "Baseline"} outer range`}
                       stroke="none"
                       legendType="none"
                       fill={`url(#${chartId}-${s.key}-outer)`}
-                      fillOpacity={0.5}
+                      fillOpacity={0.3}
                       isAnimationActive={false}
                     />
                     <Area
                       type="linear"
                       dataKey={`${s.key}_inner`}
-                      name={`${s.label} · inner spread`}
+                      name={`${s.key === "scenario" ? "What-if" : "Baseline"} inner spread`}
                       legendType="none"
                       stroke="none"
                       fill={`url(#${chartId}-${s.key}-inner)`}
-                      fillOpacity={0.55}
+                      fillOpacity={0.42}
                       isAnimationActive={false}
                     />
                   </React.Fragment>
@@ -320,8 +456,10 @@ function GlucoseChart({
                 }
                 name={
                   !history && !showCentre && s.range
-                    ? `${s.label} · range average`
-                    : s.label
+                    ? `${s.key === "scenario" ? "What-if" : "Baseline"} range average`
+                    : history
+                      ? s.label
+                      : `${s.key === "scenario" ? "What-if" : "Baseline"} estimate`
                 }
                 stroke={s.color}
                 strokeWidth={s.key === "observed" ? 1 : 2.5}
@@ -359,43 +497,33 @@ function GlucoseChart({
       {!history && (
         <div
           data-testid="prediction-risk-legend"
-          className="mt-4 space-y-2 rounded-xl border border-slate-100 bg-slate-50/70 p-3"
+          className="mt-2 space-y-2 border-t border-slate-100 pt-4"
         >
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {glucoseReferenceZones.map((zone) => (
               <span
                 key={zone.label}
-                className="inline-flex items-center gap-1.5 text-[10px] text-slate-600"
+                className="inline-flex items-center gap-1.5 text-[11px] text-slate-600"
               >
                 <span
-                  className="h-2.5 w-2.5 rounded-sm"
+                  className="h-2 w-2 shrink-0 rounded-full"
                   style={{ backgroundColor: zone.color }}
                 />
                 {zone.label}
               </span>
             ))}
           </div>
-          <p className="text-[10px] leading-relaxed text-slate-500">
-            Glucose reference zones · mg/dL; personal targets may differ.
-            Colours mark the glucose level inside the band, not a risk
-            probability.
+          <p className="text-[11px] leading-relaxed text-slate-400">
+            Colour = glucose level. Shade depth = range layer. Personal glucose
+            targets may differ.
           </p>
           {hasRanges && !showCentre && (
-            <p className="text-[10px] leading-relaxed text-slate-500">
-              Middle line: range average = (lower + upper bound) ÷ 2. Light
-              shading is the outer reference; darker shading is the inner
-              spread. This midpoint is not a population mean or a new model
-              prediction.
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              Range average = (lower + upper bound) / 2. Colours are not risk
+              probabilities.
             </p>
           )}
         </div>
-      )}
-      {!history && (
-        <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
-          Axis zoom changes the display only. Centre estimates and range bounds
-          are unchanged by zoom; reference lines outside the visible range are
-          hidden.
-        </p>
       )}
     </>
   );
@@ -403,6 +531,7 @@ function GlucoseChart({
 
 function ForecastPanel({
   patient,
+  patients,
   onNavigate,
   onOpenPhysiology,
 }: Props & { onOpenPhysiology: () => void }) {
@@ -710,20 +839,26 @@ function ForecastPanel({
   return (
     <div className="space-y-5 pb-10 animate-fadeIn">
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div
+          className={
+            patients
+              ? "flex flex-wrap items-center gap-x-4 gap-y-1"
+              : "space-y-1"
+          }
+        >
           <button
             onClick={() => onNavigate("patient_dashboard")}
-            className="mb-2 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600"
           >
             <ArrowLeft size={14} />
             Back to Patient Dashboard
           </button>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Risk Prediction and What-if Simulation
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Shanghai T2DM CGM forecasting &middot; Patient record {patient.id}
-          </p>
+          {!patients && (
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              Forecast & compare
+            </h1>
+          )}
+          <p className="text-xs text-slate-400">Patient record {patient.id}</p>
         </div>
         <button
           type="button"
@@ -753,26 +888,6 @@ function ForecastPanel({
               Snapshot generated: {displayTime(current.generated_at)} UTC
             </p>
           )}
-        </div>
-      )}
-      {browser && (
-        <div
-          className="rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900"
-          data-testid="browser-model-notice"
-        >
-          <p className="font-semibold">Repository GRU · runs in your browser</p>
-          <p className="mt-1 text-xs leading-relaxed">
-            Uses the trained model and this exact record's history bundled from
-            the GitHub repository. Forecasts and what-if events are calculated
-            here without Render or sign-in. This is repository workbook history,
-            not refreshed Supabase observations. Results are not saved to the
-            database.
-          </p>
-          <p className="mt-2 text-[11px]">
-            The historical evaluation charts are checkpoint-matched saved
-            diagnostics. The GRU forecast is computed here; scheduled event
-            responses use a separate, explicitly labelled physiology model.
-          </p>
         </div>
       )}
 
@@ -821,11 +936,11 @@ function ForecastPanel({
           <Activity size={17} className="text-blue-600" />
           Forecast settings
         </span>
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          Execution / data source
+        <label className="flex min-w-0 flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+          Data source
           <select
             aria-label="Data source"
-            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800"
+            className="max-w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs font-medium text-slate-700"
             value={source}
             onChange={(event) => {
               setSource(event.target.value as ForecastSource);
@@ -845,11 +960,11 @@ function ForecastPanel({
             )}
           </select>
         </label>
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+        <label className="flex min-w-0 flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
           Forecast horizon
           <select
             aria-label="Forecast horizon"
-            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800"
+            className="max-w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs font-medium text-slate-700"
             value={horizon}
             onChange={(event) => {
               const hours = Number(event.target.value);
@@ -867,20 +982,51 @@ function ForecastPanel({
         <span className="text-xs text-slate-400 sm:ml-auto">
           15-minute forecast intervals
         </span>
+        {browser && (
+          <div
+            data-testid="browser-model-notice"
+            className="flex w-full flex-wrap items-start justify-between gap-3 border-t border-slate-100 pt-3 text-xs"
+          >
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                <Database size={15} />
+              </span>
+              <div>
+                <p className="font-semibold text-slate-700">
+                  Repository GRU{" "}
+                  <span className="ml-1.5 rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">
+                    Local model
+                  </span>
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Historical repository record, not refreshed Supabase
+                  observations. Results stay in this browser.
+                </p>
+              </div>
+            </div>
+            <details className="max-w-xl text-[11px] text-slate-500">
+              <summary className="cursor-pointer font-medium text-slate-500">
+                Data source details
+              </summary>
+              <p className="mt-2 leading-relaxed">
+                The checked-in model uses this exact record's bundled workbook
+                history. It runs without Render and does not save forecasts to
+                Supabase. Historical diagnostics match the record and
+                checkpoint. Scheduled events use a separate, unvalidated
+                physiology model. Doctor sign-in is required to enter this
+                workspace.
+              </p>
+            </details>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
           [
             browser ? "Latest repository CGM" : "Latest observed CGM",
             current
               ? `${displayNumber(current.latest_glucose)} mg/dL`
-              : "\u2014",
-          ],
-          [
-            "Held-out one-step MAE (GRU)",
-            current?.metrics
-              ? `${displayNumber(current.metrics.mae_mg_dl)} mg/dL`
               : "\u2014",
           ],
           [
@@ -897,15 +1043,30 @@ function ForecastPanel({
                 ? "No event applied"
                 : "\u2014",
           ],
-        ].map(([label, value]) => (
-          <div key={label} className={`${card} !p-4`}>
+        ].map(([label, value], index) => (
+          <div
+            key={label}
+            className={`${card} !p-4 ${index === 2 ? "col-span-2 sm:col-span-1" : ""}`}
+          >
             <p className="text-xs text-slate-500">{label}</p>
-            <p className="mt-2 text-lg font-bold text-slate-900">{value}</p>
+            <p className="mt-2 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              {value.endsWith("mg/dL") ? (
+                <>
+                  {value.replace(" mg/dL", "")}
+                  <span className="text-xs font-medium tracking-normal text-slate-400">
+                    {" "}
+                    mg/dL
+                  </span>
+                </>
+              ) : (
+                value
+              )}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_290px]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-5" aria-busy={loading}>
           <div aria-live="polite">
             {error && (
@@ -1011,9 +1172,9 @@ function ForecastPanel({
                 context only. Their effects are not included in this curve.
               </p>
             )}
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold text-slate-900">
+                <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
                   {activeSimulation
                     ? "Scheduled event response"
                     : "Glucose prediction"}
@@ -1027,49 +1188,29 @@ function ForecastPanel({
                       : "baseline and what-if comparison"}
                 </p>
               </div>
-              <span className="rounded-md bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-600">
+              <span className="shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
                 CGM &middot; mg/dL
               </span>
             </div>
             <GlucoseChart series={forecastSeries} loading={loading} />
             <div
               data-testid="range-explanation"
-              className="mt-4 rounded-xl border border-teal-100 bg-teal-50 p-4 text-xs leading-relaxed text-teal-950"
+              className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-xs leading-relaxed text-slate-500"
             >
-              <p className="font-semibold">
+              <p className="flex items-center gap-2 font-medium text-slate-600">
+                <Info size={14} className="shrink-0 text-slate-400" />
                 {activeSimulation
-                  ? "Assumption sensitivity range · not a probability interval"
-                  : "Historical error reference · not a calibrated prediction interval"}
+                  ? "Research simulation - not a probability interval"
+                  : "Historical error reference - not a calibrated prediction interval"}
               </p>
-              <p className="mt-2">
-                {activeSimulation
-                  ? "Light shading spans the selected assumption settings; darker shading shows their middle spread. This is sensitivity to assumptions, not a probability of your future glucose."
-                  : historicalRange
-                    ? "Darker shading shows typical historical error; lighter shading shows a wider error reference. It expands further ahead using an illustrative assumption, not a validated future coverage rate."
-                    : "Range unavailable: there are not enough valid matched historical errors for this record. The centre estimate is shown instead."}
-              </p>
-              <details className="mt-2">
-                <summary className="cursor-pointer font-semibold">
-                  How this range is constructed
-                </summary>
-                <p className="mt-2">
-                  {activeSimulation
-                    ? "Shading compares 27 settings around your selected assumptions: beta response ×0.5/1/1.5, sensitivity ×0.75/1/1.25 and meal absorption time ×0.75/1/1.25, within the supported limits. The outer band spans all settings; the darker band shows the middle parameter-grid spread. These settings are not equally likely patients or a fitted probability distribution."
-                    : historicalRange
-                      ? `Based on ${historicalRange.samples} time-matched historical test errors from this exact record, all at or before the forecast origin. Dark shading uses the median absolute one-step error; light shading uses its 90th percentile. Width is multiplied by √(number of future 15-minute steps), an illustrative growth assumption. This is not 50% or 90% future coverage; multi-step calibration is still required.`
-                      : "At least 30 valid time-matched test errors from this record are needed for an error reference. No band is invented from MAE, another patient or the target glucose range. The centre estimate is shown instead."}
+              {!baselineRange && (
+                <p role="status" className="mt-2 text-amber-800">
+                  Range unavailable. The original centre estimate is shown; no
+                  reference band has been invented.
                 </p>
-                <a
-                  href="https://proceedings.mlr.press/v230/galvao-lopes24a.html"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-block underline"
-                >
-                  Why multi-step coverage needs separate calibration
-                </a>
-              </details>
+              )}
               {!!activeSimulation?.ranges.error && (
-                <p role="status" className="mt-2 text-amber-900">
+                <p role="status" className="mt-2 text-amber-800">
                   {activeSimulation.ranges.error}
                 </p>
               )}
@@ -1078,41 +1219,62 @@ function ForecastPanel({
                   (point) => point.outer[0] < 20 || point.outer[1] > 600,
                 ),
               ) && (
-                <p className="mt-2 font-semibold text-amber-900">
-                  The reference extends beyond the model's physiological domain.
-                  It is not a usable clinical prediction range; bounds have not
-                  been clipped to appear plausible.
+                <p className="mt-2 font-medium text-amber-800">
+                  This reference extends beyond the model's physiological domain
+                  and is not a usable clinical prediction range. Bounds have not
+                  been clipped.
                 </p>
               )}
-              <p className="mt-2">
-                Health monitoring AGP bands describe observed historical
-                glucose. These forward-looking references have a different
-                meaning. A wider band exposes uncertainty; it does not make the
-                centre prediction more accurate.
-              </p>
-            </div>
-            <div className="mt-4 rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-xs leading-relaxed text-slate-600">
-              <p>
-                {activeSimulation ? (
-                  "These curves use the same assumed physiology and starting glucose. The baseline assumes no added events; it is not the GRU forecast. Carbohydrate enters blood gradually, remaining beta-cell activity responds with a delay, and injected insulin acts after absorption. The event-free reference is balanced around the seed glucose (60-250 mg/dL); this does not establish fasting or stability."
-                ) : (
-                  <>
-                    The GRU estimates a statistical trajectory from recent
-                    history. Recursive predictions can settle towards a stable
-                    value; a longer horizon does not guarantee a rise and fall.
-                    Run a scheduled scenario to explore a separate physiological
-                    response; it will be labelled as simulation, not a GRU
-                    forecast.
-                  </>
-                )}
-              </p>
-              <button
-                type="button"
-                onClick={onOpenPhysiology}
-                className="mt-3 font-semibold text-teal-800 hover:underline"
+              <details
+                className="group mt-2"
+                data-testid="prediction-method-details"
               >
-                Explore meal absorption and delayed insulin feedback →
-              </button>
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold text-teal-700">
+                  How to read this forecast
+                  <ChevronDown
+                    size={13}
+                    className="transition group-open:rotate-180"
+                  />
+                </summary>
+                <div className="mt-3 space-y-3 border-t border-slate-200/70 pt-3">
+                  <p>
+                    {activeSimulation
+                      ? "Shading compares 27 settings around the selected assumptions. The light outer range spans all settings; the darker inner spread is the middle half of those settings. Beta response varies by 0.5/1/1.5, sensitivity by 0.75/1/1.25 and absorption time by 0.75/1/1.25. Settings are not a fitted probability distribution or equally likely patients."
+                      : historicalRange
+                        ? `Based on ${historicalRange.samples} historical test errors from this exact record at or before the forecast origin. Light fill uses the 90th-percentile absolute one-step error; dark fill uses the median absolute error. Width grows with the square root of the future step count as an illustrative assumption. These layers do not claim 90% or 50% future coverage.`
+                        : "At least 30 valid matched errors are needed. MAE or another patient's data is not substituted."}
+                  </p>
+                  <p>
+                    The range average is the midpoint of the outer bounds, not a
+                    population mean or a new model prediction. Axis controls
+                    change the display only. Health monitoring AGP bands
+                    summarise observations; these are exploratory future
+                    references.
+                  </p>
+                  <p>
+                    {activeSimulation
+                      ? "Both curves use the same starting glucose and assumed physiology. Carbohydrate absorption, delayed beta-cell response and delayed injected-insulin action shape the response. Initial gut contents and insulin on board are unknown; a neutral baseline does not establish fasting or stability."
+                      : "The GRU rolls a next-step estimate forward in time. It can settle towards a stable value. Event simulations use a separate reduced physiological model and do not establish clinical accuracy."}
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <button
+                      type="button"
+                      onClick={onOpenPhysiology}
+                      className="font-semibold text-teal-700 hover:underline"
+                    >
+                      Explore the Physiology lab
+                    </button>
+                    <a
+                      href="https://proceedings.mlr.press/v230/galvao-lopes24a.html"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-slate-500 underline underline-offset-2"
+                    >
+                      Read the calibration reference
+                    </a>
+                  </div>
+                </div>
+              </details>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-slate-400">
               {current
@@ -1122,133 +1284,29 @@ function ForecastPanel({
                   : "Connect the prediction service to load the selected patient's model results."}
             </p>
           </section>
-
-          <section className={card} data-testid="forecast-values-panel">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">
-                  {activeSimulation ? "Simulated values" : "Forecast values"}
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  {activeSimulation
-                    ? "Hypothetical CGM at each 15-minute step; not a validated patient prediction"
-                    : "Predicted CGM at each future 15-minute step"}
-                </p>
-                <p className="mt-1 text-[10px] text-slate-400">
-                  Centre columns retain the original estimates. Chart
-                  range-average lines use the bounds' midpoint, which is also
-                  included in the CSV.
-                </p>
-              </div>
-              <button
-                disabled={!current}
-                onClick={download}
-                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-blue-600 disabled:opacity-40"
-              >
-                <Download size={14} />
-                CSV
-              </button>
-            </div>
-            {forecastRows.length ? (
-              <>
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-200 text-slate-500">
-                      <tr>
-                        <th className="py-2 font-medium">Timestamp</th>
-                        <th className="py-2 font-medium">Baseline centre</th>
-                        <th className="py-2 font-medium">What-if centre</th>
-                        <th className="py-2 font-medium">Change</th>
-                        <th className="py-2 font-medium">
-                          Baseline reference range
-                        </th>
-                        {activeSimulation && (
-                          <th className="py-2 font-medium">
-                            What-if sensitivity range
-                          </th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(showAllRows
-                        ? forecastRows
-                        : forecastRows.slice(0, 12)
-                      ).map((point, index) => {
-                        const scenario = output!.scenario[index + 1]?.value;
-                        const change =
-                          scenario === undefined
-                            ? undefined
-                            : scenario - point.value;
-                        return (
-                          <tr
-                            key={point.timestamp}
-                            className="border-b border-slate-100 last:border-0"
-                          >
-                            <td className="whitespace-nowrap py-2.5 pr-3">
-                              {displayTime(point.timestamp)}
-                            </td>
-                            <td className="py-2.5">
-                              {point.value.toFixed(1)} mg/dL
-                            </td>
-                            <td className="py-2.5">
-                              {output!.scenario_enabled
-                                ? `${displayNumber(scenario)} mg/dL`
-                                : "\u2014"}
-                            </td>
-                            <td className="py-2.5">
-                              {output!.scenario_enabled && change !== undefined
-                                ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}`
-                                : "\u2014"}
-                            </td>
-                            <td className="whitespace-nowrap py-2.5 pr-3">
-                              {baselineRange?.points[index + 1]
-                                ? `${baselineRange.points[index + 1].outer[0].toFixed(1)}–${baselineRange.points[index + 1].outer[1].toFixed(1)}`
-                                : "Unavailable"}
-                            </td>
-                            {activeSimulation && (
-                              <td className="whitespace-nowrap py-2.5">
-                                {scenarioRange?.points[index + 1]
-                                  ? `${scenarioRange.points[index + 1].outer[0].toFixed(1)}–${scenarioRange.points[index + 1].outer[1].toFixed(1)}`
-                                  : "Unavailable"}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {forecastRows.length > 12 && (
-                  <button
-                    className="mt-3 text-xs font-semibold text-blue-600"
-                    onClick={() => setShowAllRows((show) => !show)}
-                  >
-                    {showAllRows
-                      ? "Show first 12 rows"
-                      : `Show all ${forecastRows.length} forecast rows`}
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="mt-4 rounded-lg border border-dashed border-slate-200 p-4 text-xs text-slate-500">
-                Forecast values will appear after the model returns a result.
-              </p>
-            )}
-          </section>
         </div>
 
         <aside
           className={`${card} xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto`}
           data-testid="simulator-panel"
         >
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <SlidersHorizontal size={17} className="text-blue-600" />
-            What-if simulator
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                <SlidersHorizontal size={17} />
+              </span>
+              <h2 className="text-base font-semibold tracking-tight text-slate-900">
+                What-if simulator
+              </h2>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-500">
+              {drafts.length} events
+            </span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-slate-500">
             {preview
               ? "This static preview cannot calculate new scenarios. Choose Repository GRU or the online service."
-              : "Schedule food, injections, medicines and activity. Expand each event to enter what happened, when and how much."}
+              : "Plan a meal, injection or activity, then compare its effect with the baseline."}
           </p>
           {output?.scenario_enabled && (
             <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
@@ -1274,10 +1332,14 @@ function ForecastPanel({
             </p>
           )}
           {activeSimulation && (
-            <div
+            <details
               data-testid="scenario-result"
-              className="mt-4 space-y-3 rounded-xl border border-teal-100 bg-teal-50 p-3 text-[11px] leading-relaxed text-teal-900"
+              className="mt-4 space-y-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-3.5 text-[11px] leading-relaxed text-teal-900"
             >
+              <summary className="cursor-pointer text-xs font-semibold">
+                Scenario applied - {activeSimulation.schedule.length} events
+                {activeSimulation.unmodelled.length ? " - incomplete" : ""}
+              </summary>
               <p className="font-semibold">
                 Physiology scenario computed; no database write
               </p>
@@ -1317,7 +1379,7 @@ function ForecastPanel({
                 {activeSimulation.assumptions.betaResponse}; sensitivity{" "}
                 {activeSimulation.assumptions.sensitivity}.
               </p>
-            </div>
+            </details>
           )}
           <ScenarioBuilder
             value={drafts}
@@ -1417,6 +1479,116 @@ function ForecastPanel({
           </details>
         </aside>
       </div>
+      <section className={card} data-testid="forecast-values-panel">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              {activeSimulation ? "Simulated values" : "Forecast values"}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {activeSimulation
+                ? "Hypothetical CGM at each 15-minute step; not a validated patient prediction"
+                : "Predicted CGM at each future 15-minute step"}
+            </p>
+            <p className="mt-1 text-[10px] text-slate-400">
+              Centre columns retain the original estimates. Chart range-average
+              lines use the bounds' midpoint, which is also included in the CSV.
+            </p>
+          </div>
+          <button
+            disabled={!current}
+            onClick={download}
+            className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-blue-600 disabled:opacity-40"
+          >
+            <Download size={14} />
+            CSV
+          </button>
+        </div>
+        {forecastRows.length ? (
+          <>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-200 text-slate-500">
+                  <tr>
+                    <th className="py-2 font-medium">Timestamp</th>
+                    <th className="py-2 font-medium">Baseline centre</th>
+                    <th className="py-2 font-medium">What-if centre</th>
+                    <th className="py-2 font-medium">Change</th>
+                    <th className="py-2 font-medium">
+                      Baseline reference range
+                    </th>
+                    {activeSimulation && (
+                      <th className="py-2 font-medium">
+                        What-if sensitivity range
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(showAllRows ? forecastRows : forecastRows.slice(0, 12)).map(
+                    (point, index) => {
+                      const scenario = output!.scenario[index + 1]?.value;
+                      const change =
+                        scenario === undefined
+                          ? undefined
+                          : scenario - point.value;
+                      return (
+                        <tr
+                          key={point.timestamp}
+                          className="border-b border-slate-100 last:border-0"
+                        >
+                          <td className="whitespace-nowrap py-2.5 pr-3">
+                            {displayTime(point.timestamp)}
+                          </td>
+                          <td className="py-2.5">
+                            {point.value.toFixed(1)} mg/dL
+                          </td>
+                          <td className="py-2.5">
+                            {output!.scenario_enabled
+                              ? `${displayNumber(scenario)} mg/dL`
+                              : "\u2014"}
+                          </td>
+                          <td className="py-2.5">
+                            {output!.scenario_enabled && change !== undefined
+                              ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}`
+                              : "\u2014"}
+                          </td>
+                          <td className="whitespace-nowrap py-2.5 pr-3">
+                            {baselineRange?.points[index + 1]
+                              ? `${baselineRange.points[index + 1].outer[0].toFixed(1)}–${baselineRange.points[index + 1].outer[1].toFixed(1)}`
+                              : "Unavailable"}
+                          </td>
+                          {activeSimulation && (
+                            <td className="whitespace-nowrap py-2.5">
+                              {scenarioRange?.points[index + 1]
+                                ? `${scenarioRange.points[index + 1].outer[0].toFixed(1)}–${scenarioRange.points[index + 1].outer[1].toFixed(1)}`
+                                : "Unavailable"}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {forecastRows.length > 12 && (
+              <button
+                className="mt-3 text-xs font-semibold text-blue-600"
+                onClick={() => setShowAllRows((show) => !show)}
+              >
+                {showAllRows
+                  ? "Show first 12 rows"
+                  : `Show all ${forecastRows.length} forecast rows`}
+              </button>
+            )}
+          </>
+        ) : (
+          <p className="mt-4 rounded-lg border border-dashed border-slate-200 p-4 text-xs text-slate-500">
+            Forecast values will appear after the model returns a result.
+          </p>
+        )}
+      </section>
       <details
         className={card}
         data-testid="history-panel"
@@ -1594,68 +1766,74 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
   const [tab, setTab] = useState<"forecast" | "physiology">("forecast");
   return (
     <div className="space-y-5">
-      {props.patients && props.onSelectPatient && (
-        <section
-          className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-teal-100 bg-white p-4 shadow-sm"
-          data-testid="prediction-patient-selector"
-        >
-          <div>
-            <p className="text-sm font-bold text-slate-900">
-              Patient for prediction
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Select an accessible record. Changing patient clears the previous
-              forecast and event scenario.
-            </p>
-          </div>
-          <label className="block w-full text-xs font-semibold text-slate-600 sm:w-auto">
-            Patient record
-            <select
-              aria-label="Prediction patient"
-              value={props.patient.id}
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm sm:min-w-64"
-              onChange={(event) => {
-                if (
-                  !props.patients?.some(
-                    (patient) => patient.id === event.target.value,
-                  )
-                )
-                  return;
-                setTab("forecast");
-                props.onSelectPatient?.(event.target.value);
-              }}
-            >
-              {props.patients.map((patient) => (
-                <option key={patient.id} value={patient.id}>
-                  {patient.id} · {patient.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-      )}
-      <div
-        className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2"
-        role="tablist"
-        aria-label="Prediction workspace"
-      >
-        {(
-          [
-            ["forecast", "CGM forecast"],
-            ["physiology", "Physiology lab"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className={`rounded-xl px-5 py-3 text-xs font-bold transition ${tab === id ? "bg-teal-700 text-white" : "text-slate-500 hover:bg-slate-50"}`}
+      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
+        {props.patients && props.onSelectPatient && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-4 p-5"
+            data-testid="prediction-patient-selector"
           >
-            {label}
-          </button>
-        ))}
-      </div>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+                Prediction lab
+              </h1>
+              <p className="mt-1 text-xs text-slate-500">
+                Choose a patient to explore their glucose outlook.
+              </p>
+            </div>
+            <label className="block w-full text-xs font-semibold text-slate-600 sm:w-auto">
+              Patient record
+              <select
+                aria-label="Prediction patient"
+                value={props.patient.id}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm sm:min-w-64"
+                onChange={(event) => {
+                  if (
+                    !props.patients?.some(
+                      (patient) => patient.id === event.target.value,
+                    )
+                  )
+                    return;
+                  setTab("forecast");
+                  props.onSelectPatient?.(event.target.value);
+                }}
+              >
+                {props.patients.map((patient) => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.id} · {patient.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+        <div
+          className="flex flex-wrap gap-1 border-t border-slate-100 bg-slate-50/70 px-4 py-2"
+          role="tablist"
+          aria-label="Prediction workspace"
+        >
+          {(
+            [
+              ["forecast", "CGM forecast"],
+              ["physiology", "Physiology lab"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${tab === id ? "bg-white text-teal-800 shadow-sm ring-1 ring-slate-200/70" : "text-slate-500 hover:bg-white/70"}`}
+            >
+              {id === "forecast" ? (
+                <Activity size={14} />
+              ) : (
+                <FlaskConical size={14} />
+              )}
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
       {tab === "forecast" ? (
         <ForecastPanel
           key={props.patient.id}

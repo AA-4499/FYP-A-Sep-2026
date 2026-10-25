@@ -99,9 +99,11 @@
       });
       fs.writeFileSync(path.join(out, name), Buffer.from(shot.data, "base64"));
     };
-    const chartScreenshot = async (name) => {
+    const chartScreenshot = async (name, scrollToChart = true) => {
       await evaluate(
-        `document.querySelector('[data-testid="prediction-panel"]').scrollIntoView({block:'center'})`,
+        scrollToChart
+          ? `document.querySelector('[data-testid="prediction-panel"]').scrollIntoView({block:'center'})`
+          : `window.scrollTo(0,0)`,
       );
       await delay(200);
       const shot = await send("Page.captureScreenshot", {
@@ -496,7 +498,7 @@
     );
     assert(
       await evaluate(
-        `document.querySelector('[data-testid="prediction-risk-legend"]').innerText.includes('range average') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-line-curve').length >= 1`,
+        `document.querySelector('[data-testid="prediction-layer-legend"]').innerText.includes('Range average line') && document.querySelectorAll('[data-testid="prediction-panel"] .recharts-line-curve').length >= 1`,
       ),
       "Range view must include its middle average line",
     );
@@ -516,6 +518,19 @@
     await chartScreenshot("prediction-reference-axis-readable.png");
     await click("Fit forecast range");
     await chartScreenshot("range-gru-desktop.png");
+    assert(
+      await evaluate(
+        `(() => {const legend=document.querySelector('[data-testid="prediction-layer-legend"]').innerText;return ['Outer range','Inner spread','Light fill','Dark fill'].every(label=>legend.includes(label)) && !document.querySelector('[data-testid="prediction-method-details"]').open;})()`,
+      ),
+      "Both band layers must be visibly labelled while technical notes stay collapsed",
+    );
+    assert(
+      await evaluate(
+        `!!(document.querySelector('[data-testid="simulator-panel"]').compareDocumentPosition(document.querySelector('[data-testid="forecast-values-panel"]')) & Node.DOCUMENT_POSITION_FOLLOWING)`,
+      ),
+      "Full-width forecast table must follow the scenario builder",
+    );
+    await chartScreenshot("prediction-redesigned-desktop.png", false);
     assert(
       await evaluate(
         `(() => { const horizon = document.querySelector('[aria-label="Forecast horizon"]'); return horizon.value === '6' && [...horizon.options].map(o => o.value).join(',') === '6,12'; })()`,
@@ -568,7 +583,7 @@
     await ready("Physiology scenario computed");
     assert(
       await evaluate(
-        `document.querySelector('[data-testid="prediction-panel"]').innerText.includes('No added events (physiology)')`,
+        `document.querySelector('[data-testid="prediction-panel"]').innerText.includes('unvalidated physiology comparison')`,
       ),
       "Event simulation was not distinguished from the GRU",
     );
@@ -584,12 +599,25 @@
       time: await eventClock(180),
     });
     await click("Run what-if simulation");
-    await ready("Later snack");
+    await ready("Physiology scenario computed");
     assert(
       await evaluate(
-        `document.querySelector('[data-testid="scenario-result"]').innerText.includes('Hypothetical rapid insulin')`,
+        `document.querySelector('[data-testid="scenario-result"]').textContent.includes('Hypothetical rapid insulin') && document.querySelector('[data-testid="scenario-result"]').textContent.includes('Later snack')`,
       ),
       "Multiple applied events were lost",
+    );
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="scenario-result"]').tagName==='DETAILS' && !document.querySelector('[data-testid="scenario-result"]').open`,
+      ),
+      "Detailed applied-event receipt should be collapsible",
+    );
+    await evaluate(
+      `document.querySelector('[data-testid="scenario-result"] summary').click()`,
+    );
+    await ready("Applied schedule (UTC)");
+    await evaluate(
+      `document.querySelector('[data-testid="scenario-result"] summary').click()`,
     );
     const forecastValues = await evaluate(
       `document.querySelector('[data-testid="forecast-values-panel"]').innerText`,
@@ -716,6 +744,12 @@
       mobile: true,
     });
     await delay(400);
+    await chartScreenshot("prediction-redesigned-mobile.png", false);
+    const mobileLayout = await evaluate(
+      `({viewport:window.innerWidth,page:document.documentElement.scrollWidth,overlays:[...document.querySelectorAll('[data-testid="prediction-panel"] .recharts-tooltip-wrapper')].map(el=>({left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,width:el.getBoundingClientRect().width}))})`,
+    );
+    if (mobileLayout.viewport !== 390 || mobileLayout.page > 392)
+      console.log("Mobile overflow", mobileLayout);
     assert(
       await evaluate(
         `window.innerWidth === 390 && document.documentElement.scrollWidth <= window.innerWidth + 2`,
@@ -804,7 +838,7 @@
     await ready("Physiology scenario computed");
     assert(
       await evaluate(
-        `!document.querySelector('[data-testid="simulation-failure"]') && document.querySelector('[data-testid="scenario-result"]').innerText.includes('55.5 g carbohydrate (USDA cooked-rice estimate)')`,
+        `!document.querySelector('[data-testid="simulation-failure"]') && document.querySelector('[data-testid="scenario-result"]').textContent.includes('55.5 g carbohydrate (USDA cooked-rice estimate)')`,
       ),
       "Corrected cooked-rice scenario did not recover",
     );

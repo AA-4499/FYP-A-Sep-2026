@@ -110,7 +110,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600" />
-            2. Explainable AI (SHAP) Factor Breakdown
+            2. Risk Factor Breakdown (heuristic)
           </h2>
           <div className="space-y-2.5 text-xs">
             {patient.keyFactors.map((factor) => (

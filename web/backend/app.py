@@ -165,7 +165,7 @@ def patient_risk(patient_id: str):
 
 @app.route("/api/patients/<patient_id>/xai-explanation", methods=["GET", "POST"])
 def patient_xai(patient_id: str):
-    """Compute patient-specific SHAP attribution values for predicted risk."""
+    """Return heuristic linear factor attributions (not SHAP) for predicted risk."""
     custom_features = request.get_json(silent=True) if request.method == "POST" else None
     result = explain_patient_risk(patient_id, custom_features=custom_features)
     return jsonify(result)

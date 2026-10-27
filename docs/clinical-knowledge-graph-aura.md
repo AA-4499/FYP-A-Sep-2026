@@ -59,10 +59,10 @@ To enable a hosted model, configure backend-only values:
 ```dotenv
 KG_AI_PROVIDER=openai
 OPENAI_API_KEY=<your-own-server-side-key>
-OPENAI_MODEL=gpt-4.1-mini
+OPENAI_MODEL=gpt-5.4-mini
 ```
 
-Never send the OpenAI key to the frontend or commit it. The model request is minimised to recorded condition labels, matched concept details, cited source references, and reviewed relationships; it omits the patient ID, demographic values and raw readings. Because condition labels are still health-related data, enable external model processing only if it is permitted by the team's privacy and project governance. The analysis is decision support for a clinician, not a diagnosis or a treatment plan.
+Never send the OpenAI key to the frontend or commit it. The model request is minimised to recorded condition labels, matched concept details, cited source references, and reviewed relationships; it omits the patient ID, demographic values and raw readings. The prompt treats graph fields as untrusted data and ignores instructions embedded in concept descriptions or evidence notes. Because condition labels are still health-related data, enable external model processing only if it is permitted by the team's privacy and project governance. The analysis is decision support for a clinician, not a diagnosis or a treatment plan.
 
 ## Endpoints to verify
 

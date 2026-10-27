@@ -167,6 +167,11 @@ export const KnowledgeGraphView: React.FC<Props> = ({
   const [refreshKey, setRefreshKey] = useState(0);
 
   const selectedPatient = patients.find((item) => item.id === patientId);
+
+  useEffect(() => {
+    setSelectedNodeId("");
+    setSearch("");
+  }, [patientId, activeTab]);
   const selectablePatients = assignedIds.map((id) => ({
     id,
     patient: patients.find((item) => item.id === id),
@@ -287,7 +292,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           details: [
             { label: "Node type", value: kind },
             { label: "Category", value: category },
-            { label: "Patient record", value: patientId },
+            ...(kind !== "MedicalConcept" ? [{ label: "Patient record", value: patientId }] : []),
             { label: "Source references", value: Array.isArray(data.sourceRefs) ? data.sourceRefs.map(String).join(", ") || "Not recorded" : "Not recorded" },
             { label: "Scope", value: textValue(data.scope, "Not specified") },
             { label: "Schema version", value: textValue(data.schemaVersion, "Not specified") },

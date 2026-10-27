@@ -55,8 +55,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     <header className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Left: Mode Context */}
       {mode === "doctor" || !currentPatient ? (
-        <div className="flex items-center gap-3">
-          <div className="relative w-64 sm:w-80">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="relative w-full sm:w-64 xl:w-80">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
             <input
               type="text"
@@ -72,7 +72,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
             {/* Dropdown list if searching or opened */}
             {isDropdownOpen && (
-              <div className="absolute top-10 left-0 w-80 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs">
+              <div className="absolute top-10 left-0 w-full min-w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs">
                 <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
                   <span>Patient Cohort Records</span>
                   {isSupabaseConnected && (
@@ -214,11 +214,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div className="text-left hidden sm:block">
               <span className="block text-xs font-bold text-slate-900 leading-tight">
                 {roleLabel}
-              </span>
-              <span className="block text-[10px] text-slate-400">
-                {mode === "doctor"
-                  ? "Clinical workspace"
-                  : "Personal workspace"}
               </span>
             </div>
             <ChevronDown className="w-3 h-3 text-slate-400" />

@@ -225,6 +225,10 @@
         `(() => { const min = document.querySelector('input[type="datetime-local"]').min; return new Date(Date.parse(min + 'Z') + (${minutes} - 1) * 60000).toISOString().slice(0,16); })()`,
       );
     const expectPage = async (label, text) => {
+      if (await evaluate(`window.innerWidth<1024 && getComputedStyle(document.querySelector('aside')).visibility==='hidden'`)) {
+        await evaluate(`window.scrollTo(0,0);document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+        await delay(250);
+      }
       await click(label, "document.querySelector('aside')");
       await ready(text);
       assert(!exceptions.length, exceptions.join("\n"));
@@ -270,16 +274,17 @@
     };
     await open("?logincheck");
     await ready("2 accessible records");
+    await screenshot("clean-doctor-overview.png");
     for (const [label, text] of [
-      ["Patient management", "Patient List & Clinical Profiles"],
-      ["Health monitoring", "Ambulatory Glucose Profile (AGP)"],
-      ["Digital twin", "Physiological evidence map"],
-      ["Knowledge graph", "Patient and medical concept map"],
+      ["Patient management", "Patient list"],
       ["Reports", "Complete recorded summary"],
       ["Settings", "Workspace settings"],
     ])
       await expectPage(label, text);
-    await expectPage("Health monitoring", "Ambulatory Glucose Profile (AGP)");
+    assert(await evaluate(`![...document.querySelectorAll('aside button')].some(b=>['Health monitoring','Knowledge graph'].includes(b.textContent.trim()))`), 'Removed Doctor modules are still visible');
+    await evaluate(`document.querySelector('[aria-label="Doctor workspace menu"]').click()`);
+    await click("Switch to Patient workspace");
+    await expectPage("My health", "Ambulatory Glucose Profile (AGP)");
     const assertMonitoringColors = async () => {
       assert(
         await evaluate(`(() => {
@@ -335,17 +340,18 @@
       "Review the glucose monitoring plan",
     );
     await click("Doctor dashboard", "document.querySelector('aside')");
-    await expectPage("Patient management", "Patient List & Clinical Profiles");
+    await expectPage("Patient management", "Patient list");
     await evaluate(
       `Array.from(document.querySelectorAll('tbody button')).find(b => b.textContent.includes('Patient test-b')).click()`,
     );
+    await evaluate(`Array.from(document.querySelectorAll("tbody tr")).find(row => row.textContent.includes("Patient test-b")).querySelector("td:last-child button").click()`);
     await expectPage("Knowledge graph", "Patient and medical concept map");
     await click("Preview patient view");
     await expectPage("My recommendations", "No recommendations shared yet");
     // A newly opened workspace starts a new prototype recommendation session.
     await open("");
     await ready("2 accessible records");
-    await expectPage("Prediction lab", "CGM forecast");
+    await expectPage("Digital twin", "CGM forecast");
     assert(
       await evaluate(
         `document.querySelector('[aria-label="Data source"]').value==='browser'`,
@@ -406,7 +412,7 @@
     ])
       await expectPage(label, text);
     await click("Doctor dashboard", "document.querySelector('aside')");
-    await ready("A clearer view of your cohort.");
+    await ready("Cohort overview");
     await open("?empty");
     await ready("0 accessible records");
     await ready("Patient data requires sign-in");
@@ -418,15 +424,12 @@
     );
     for (const label of [
       "Patient management",
-      "Health monitoring",
-      "Digital twin",
-      "Knowledge graph",
       "Reports",
     ])
       await expectPage(label, "No patient records available");
     assert(
       await evaluate(
-        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Prediction lab'))`,
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Digital twin'))`,
       ),
       "Anonymous preview exposes Doctor-only prediction tools",
     );
@@ -466,9 +469,9 @@
     await delay(400);
     assert(
       await evaluate(
-        `getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).position==='static'`,
+        `getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).position==='fixed' && getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).visibility==='hidden'`,
       ),
-      "Mobile navigation must remain in normal page flow",
+      "Mobile sidebar must start hidden",
     );
     assert(
       await evaluate(
@@ -476,6 +479,24 @@
       ),
       "Mobile My health horizontal overflow",
     );
+    assert(await evaluate(`!document.querySelector('aside').textContent.includes('Knowledge graph')`), 'Patient account exposes knowledge graph');
+    await evaluate(`window.scrollTo(0,0);document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(300);
+    assert(await evaluate(`document.querySelector('aside').getBoundingClientRect().left===0 && document.body.style.overflow==='hidden'`), 'Mobile drawer did not open');
+    await screenshot("sidebar-mobile-open.png");
+    await send('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await delay(300);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden' && document.activeElement.getAttribute('aria-label')==='Toggle sidebar'`), 'Escape must close drawer and restore focus');
+    await evaluate(`document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(250);
+    await evaluate(`document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(250);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden'`), 'Toggle must close drawer');
+    await evaluate(`document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(250);
+    await evaluate(`document.querySelector('aside button[aria-current="page"]').click()`);
+    await delay(250);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden'`), 'Selecting a page must close drawer');
     await screenshot("restored-my-health-mobile.png");
     assert(
       await evaluate(
@@ -505,7 +526,14 @@
     });
     await open("?repo");
     await ready("2 accessible records");
-    await expectPage("Prediction lab", "Repository GRU");
+    await evaluate(`document.querySelector('[aria-label="Hide sidebar"]').click()`);
+    await delay(300);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden'`), 'Desktop sidebar failed to collapse');
+    await evaluate(`document.querySelector('[aria-label="Toggle desktop sidebar"]').click()`);
+    await delay(300);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='visible'`), 'Desktop sidebar failed to reopen');
+    await ready("2 accessible records");
+    await expectPage("Digital twin", "Repository GRU");
     await ready("Browser GRU computed successfully");
     await assertSidebarPinned();
     await send("Emulation.setDeviceMetricsOverride", {
@@ -521,7 +549,7 @@
     );
     assert(
       await evaluate(
-        `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');const footer=sidebar.lastElementChild.getBoundingClientRect();return sidebar.scrollTop>0 && footer.bottom<=window.innerHeight && footer.top>=0;})()`,
+        `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');const footer=sidebar.lastElementChild.getBoundingClientRect();return footer.bottom<=window.innerHeight && footer.top>=0;})()`,
       ),
       "Short screens must allow scrolling the navigation to its footer",
     );
@@ -630,7 +658,7 @@
       await evaluate(
         `(() => { const horizon = document.querySelector('[aria-label="Forecast horizon"]'); return horizon.value === '6' && [...horizon.options].map(o => o.value).join(',') === '6,12'; })()`,
       ),
-      "Prediction lab must default to 6h and offer only 6/12h",
+      "Digital twin must default to 6h and offer only 6/12h",
     );
     assert(
       await evaluate(
@@ -896,7 +924,7 @@
     );
     await open("?edge");
     await ready("2 accessible records");
-    await expectPage("Prediction lab", "Repository GRU");
+    await expectPage("Digital twin", "Repository GRU");
     await ready("Browser GRU computed successfully");
     assert(
       await evaluate(`document.body.innerText.includes('217.8 mg/dL')`),

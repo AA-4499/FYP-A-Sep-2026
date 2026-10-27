@@ -1,15 +1,5 @@
-/** Navigation for the Doctor dashboard and Patient workspace. */
-import React from "react";
-import {
-  LayoutDashboard,
-  Users,
-  Activity,
-  FileText,
-  Settings,
-  Sparkles,
-  Share2,
-  ArrowLeft,
-} from "lucide-react";
+﻿import React, { useEffect, useRef, useState } from "react";
+import { LayoutDashboard, Users, Activity, FileText, Settings, Sparkles, Share2, ArrowLeft, Menu, X, PanelLeftClose, User, Heart, Lightbulb } from "lucide-react";
 import type { NavigationModule } from "../types";
 
 interface SidebarProps {
@@ -20,180 +10,84 @@ interface SidebarProps {
   currentPatientName?: string;
   selfService?: boolean;
   canViewPredictions?: boolean;
+  canViewKnowledgeGraph?: boolean;
 }
 
-const sidebarShell =
-  "w-full shrink-0 rounded-3xl border border-slate-200/90 bg-white p-5 shadow-2xs flex flex-col justify-between gap-6 md:sticky md:top-5 md:w-60 md:self-start md:h-[calc(100dvh-2.5rem)] md:overflow-y-auto md:overscroll-contain lg:top-7 lg:h-[calc(100dvh-3.5rem)]";
+export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectModule, onReturnToCareTeam, currentPatientName, selfService = false, canViewPredictions = false, canViewKnowledgeGraph = false }) => {
+  const [desktopOpen, setDesktopOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const panel = useRef<HTMLElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const doctor = mode === "doctor";
+  const closeMobile = () => { setMobileOpen(false); toggle.current?.focus(); };
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  mode,
-  activeModule,
-  onSelectModule,
-  onReturnToCareTeam,
-  currentPatientName,
-  selfService = false,
-  canViewPredictions = false,
-}) => {
-  if (mode === "doctor") {
-    const items = [
-      { id: "doctor_overview", label: "Overview", icon: LayoutDashboard },
-      { id: "doctor_patients", label: "Patient management", icon: Users },
-      { id: "doctor_monitoring", label: "Health monitoring", icon: Activity },
-      { id: "doctor_predictions", label: "Prediction lab", icon: Sparkles },
-      { id: "doctor_digital_twin", label: "Digital twin", icon: Sparkles },
-      { id: "doctor_knowledge_graph", label: "Knowledge graph", icon: Share2 },
-      { id: "doctor_reports", label: "Reports", icon: FileText },
-      { id: "doctor_settings", label: "Settings", icon: Settings },
-    ];
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const reset = () => setMobileOpen(false);
+    media.addEventListener("change", reset);
+    return () => media.removeEventListener("change", reset);
+  }, []);
 
-    return (
-      <aside
-        className={sidebarShell}
-        data-testid="workspace-sidebar"
-        aria-label="Doctor navigation"
-      >
-        <div className="space-y-7">
-          <div className="flex items-center gap-2.5 px-1">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base bg-teal-600 text-white">
-              +
-            </div>
-            <div>
-              <h2 className="text-xs font-bold leading-tight text-slate-900">
-                DiaTwin
-              </h2>
-              <p className="text-[10px] text-slate-400">Doctor dashboard</p>
-            </div>
-          </div>
-          <div className="rounded-2xl p-3 border bg-teal-50/70 border-teal-100">
-            <p className="text-[10px] uppercase tracking-wider font-bold text-teal-700">
-              Doctor
-            </p>
-            <p className="text-xs font-semibold mt-1 text-slate-900">
-              Assigned Care Cohort
-            </p>
-          </div>
-          <nav className="grid grid-cols-2 gap-1 md:block md:space-y-1">
-            {items
-              .filter(
-                (item) =>
-                  item.id !== "doctor_predictions" || canViewPredictions,
-              )
-              .map((item) => {
-                const Icon = item.icon;
-                const active = activeModule === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => onSelectModule(item.id as NavigationModule)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition ${
-                      active
-                        ? "bg-teal-50 text-teal-700"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-          </nav>
-        </div>
-        <div className="pt-4 border-t text-[11px] border-slate-100 text-slate-400">
-          <p className="font-semibold">Doctor workspace</p>
-          <p className="mt-1">Recorded observations & research tools</p>
-        </div>
-      </aside>
-    );
-  }
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panel.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); closeMobile(); }
+      if (event.key !== "Tab") return;
+      const buttons = panel.current?.querySelectorAll<HTMLButtonElement>("button");
+      if (!buttons?.length) return;
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => { document.body.style.overflow = previous; document.removeEventListener("keydown", handleKey); };
+  }, [mobileOpen]);
 
-  // PATIENT SELF-CARE MODE
+  const items: { id: NavigationModule; label: string; icon: typeof Menu }[] = doctor ? [
+    { id: "doctor_overview", label: "Overview", icon: LayoutDashboard },
+    { id: "doctor_patients", label: "Patient management", icon: Users },
+    ...(canViewPredictions ? [{ id: "doctor_predictions" as const, label: "Digital twin", icon: Sparkles }] : []),
+    { id: "doctor_reports", label: "Reports", icon: FileText },
+    { id: "doctor_settings", label: "Settings", icon: Settings },
+  ] : [
+    { id: "patient_home", label: "Home", icon: LayoutDashboard },
+    { id: "patient_profile", label: "My profile", icon: User },
+    { id: "patient_monitoring", label: "My health", icon: Activity },
+    { id: "patient_digital_twin", label: "My digital twin", icon: Heart },
+    ...(canViewPredictions ? [{ id: "patient_insights" as const, label: "Risk prediction & what-if", icon: Sparkles }] : []),
+    ...(canViewKnowledgeGraph && !selfService ? [{ id: "patient_knowledge_graph" as const, label: "Knowledge graph", icon: Share2 }] : []),
+    { id: "patient_recommendations", label: "My recommendations", icon: Lightbulb },
+    { id: "patient_reports", label: "Reports", icon: FileText },
+  ];
+
   return (
-    <aside
-      className={sidebarShell}
-      data-testid="workspace-sidebar"
-      aria-label="Patient navigation"
-    >
-      <div className="space-y-6">
-        {/* Brand Header */}
-        <div className="px-1">
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            DiaTwin
-          </h1>
-          {currentPatientName && (
-            <p className="text-[11px] text-purple-600 font-semibold truncate mt-0.5">
-              Personal workspace · {currentPatientName}
-            </p>
-          )}
-        </div>
-
-        {/* Navigation Menu */}
-        <nav className="grid grid-cols-2 gap-1 md:block md:space-y-1">
-          {[
-            { id: "patient_home", label: "Home" },
-            { id: "patient_profile", label: "My profile" },
-            { id: "patient_monitoring", label: "My health" },
-            { id: "patient_digital_twin", label: "My digital twin" },
-            { id: "patient_insights", label: "Risk prediction & what-if" },
-            { id: "patient_recommendations", label: "My recommendations" },
-            { id: "patient_reports", label: "Reports" },
-          ]
-            .filter(
-              (item) => item.id !== "patient_insights" || canViewPredictions,
-            )
-            .map((item) => {
-              const isActive = activeModule === item.id;
-              return (
-                <button
-                  key={item.id}
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => onSelectModule(item.id as NavigationModule)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition text-left ${
-                    isActive
-                      ? "bg-purple-100/80 text-purple-700"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
-                >
-                  <span
-                    className={`w-4 h-4 rounded-xs border flex items-center justify-center shrink-0 ${
-                      isActive
-                        ? "border-purple-600 bg-white"
-                        : "border-slate-300"
-                    }`}
-                  >
-                    {isActive && (
-                      <span className="w-2 h-2 bg-purple-600 rounded-[1px]" />
-                    )}
-                  </span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-        </nav>
-      </div>
-
-      {/* Return to care team workspace */}
-      <div className="pt-4 border-t border-slate-100 space-y-3">
-        {onReturnToCareTeam && !selfService && (
-          <button
-            onClick={onReturnToCareTeam}
-            className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Doctor dashboard</span>
+    <div className={`workspace-navigation ${desktopOpen ? "is-expanded" : "is-collapsed"} ${mobileOpen ? "is-mobile-open" : ""}`}>
+      <button ref={toggle} type="button" className="navigation-toggle" aria-label="Toggle sidebar" aria-controls="workspace-navigation-panel" aria-expanded={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)}>
+        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+      <button type="button" className="desktop-navigation-toggle navigation-toggle" aria-label="Toggle desktop sidebar" aria-controls="workspace-navigation-panel" aria-expanded={desktopOpen} onClick={() => setDesktopOpen(!desktopOpen)}>
+        <Menu size={20} />
+      </button>
+      {mobileOpen && <div className="navigation-backdrop" onClick={closeMobile} aria-hidden="true" />}
+      <aside ref={panel} id="workspace-navigation-panel" data-testid="workspace-sidebar" className="navigation-panel" aria-label={doctor ? "Doctor navigation" : "Patient navigation"} role={mobileOpen ? "dialog" : undefined} aria-modal={mobileOpen || undefined}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white ${doctor ? "bg-teal-600" : "bg-purple-600"}`}>+</span>
+            <span className="text-base font-bold tracking-tight">DiaTwin</span>
+          </div>
+          <button type="button" aria-label="Hide sidebar" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" onClick={() => { if (window.matchMedia("(min-width: 1024px)").matches) setDesktopOpen(false); else closeMobile(); }}>
+            <PanelLeftClose size={18} />
           </button>
-        )}
-
-        <div className="px-1 text-[11px] text-slate-400">
-          <p className="font-semibold text-slate-500">
-            {selfService ? "Patient workspace" : "Patient record view"}
-          </p>
-          <p>
-            {selfService
-              ? "Your personal health record"
-              : "ShanghaiT2DM Cohort"}
-          </p>
         </div>
-      </div>
-    </aside>
+        {!doctor && currentPatientName && <p className="mt-5 truncate text-sm font-medium text-slate-500">{currentPatientName}</p>}
+        <nav className="mt-7 flex flex-col gap-1">
+          {items.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-current={activeModule === id ? "page" : undefined} onClick={() => { onSelectModule(id); if (mobileOpen) closeMobile(); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition ${activeModule === id ? doctor ? "bg-teal-50 text-teal-700" : "bg-purple-50 text-purple-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}><Icon size={18} className="shrink-0" /><span>{label}</span></button>)}
+        </nav>
+        {!doctor && onReturnToCareTeam && !selfService && <button type="button" onClick={() => { onReturnToCareTeam(); if (mobileOpen) closeMobile(); }} className="mt-7 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-5 text-sm font-medium text-slate-600"><ArrowLeft size={16} />Doctor dashboard</button>}
+      </aside>
+    </div>
   );
 };

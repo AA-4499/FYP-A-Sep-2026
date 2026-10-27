@@ -52,6 +52,7 @@ function Workspace({
   const [mode, setMode] = useState<UserRole>(initialRole);
   // initialRole is verified by AuthGateway; changing the displayed workspace grants no role.
   const canViewPredictions = !isPreview && initialRole === "doctor";
+  const canViewKnowledgeGraph = !isPreview && initialRole === "doctor";
   const [doctorPage, setDoctorPage] =
     useState<NavigationModule>("doctor_overview");
   const [patientPage, setPatientPage] =
@@ -145,6 +146,8 @@ function Workspace({
     setPatientPage("patient_home");
   };
   const navigate = (page: NavigationModule) => {
+    if (["doctor_monitoring", "doctor_digital_twin", "doctor_knowledge_graph"].includes(page)) return;
+    if (page === "patient_knowledge_graph" && !canViewKnowledgeGraph) return;
     if (
       ["doctor_predictions", "patient_insights", "risk"].includes(page) &&
       !canViewPredictions
@@ -168,7 +171,7 @@ function Workspace({
   const overview = page === "doctor_overview";
   return (
     <div className="min-h-screen bg-[#f5f8f8] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
-      <div className="mx-auto flex max-w-[1500px] flex-col items-start gap-5 md:flex-row lg:gap-6">
+      <div className="mx-auto flex max-w-[1500px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode={mode}
           activeModule={page}
@@ -176,6 +179,7 @@ function Workspace({
           currentPatientName={patient?.name}
           onReturnToCareTeam={backToDoctor}
           canViewPredictions={canViewPredictions}
+          canViewKnowledgeGraph={canViewKnowledgeGraph}
         />
         <main className="w-full min-w-0 flex-1 space-y-5">
           <TopBar
@@ -194,31 +198,23 @@ function Workspace({
             onOpenAdmin={() => setMode("admin")}
             onOpenSupabaseModal={() => setConnectionOpen(true)}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3 text-[11px] text-teal-900">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-slate-500">
             <span>
               {loading
                 ? "Loading clinical records…"
                 : error
                   ? "Database records unavailable"
-                  : `${patients.length} accessible records · refreshed ${loadedAt}`}
-              {isPreview ? " · Read-only research cohort preview" : ""}
+                  : `${patients.length} accessible records`}
+              {isPreview ? " · Preview" : ""}
             </span>
             <button
               disabled={loading}
               onClick={() => refresh()}
               className="font-semibold underline underline-offset-2 disabled:opacity-50"
             >
-              Refresh database records
+              Refresh
             </button>
           </div>
-          {isPreview && (
-            <p className="text-[11px] leading-relaxed text-slate-500">
-              This preview reads records permitted by the database. Sign in with
-              your authorized account for cloud prediction; the repository GRU
-              runs in your browser without model-service sign-in. Database
-              permissions determine which records are visible.
-            </p>
-          )}
           {isPreview && !loading && !error && patients.length === 0 && (
             <section
               data-testid="preview-signin-required"
@@ -274,7 +270,7 @@ function Workspace({
               patients={patients}
               onOpen={openPatient}
               onRegistry={() => setDoctorPage("doctor_patients")}
-              onMonitor={() => setDoctorPage("doctor_monitoring")}
+              onMonitor={() => setDoctorPage("doctor_patients")}
             />
           )}
           {settings && (
@@ -329,7 +325,6 @@ function Workspace({
                 <RecordedReport patient={patient} />
               )}
               {[
-                "doctor_monitoring",
                 "patient_monitoring",
                 "monitoring",
               ].includes(page) && (
@@ -340,18 +335,17 @@ function Workspace({
                 />
               )}
               {[
-                "doctor_digital_twin",
                 "patient_digital_twin",
                 "digital_twin",
               ].includes(page) && <OrganEvidence patient={patient} />}
-              {page === "doctor_knowledge_graph" && (
+              {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (
                 <React.Suspense
                   fallback={
                     <section
                       role="status"
                       className="rounded-2xl bg-white p-6 text-sm text-slate-500"
                     >
-                      Loading Knowledge Graph?
+                      Loading knowledge graph...
                     </section>
                   }
                 >

@@ -1775,7 +1775,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
           >
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-slate-900">
-                Prediction lab
+                Digital twin
               </h1>
               <p className="mt-1 text-xs text-slate-500">
                 Choose a patient to explore their glucose outlook.

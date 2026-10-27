@@ -117,7 +117,7 @@ export function PatientWorkspace({
       : "";
   return (
     <div className="min-h-screen bg-[#f8fafc] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
-      <div className="mx-auto flex max-w-[1400px] flex-col items-start gap-5 md:flex-row lg:gap-6">
+      <div className="mx-auto flex max-w-[1400px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode="patient"
           activeModule={page}

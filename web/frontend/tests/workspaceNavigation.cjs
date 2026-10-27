@@ -225,6 +225,10 @@
         `(() => { const min = document.querySelector('input[type="datetime-local"]').min; return new Date(Date.parse(min + 'Z') + (${minutes} - 1) * 60000).toISOString().slice(0,16); })()`,
       );
     const expectPage = async (label, text) => {
+      if (await evaluate(`window.innerWidth<1024 && getComputedStyle(document.querySelector('aside')).visibility==='hidden'`)) {
+        await evaluate(`window.scrollTo(0,0);document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+        await delay(250);
+      }
       await click(label, "document.querySelector('aside')");
       await ready(text);
       assert(!exceptions.length, exceptions.join("\n"));
@@ -270,16 +274,39 @@
     };
     await open("?logincheck");
     await ready("2 accessible records");
+    await screenshot("clean-doctor-overview.png");
+    assert(await evaluate(`document.querySelector('[data-testid="care-overview-summary"] dl').children.length===4 && document.querySelectorAll('[data-testid="care-overview-summary"] button').length===0`), 'Summary must group four metrics without duplicate filter controls');
+    assert(await evaluate(`document.querySelectorAll('input').length===1 && document.querySelector('[aria-label="Search dashboard patients"]')!==null`), 'Dashboard must have one patient search');
+    assert(await evaluate(`document.querySelectorAll('[data-testid="dashboard-review-list"] > button').length===1`), 'Review queue must show the low-glucose record');
+    await click('Missing results');
+    assert(await evaluate(`document.querySelector('[data-testid="dashboard-review-list"]').innerText.includes('test-b') && !document.querySelector('[data-testid="dashboard-review-list"]').innerText.includes('test-a')`), 'Missing HbA1c filter failed');
+    await evaluate(`(() => {const input=document.querySelector('[aria-label="Search dashboard patients"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'test-a');input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await ready('No matching records');
+    await evaluate(`(() => {const input=document.querySelector('[aria-label="Search dashboard patients"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'');input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await evaluate(`document.querySelector('[data-testid="dashboard-review-list"] > button').click()`);
+    await ready('No CGM readings available');
+    assert(await evaluate(`!document.querySelector('main').innerText.includes('NaN') && document.querySelector('main').innerText.includes('Not recorded')`), 'Missing-data dashboard must stay factual');
+    await screenshot('patient-dashboard-no-cgm.png');
+    await click('Doctor dashboard', "document.querySelector('aside')");
+    await send('Emulation.setDeviceMetricsOverride', {width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await delay(300);
+    assert(await evaluate(`document.documentElement.scrollWidth<=window.innerWidth+2`), 'Doctor dashboard mobile overflow');
+    await screenshot('doctor-dashboard-mobile.png');
+    await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1050,deviceScaleFactor:1,mobile:false});
+    await delay(300);
+    console.log('PASS: doctor dashboard review filters, search, patient drill-down and mobile layout');
+    await open('');
+    await ready('2 accessible records');
     for (const [label, text] of [
-      ["Patient management", "Patient List & Clinical Profiles"],
-      ["Health monitoring", "Ambulatory Glucose Profile (AGP)"],
-      ["Digital twin", "Physiological evidence map"],
-      ["Knowledge graph", "Patient and medical concept map"],
+      ["Patient management", "Patient list"],
       ["Reports", "Complete recorded summary"],
       ["Settings", "Workspace settings"],
     ])
       await expectPage(label, text);
-    await expectPage("Health monitoring", "Ambulatory Glucose Profile (AGP)");
+    assert(await evaluate(`![...document.querySelectorAll('aside button')].some(b=>['Health monitoring','Knowledge graph'].includes(b.textContent.trim()))`), 'Removed Doctor modules are still visible');
+    await evaluate(`document.querySelector('[aria-label="Doctor workspace menu"]').click()`);
+    await click("Switch to Patient workspace");
+    await expectPage("My health", "Ambulatory Glucose Profile (AGP)");
     const assertMonitoringColors = async () => {
       assert(
         await evaluate(`(() => {
@@ -322,30 +349,45 @@
     await click("Share with patient");
     await ready("Visible in patient view");
     await click("Preview patient view");
-    await ready("Continuous CGM Waveform");
+    await ready("Glucose trend");
     assert(
       await evaluate(
-        `document.querySelector('[aria-label="Compact ambulatory glucose profile with percentile bands and median glucose"]') !== null`,
+        `document.querySelector('[aria-label="Recorded glucose trend with 70 to 180 mg/dL reference range"]') !== null`,
       ),
       "Jody compact AGP did not render",
     );
     await screenshot("restored-jody-patient-home.png");
+    assert(await evaluate(`[...document.querySelector('[data-testid="patient-health-dashboard"]').querySelectorAll('p,dt')].filter(el=>el.textContent==='HbA1c').length===1 && !document.body.innerText.includes('Your health workspace') && !document.body.innerText.includes('Open digital twin')`), 'Patient dashboard must avoid duplicate metrics and navigation panels');
+    const firstRange = await evaluate(`document.querySelector('[data-testid="patient-health-dashboard"]').innerText`);
+    assert(await evaluate(`document.querySelector('[data-testid="patient-range-summary"]').innerText.includes('49 readings')`), 'Default range summary must match the last 24 hours of the record');
+    await click('All readings');
+    assert(await evaluate(`document.querySelector('[data-testid="patient-range-summary"]').innerText.includes('96 readings') && document.querySelector('[data-testid="patient-summary-metrics"]').innerText.includes('All readings')`), 'Chart, glucose metrics and range summary must switch period together');
+    assert(await evaluate(`document.querySelector('[aria-label="Glucose chart period"] button[aria-pressed="true"]').textContent==='All readings'`), 'Chart period did not change');
+    await click('Last recorded day');
+    assert((await evaluate(`document.querySelector('[data-testid="patient-health-dashboard"]').innerText`))===firstRange, 'Period switching changed record metrics');
+    await send('Emulation.setDeviceMetricsOverride', {width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await delay(300);
+    assert(await evaluate(`document.documentElement.scrollWidth<=window.innerWidth+2`), 'Patient dashboard mobile overflow');
+    await screenshot('patient-dashboard-mobile.png');
+    await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1050,deviceScaleFactor:1,mobile:false});
+    await delay(300);
     await expectPage(
       "My recommendations",
       "Review the glucose monitoring plan",
     );
     await click("Doctor dashboard", "document.querySelector('aside')");
-    await expectPage("Patient management", "Patient List & Clinical Profiles");
+    await expectPage("Patient management", "Patient list");
     await evaluate(
       `Array.from(document.querySelectorAll('tbody button')).find(b => b.textContent.includes('Patient test-b')).click()`,
     );
+    await evaluate(`Array.from(document.querySelectorAll("tbody tr")).find(row => row.textContent.includes("Patient test-b")).querySelector("td:last-child button").click()`);
     await expectPage("Knowledge graph", "Patient and medical concept map");
     await click("Preview patient view");
     await expectPage("My recommendations", "No recommendations shared yet");
     // A newly opened workspace starts a new prototype recommendation session.
     await open("");
     await ready("2 accessible records");
-    await expectPage("Prediction lab", "CGM forecast");
+    await expectPage("Digital twin", "CGM forecast");
     assert(
       await evaluate(
         `document.querySelector('[aria-label="Data source"]').value==='browser'`,
@@ -396,7 +438,7 @@
     );
     await click("Switch to Patient workspace");
     for (const [label, text] of [
-      ["Home", "Continuous CGM Waveform"],
+      ["Home", "Glucose trend"],
       ["My profile", "Complete recorded summary"],
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],
@@ -406,7 +448,7 @@
     ])
       await expectPage(label, text);
     await click("Doctor dashboard", "document.querySelector('aside')");
-    await ready("A clearer view of your cohort.");
+    await ready("Care overview");
     await open("?empty");
     await ready("0 accessible records");
     await ready("Patient data requires sign-in");
@@ -418,15 +460,12 @@
     );
     for (const label of [
       "Patient management",
-      "Health monitoring",
-      "Digital twin",
-      "Knowledge graph",
       "Reports",
     ])
       await expectPage(label, "No patient records available");
     assert(
       await evaluate(
-        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Prediction lab'))`,
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Digital twin'))`,
       ),
       "Anonymous preview exposes Doctor-only prediction tools",
     );
@@ -441,7 +480,7 @@
     );
     await open("?patient");
     await ready("Test Patient");
-    await ready("Continuous CGM Waveform");
+    await ready("Glucose trend");
     for (const [label, text] of [
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],
@@ -466,9 +505,9 @@
     await delay(400);
     assert(
       await evaluate(
-        `getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).position==='static'`,
+        `getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).position==='fixed' && getComputedStyle(document.querySelector('[data-testid="workspace-sidebar"]')).visibility==='hidden'`,
       ),
-      "Mobile navigation must remain in normal page flow",
+      "Mobile sidebar must start hidden",
     );
     assert(
       await evaluate(
@@ -476,6 +515,24 @@
       ),
       "Mobile My health horizontal overflow",
     );
+    assert(await evaluate(`!document.querySelector('aside').textContent.includes('Knowledge graph')`), 'Patient account exposes knowledge graph');
+    await evaluate(`window.scrollTo(0,0);document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(300);
+    assert(await evaluate(`document.querySelector('aside').getBoundingClientRect().left===0 && document.body.style.overflow==='hidden'`), 'Mobile drawer did not open');
+    await screenshot("sidebar-mobile-open.png");
+    await send('Input.dispatchKeyEvent', {type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await delay(300);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden' && document.activeElement.getAttribute('aria-label')==='Toggle sidebar'`), 'Escape must close drawer and restore focus');
+    await evaluate(`document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(250);
+    await evaluate(`document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(250);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden'`), 'Toggle must close drawer');
+    await evaluate(`document.querySelector('[aria-label="Toggle sidebar"]').click()`);
+    await delay(250);
+    await evaluate(`document.querySelector('aside button[aria-current="page"]').click()`);
+    await delay(250);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden'`), 'Selecting a page must close drawer');
     await screenshot("restored-my-health-mobile.png");
     assert(
       await evaluate(
@@ -505,7 +562,14 @@
     });
     await open("?repo");
     await ready("2 accessible records");
-    await expectPage("Prediction lab", "Repository GRU");
+    await evaluate(`document.querySelector('[aria-label="Hide sidebar"]').click()`);
+    await delay(300);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='hidden'`), 'Desktop sidebar failed to collapse');
+    await evaluate(`document.querySelector('[aria-label="Toggle desktop sidebar"]').click()`);
+    await delay(300);
+    assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='visible'`), 'Desktop sidebar failed to reopen');
+    await ready("2 accessible records");
+    await expectPage("Digital twin", "Repository GRU");
     await ready("Browser GRU computed successfully");
     await assertSidebarPinned();
     await send("Emulation.setDeviceMetricsOverride", {
@@ -521,7 +585,7 @@
     );
     assert(
       await evaluate(
-        `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');const footer=sidebar.lastElementChild.getBoundingClientRect();return sidebar.scrollTop>0 && footer.bottom<=window.innerHeight && footer.top>=0;})()`,
+        `(() => {const sidebar=document.querySelector('[data-testid="workspace-sidebar"]');const footer=sidebar.lastElementChild.getBoundingClientRect();return footer.bottom<=window.innerHeight && footer.top>=0;})()`,
       ),
       "Short screens must allow scrolling the navigation to its footer",
     );
@@ -630,7 +694,7 @@
       await evaluate(
         `(() => { const horizon = document.querySelector('[aria-label="Forecast horizon"]'); return horizon.value === '6' && [...horizon.options].map(o => o.value).join(',') === '6,12'; })()`,
       ),
-      "Prediction lab must default to 6h and offer only 6/12h",
+      "Digital twin must default to 6h and offer only 6/12h",
     );
     assert(
       await evaluate(
@@ -896,7 +960,7 @@
     );
     await open("?edge");
     await ready("2 accessible records");
-    await expectPage("Prediction lab", "Repository GRU");
+    await expectPage("Digital twin", "Repository GRU");
     await ready("Browser GRU computed successfully");
     assert(
       await evaluate(`document.body.innerText.includes('217.8 mg/dL')`),

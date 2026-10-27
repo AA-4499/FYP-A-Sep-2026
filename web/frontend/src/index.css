@@ -70,3 +70,21 @@ model-viewer {
     transition: none !important;
   }
 }
+
+/* A compact rail on desktop and an overlay drawer on smaller screens. */
+.workspace-navigation { flex-shrink: 0; width: 100%; height: 40px; }
+.navigation-toggle { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; color: #475569; }
+.desktop-navigation-toggle { display: none; }
+.navigation-panel { position: fixed; inset: 0 auto 0 0; z-index: 70; width: min(288px, calc(100vw - 56px)); height: 100dvh; padding: 24px 16px; overflow-y: auto; overscroll-behavior: contain; background: white; border-right: 1px solid #e2e8f0; transform: translateX(-100%); visibility: hidden; transition: transform 200ms ease, visibility 200ms; }
+.is-mobile-open .navigation-panel { transform: translateX(0); visibility: visible; }
+.navigation-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(15 23 42 / 35%); }
+.is-mobile-open > .navigation-toggle { position: fixed; right: 8px; top: 12px; z-index: 80; }
+@media (min-width: 1024px) {
+  .workspace-navigation { position: sticky; top: 28px; align-self: flex-start; width: 256px; height: calc(100dvh - 56px); }
+  .workspace-navigation > .navigation-toggle { display: none; }
+  .navigation-panel { position: absolute; inset: 0; width: 240px; height: 100%; border: 1px solid #e2e8f0; border-radius: 24px; transform: none; visibility: visible; }
+  .is-collapsed.workspace-navigation { width: 40px; }
+  .is-collapsed .navigation-panel { transform: translateX(calc(-100% - 40px)); visibility: hidden; pointer-events: none; }
+  .is-collapsed > .desktop-navigation-toggle { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) { .navigation-panel { transition: none; } }

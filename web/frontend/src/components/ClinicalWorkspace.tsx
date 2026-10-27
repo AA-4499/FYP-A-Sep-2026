@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Activity,
   ArrowRight,
-  Database,
   Download,
   FileText,
   HeartPulse,
@@ -10,15 +9,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { DoctorDashboard } from "./doctor/DoctorDashboard";
 import { LongitudinalMonitoringView } from "./LongitudinalMonitoringView";
 import type { Patient, NavigationModule } from "../types";
 import { clinicalValue } from "../lib/clinicalData";
@@ -33,26 +24,10 @@ const dateLabel = (value?: string) =>
   value ? value.replace("T", " ").slice(0, 16) : "No dated observations";
 
 export function RecordSource({ patient }: { patient?: Patient }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-      <Database size={13} className="text-teal-600" />
-      <span>
-        {patient?.dataSource === "sample"
-          ? "Sample preview"
-          : "Supabase clinical records"}
-      </span>
-      {patient && (
-        <>
-          <span aria-hidden>·</span>
-          <span className="break-all font-mono">{patient.id}</span>
-        </>
-      )}
-      <span className="rounded-full bg-slate-100 px-2 py-1">
-        Recorded data, not a live sensor feed
-      </span>
-    </div>
-  );
+  if (patient?.dataSource !== "sample") return null;
+  return <p className="text-xs font-medium text-amber-700">Sample preview</p>;
 }
+
 function Heading({
   eyebrow,
   title,
@@ -61,7 +36,7 @@ function Heading({
 }: {
   eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   icon?: typeof Activity;
 }) {
   return (
@@ -76,9 +51,7 @@ function Heading({
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {title}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
-          {description}
-        </p>
+        {description && <p className="mt-2 text-sm text-slate-500">{description}</p>}
       </div>
     </div>
   );
@@ -86,11 +59,9 @@ function Heading({
 function Metric({
   label,
   value,
-  note,
 }: {
   label: string;
   value: string;
-  note: string;
 }) {
   return (
     <div className={panel}>
@@ -98,7 +69,6 @@ function Metric({
       <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
         {value}
       </p>
-      <p className="mt-2 text-[10px] leading-relaxed text-slate-400">{note}</p>
     </div>
   );
 }
@@ -110,156 +80,11 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function CohortOverview({
-  patients,
-  onOpen,
-  onRegistry,
-  onMonitor,
-}: {
+export function CohortOverview({ patients, onOpen }: {
   patients: Patient[];
   onOpen: (id: string) => void;
-  onRegistry: () => void;
-  onMonitor: () => void;
 }) {
-  const measured = patients.filter((p) => Number.isFinite(p.hba1c));
-  const mean = measured.length
-    ? measured.reduce((sum, p) => sum + p.hba1c, 0) / measured.length
-    : NaN;
-  const sensors = patients.filter((p) => p.hasContinuousCGM);
-  const groups = [
-    { label: "< 7%", count: measured.filter((p) => p.hba1c < 7).length },
-    {
-      label: "7–8.5%",
-      count: measured.filter((p) => p.hba1c >= 7 && p.hba1c <= 8.5).length,
-    },
-    { label: "> 8.5%", count: measured.filter((p) => p.hba1c > 8.5).length },
-  ];
-  const review = [...patients]
-    .filter(
-      (p) =>
-        (Number.isFinite(p.hba1c) && p.hba1c > 8.5) ||
-        (p.cgmSummary?.timeBelowRangePct ?? 0) > 0,
-    )
-    .sort((a, b) => (b.hba1c || 0) - (a.hba1c || 0));
-  return (
-    <div className="space-y-6">
-      <RecordSource />
-      <section className="relative overflow-hidden rounded-3xl bg-teal-950 p-6 text-white sm:p-8">
-        <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full border-[40px] border-white/5" />
-        <p className="relative text-[10px] font-bold uppercase tracking-[.22em] text-teal-200">
-          Your clinical workspace
-        </p>
-        <h1 className="relative mt-3 text-3xl font-bold tracking-tight">
-          A clearer view of your cohort.
-        </h1>
-        <p className="relative mt-3 max-w-lg text-sm leading-relaxed text-teal-100/75">
-          Recorded measurements, connected observations, and transparent
-          research tools. Every number starts with an accessible patient record.
-        </p>
-        <button
-          className="relative mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-teal-900"
-          onClick={onRegistry}
-        >
-          Explore {patients.length} patient records <ArrowRight size={14} />
-        </button>
-      </section>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric
-          label="Accessible patient records"
-          value={String(patients.length)}
-          note="Rows visible to your account"
-        />
-        <Metric
-          label="Mean recorded HbA1c"
-          value={clinicalValue(mean, "%")}
-          note={`${measured.length} records with an HbA1c measurement`}
-        />
-        <Metric
-          label="Records with dated CGM"
-          value={String(sensors.length)}
-          note={`${sensors.reduce((sum, p) => sum + (p.cgmReadings?.length ?? 0), 0).toLocaleString()} unique sensor observations`}
-        />
-        <Metric
-          label="Review signals"
-          value={String(review.length)}
-          note="HbA1c > 8.5% or recorded CGM < 70 mg/dL; not a risk probability"
-        />
-      </div>
-      <div className="grid gap-5 xl:grid-cols-[1fr_1.1fr]">
-        <section className={panel}>
-          <h2 className="text-sm font-bold">Recorded glycaemic profile</h2>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500">
-            HbA1c distribution across measured records. Reference bands support
-            review; individual targets vary.
-          </p>
-          {measured.length ? (
-            <div className="mt-5 h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={groups}>
-                  <CartesianGrid vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar
-                    isAnimationActive={false}
-                    dataKey="count"
-                    name="Patient records"
-                    fill="#0f766e"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="mt-5">
-              <Empty>No HbA1c measurements are available.</Empty>
-            </div>
-          )}
-        </section>
-        <section className={panel}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold">Records to review</h2>
-            <button
-              onClick={onMonitor}
-              className="text-xs font-semibold text-teal-700"
-            >
-              Open monitoring
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Signals from recorded measurements, not new diagnoses.
-          </p>
-          <div className="mt-5 divide-y divide-slate-100">
-            {review.slice(0, 5).map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onOpen(p.id)}
-                className="flex w-full items-center justify-between gap-4 py-4 text-left"
-              >
-                <div>
-                  <p className="max-w-[180px] truncate text-xs font-semibold">
-                    {p.name}
-                  </p>
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    {p.hasContinuousCGM
-                      ? `${p.cgmReadings?.length} sensor readings`
-                      : "Summary measurements"}
-                  </p>
-                </div>
-                <span className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
-                  {clinicalValue(p.hba1c, "% HbA1c")}
-                </span>
-                <ArrowRight size={14} className="shrink-0 text-slate-400" />
-              </button>
-            ))}
-            {!review.length && (
-              <Empty>No records match these review signals.</Empty>
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+  return <DoctorDashboard patients={patients} onOpen={onOpen} />;
 }
 
 export function PatientRegistry({
@@ -287,8 +112,7 @@ export function PatientRegistry({
       <RecordSource />
       <Heading
         eyebrow="Patient management"
-        title="Patient List & Clinical Profiles"
-        description="Search the records available to your account. Missing measurements stay visible, so a gap is never mistaken for a result."
+        title="Patient list"
         icon={Users}
       />
       <section className={panel}>
@@ -412,22 +236,18 @@ export function PatientSnapshot({
         <Metric
           label="HbA1c"
           value={clinicalValue(patient.hba1c, "%")}
-          note="Converted from recorded mmol/mol"
         />
         <Metric
           label="Fasting plasma glucose"
           value={clinicalValue(patient.fastingGlucose, "mmol/L")}
-          note="Converted from recorded mg/dL"
         />
         <Metric
           label="Body mass index"
           value={clinicalValue(patient.bmi, "kg/m²")}
-          note="Recorded summary measurement"
         />
         <Metric
           label="CGM readings in 70–180"
           value={clinicalValue(patient.cgmSummary?.timeInRangePct, "%")}
-          note="Share of available readings; gaps are excluded"
         />
       </div>
       <section className={panel}>
@@ -557,7 +377,6 @@ export function OrganEvidence({ patient }: { patient: Patient }) {
       <Heading
         eyebrow="Digital twin"
         title="Physiological evidence map"
-        description="A view of the evidence available for this patient. Organ health cannot be scored from CGM alone; unmeasured states remain unassessed."
         icon={HeartPulse}
       />
       <div className="grid gap-5 xl:grid-cols-2">
@@ -608,7 +427,6 @@ export function RecordedGraph({ patient }: { patient: Patient }) {
       <Heading
         eyebrow="Knowledge graph"
         title="Patient and medical concept map"
-        description="Explore recorded relationships between this patient, measurements, and documented conditions. These edges describe stored facts; they do not imply causation or a new diagnosis."
         icon={Network}
       />
       <section className={panel}>
@@ -691,8 +509,7 @@ export function RecordedReport({ patient }: { patient: Patient }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <Heading
           eyebrow="Reports"
-          title="Clinical Health & Digital Twin Dossier"
-          description="A factual record summary, with recorded measurements and explicitly calculated CGM statistics. No simulated improvements or clinician signature is generated."
+          title="Health report"
           icon={FileText}
         />
         <button className={action} onClick={download}>

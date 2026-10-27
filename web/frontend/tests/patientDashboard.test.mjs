@@ -93,7 +93,7 @@ async function componentModule(name) {
 test('Patient Home retains recorded information and hides Doctor-only simulation', async () => {
   const { DashboardView } = await componentModule('DashboardView');
   const html = renderToStaticMarkup(React.createElement(DashboardView, { patient: toDashboardPatient(unlinked), selfService: true, onNavigate() {} }));
-  for (const title of ['Glucose trend', 'Glucose range', 'Key health results', 'No CGM readings available']) assert.ok(html.includes(title), title);
+  for (const title of ['Glucose trend', 'Glucose range', 'Other health results', 'No CGM readings available']) assert.ok(html.includes(title), title);
   assert.doesNotMatch(html, /NaN|62%|Patient 2000|Patients 2000|Prototype:/);
   assert.doesNotMatch(html, /What-if simulation|Open digital twin|Current risk|Simulated HbA1c/);
 });

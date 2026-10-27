@@ -275,6 +275,8 @@
     await open("?logincheck");
     await ready("2 accessible records");
     await screenshot("clean-doctor-overview.png");
+    assert(await evaluate(`document.querySelector('[data-testid="care-overview-summary"] dl').children.length===4 && document.querySelectorAll('[data-testid="care-overview-summary"] button').length===0`), 'Summary must group four metrics without duplicate filter controls');
+    assert(await evaluate(`document.querySelectorAll('input').length===1 && document.querySelector('[aria-label="Search dashboard patients"]')!==null`), 'Dashboard must have one patient search');
     assert(await evaluate(`document.querySelectorAll('[data-testid="dashboard-review-list"] > button').length===1`), 'Review queue must show the low-glucose record');
     await click('Missing results');
     assert(await evaluate(`document.querySelector('[data-testid="dashboard-review-list"]').innerText.includes('test-b') && !document.querySelector('[data-testid="dashboard-review-list"]').innerText.includes('test-a')`), 'Missing HbA1c filter failed');
@@ -355,8 +357,11 @@
       "Jody compact AGP did not render",
     );
     await screenshot("restored-jody-patient-home.png");
+    assert(await evaluate(`[...document.querySelector('[data-testid="patient-health-dashboard"]').querySelectorAll('p,dt')].filter(el=>el.textContent==='HbA1c').length===1 && !document.body.innerText.includes('Your health workspace') && !document.body.innerText.includes('Open digital twin')`), 'Patient dashboard must avoid duplicate metrics and navigation panels');
     const firstRange = await evaluate(`document.querySelector('[data-testid="patient-health-dashboard"]').innerText`);
+    assert(await evaluate(`document.querySelector('[data-testid="patient-range-summary"]').innerText.includes('49 readings')`), 'Default range summary must match the last 24 hours of the record');
     await click('All readings');
+    assert(await evaluate(`document.querySelector('[data-testid="patient-range-summary"]').innerText.includes('96 readings') && document.querySelector('[data-testid="patient-summary-metrics"]').innerText.includes('All readings')`), 'Chart, glucose metrics and range summary must switch period together');
     assert(await evaluate(`document.querySelector('[aria-label="Glucose chart period"] button[aria-pressed="true"]').textContent==='All readings'`), 'Chart period did not change');
     await click('Last recorded day');
     assert((await evaluate(`document.querySelector('[data-testid="patient-health-dashboard"]').innerText`))===firstRange, 'Period switching changed record metrics');

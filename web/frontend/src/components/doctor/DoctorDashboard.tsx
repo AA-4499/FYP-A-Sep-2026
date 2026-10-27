@@ -6,8 +6,8 @@ import { dashboardDate, filterReviewPatients, glucoseOverview, reviewSignals, ty
 
 const card = "rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6";
 
-export function DoctorDashboard({ patients, onOpen, onRegistry }: {
-  patients: Patient[]; onOpen: (id: string) => void; onRegistry: () => void;
+export function DoctorDashboard({ patients, onOpen }: {
+  patients: Patient[]; onOpen: (id: string) => void;
 }) {
   const [filter, setFilter] = useState<ReviewFilter>("review");
   const [query, setQuery] = useState("");
@@ -22,25 +22,24 @@ export function DoctorDashboard({ patients, onOpen, onRegistry }: {
   ];
   const select = (value: ReviewFilter) => { setFilter(value); setLimit(6); };
   const stats = [
-    { label: "Patients", value: patients.length, filter: "all" as const, icon: Users, color: "bg-slate-100 text-slate-600" },
-    { label: "Low glucose recorded", value: signals.filter(s => s.low).length, filter: "low" as const, icon: Activity, color: "bg-rose-50 text-rose-600" },
-    { label: "HbA1c ≥8.5%", value: signals.filter(s => s.hba1c).length, filter: "hba1c" as const, icon: ClipboardList, color: "bg-amber-50 text-amber-600" },
-    { label: "Missing HbA1c", value: signals.filter(s => s.missing).length, filter: "missing" as const, icon: FileQuestion, color: "bg-blue-50 text-blue-600" },
+    { label: "Patients", value: patients.length, icon: Users, surface: "border-white bg-white/90", color: "bg-teal-50 text-teal-700" },
+    { label: "Low glucose recorded", value: signals.filter(s => s.low).length, icon: Activity, surface: "border-rose-100 bg-rose-50", color: "bg-white/80 text-rose-700" },
+    { label: "HbA1c ≥8.5%", value: signals.filter(s => s.hba1c).length, icon: ClipboardList, surface: "border-amber-100 bg-amber-50", color: "bg-white/80 text-amber-700" },
+    { label: "Missing HbA1c", value: signals.filter(s => s.missing).length, icon: FileQuestion, surface: "border-sky-100 bg-sky-50", color: "bg-white/80 text-sky-700" },
   ];
   return <div className="space-y-6" data-testid="doctor-dashboard">
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Care overview</h1><p className="mt-2 text-sm text-slate-500">Review your patients and open the records that need a closer look.</p></div>
-      <button onClick={onRegistry} className="inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800">Patient directory <ArrowRight size={16} /></button>
-    </div>
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      {stats.map(({ label, value, filter: valueFilter, icon: Icon, color }) => <button key={label} onClick={() => select(valueFilter)} aria-pressed={filter === valueFilter} className={`${card} text-left transition hover:border-teal-400 ${filter === valueFilter ? "ring-1 ring-teal-600" : ""}`}>
-        <div className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-slate-500">{label}</span><span className={`hidden rounded-lg p-2 sm:block ${color}`}><Icon size={17} /></span></div>
-        <p className="mt-3 text-3xl font-semibold tracking-tight">{value}</p>
-      </button>)}
-    </div>
+    <section aria-labelledby="care-overview-heading" data-testid="care-overview-summary" className="space-y-6 rounded-3xl border border-teal-200/70 bg-[#edf6f3] p-5 sm:p-6">
+      <div><h1 id="care-overview-heading" className="text-2xl font-bold tracking-tight text-teal-950 sm:text-3xl">Care overview</h1><p className="mt-2 text-sm text-teal-900/75">Review your patients and open the records that need a closer look.</p></div>
+      <dl className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon, color, surface }) => <div key={label} className={`rounded-2xl border p-4 sm:p-5 ${surface}`}>
+          <dt className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-slate-600">{label}</span><span className={`hidden rounded-lg p-2 sm:block ${color}`}><Icon size={17} /></span></dt>
+          <dd className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{value}</dd>
+        </div>)}
+      </dl>
+    </section>
     <section className={card} aria-labelledby="review-heading">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h2 id="review-heading" className="text-lg font-semibold">Patient review</h2><p className="mt-1 text-sm text-slate-500">{signals.filter(s => s.review).length} records with review signals</p></div>
+        <div><h2 id="review-heading" className="text-lg font-semibold">Patient review</h2><p className="mt-1 text-sm text-slate-500">{signals.filter(s => s.review).length} {signals.filter(s => s.review).length === 1 ? "record" : "records"} with review signals</p></div>
         <label className="relative w-full sm:w-64"><Search size={16} className="absolute left-3 top-3 text-slate-400" /><input aria-label="Search dashboard patients" value={query} onChange={e => { setQuery(e.target.value); setLimit(6); }} placeholder="Search patients" className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm focus:outline-teal-600" /></label>
       </div>
       <div className="mt-5 flex flex-wrap gap-2" aria-label="Patient review filters">

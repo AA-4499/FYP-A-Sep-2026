@@ -80,12 +80,11 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function CohortOverview({ patients, onOpen, onRegistry }: {
+export function CohortOverview({ patients, onOpen }: {
   patients: Patient[];
   onOpen: (id: string) => void;
-  onRegistry: () => void;
 }) {
-  return <DoctorDashboard patients={patients} onOpen={onOpen} onRegistry={onRegistry} />;
+  return <DoctorDashboard patients={patients} onOpen={onOpen} />;
 }
 
 export function PatientRegistry({

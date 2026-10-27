@@ -187,7 +187,8 @@ function Workspace({
             currentPatient={patient}
             patientsList={patients}
             isSupabaseConnected={!!loadedAt && !error}
-            onSelectPatient={mode === "patient" ? openPatient : setSelectedId}
+            onSelectPatient={openPatient}
+            showPatientSearch={!overview && page !== "doctor_patients"}
             onSwitchMode={(next) => {
               setMode(next);
               if (next === "doctor") setDoctorPage("doctor_overview");
@@ -269,7 +270,6 @@ function Workspace({
             <CohortOverview
               patients={patients}
               onOpen={openPatient}
-              onRegistry={() => setDoctorPage("doctor_patients")}
             />
           )}
           {settings && (

@@ -2,12 +2,9 @@
 import React, { useState } from "react";
 import {
   Search,
-  Bell,
   User,
   ChevronDown,
-  ArrowLeft,
   KeyRound,
-  Hospital,
   Database,
   ShieldCheck,
   LogOut,
@@ -16,6 +13,7 @@ import type { Patient } from "../types";
 
 interface TopBarProps {
   mode: "patient" | "doctor";
+  showPatientSearch?: boolean;
   currentPatient: Patient | undefined;
   patientsList: Patient[];
   isSupabaseConnected: boolean;
@@ -30,6 +28,7 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({
   mode,
   currentPatient,
+  showPatientSearch = true,
   patientsList,
   isSupabaseConnected,
   onSelectPatient,
@@ -54,12 +53,15 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Left: Mode Context */}
-      {mode === "doctor" || !currentPatient ? (
+      {mode === "doctor" && !showPatientSearch ? (
+        <p className="text-sm font-semibold text-slate-600">Doctor workspace</p>
+      ) : mode === "doctor" || !currentPatient ? (
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="relative w-full sm:w-64 xl:w-80">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
             <input
               type="text"
+              aria-label="Search patient records"
               placeholder="Search patients…"
               value={searchQuery}
               onChange={(e) => {
@@ -124,13 +126,6 @@ export const TopBar: React.FC<TopBarProps> = ({
       ) : (
         /* Patient Mode Left Profile */
         <div className="flex items-center gap-3.5">
-          <button
-            onClick={() => onSwitchMode("doctor")}
-            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition cursor-pointer"
-            title="Back to Doctor dashboard"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
           <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0">
             {currentPatient.avatarInitials}
           </div>
@@ -189,16 +184,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             }`}
           />
         </button>
-
-        {mode === "patient" && (
-          <button
-            onClick={() => onSwitchMode("doctor")}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5"
-          >
-            <Hospital className="w-3.5 h-3.5 text-blue-600" />
-            <span>Doctor dashboard</span>
-          </button>
-        )}
 
         {/* Workspace profile menu */}
         <div className="relative">

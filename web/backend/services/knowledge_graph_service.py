@@ -24,9 +24,6 @@ class PatientNotFoundError(ValueError):
     """The selected patient is not available from the patient service or payload."""
 
 _DRIVER = None
-_URI = os.getenv("PATIENT_NEO4J_URI", "bolt://127.0.0.1:7688")
-_USER = os.getenv("PATIENT_NEO4J_USER", "neo4j")
-_PASSWORD = os.getenv("PATIENT_NEO4J_PASSWORD", "patientkg2026")
 
 _EMPTY = {"", "/", "-", "--", "none", "null", "n/a", "na", "not available", "unknown"}
 _FIELDS = {
@@ -103,7 +100,11 @@ def _true(value: Any) -> bool:
     return isinstance(value, str) and value.strip().casefold() in {"yes", "y", "true", "1", "present"}
 
 def extract_patient_conditions(patient: Mapping[str, Any]) -> List[Dict[str, str]]:
-    """Extract only the patient's diabetes type, comorbidities, and complications."""
+    """Extract diabetes type, comorbidities and complications from a record."""
+    # Supabase patient_service puts the original summary columns in recorded_fields.
+    recorded = patient.get("recorded_fields")
+    if isinstance(recorded, Mapping):
+        patient = {**recorded, **patient}
     collected: List[Tuple[str, str]] = []
     diabetes_value = _first(patient, _FIELDS["diabetes_type"])
     for name in _names(diabetes_value):
@@ -143,19 +144,47 @@ def extract_patient_conditions(patient: Mapping[str, Any]) -> List[Dict[str, str
         })
     return unique
 
+def _neo4j_settings() -> Tuple[str, str, str, str]:
+    """Resolve connection settings at runtime, preferring the shared Aura instance."""
+    uri = (os.getenv("CLINICAL_KG_NEO4J_URI") or os.getenv("PATIENT_NEO4J_URI") or "").strip()
+    username = (os.getenv("CLINICAL_KG_NEO4J_USER") or os.getenv("PATIENT_NEO4J_USER") or "").strip()
+    password = os.getenv("CLINICAL_KG_NEO4J_PASSWORD") or os.getenv("PATIENT_NEO4J_PASSWORD") or ""
+    database = (os.getenv("CLINICAL_KG_NEO4J_DATABASE") or os.getenv("PATIENT_NEO4J_DATABASE") or "").strip()
+    if not uri or not username or not password:
+        raise KnowledgeGraphUnavailableError(
+            "Patient KG connection is not configured. Set CLINICAL_KG_NEO4J_URI, "
+            "CLINICAL_KG_NEO4J_USER, CLINICAL_KG_NEO4J_PASSWORD and CLINICAL_KG_NEO4J_DATABASE "
+            "on the backend."
+        )
+    return uri, username, password, database
+
+
 def _driver():
     global _DRIVER
     if _DRIVER is None:
         try:
-            candidate = GraphDatabase.driver(_URI, auth=(_USER, _PASSWORD))
+            uri, username, password, _ = _neo4j_settings()
+            candidate = GraphDatabase.driver(
+                uri, auth=(username, password), connection_timeout=10, max_connection_pool_size=10
+            )
             candidate.verify_connectivity()
             _DRIVER = candidate
+        except KnowledgeGraphUnavailableError:
+            raise
         except Exception as exc:
+            logger.warning("Could not connect to the Patient KG Neo4j instance: %s", type(exc).__name__)
             raise KnowledgeGraphUnavailableError(
-                "Could not connect to Patient Neo4j. Check PATIENT_NEO4J_URI, "
-                "PATIENT_NEO4J_USER, PATIENT_NEO4J_PASSWORD, and the patient-neo4j container."
+                "Could not connect to the shared Neo4j Aura graph. Check backend-side Aura settings."
             ) from exc
     return _DRIVER
+
+
+def close_driver() -> None:
+    """Close the Neo4j driver during process shutdown."""
+    global _DRIVER
+    if _DRIVER is not None:
+        _DRIVER.close()
+        _DRIVER = None
 
 def _write_and_read(tx, patient_id: str, conditions: List[Dict[str, str]]) -> Dict[str, Any]:
     tx.run(
@@ -214,7 +243,7 @@ def get_patient_knowledge_graph(
 
     conditions = extract_patient_conditions(patient)
     try:
-        with _driver().session() as session:
+        with _driver().session(database=_neo4j_settings()[3] or None) as session:
             data = session.execute_write(_write_and_read, patient_id, conditions)
     except KnowledgeGraphUnavailableError:
         raise

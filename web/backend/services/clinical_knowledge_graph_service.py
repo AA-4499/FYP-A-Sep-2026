@@ -68,8 +68,8 @@ def _driver():
     if _DRIVER is not None:
         return _DRIVER
 
-    uri = os.getenv("CLINICAL_KG_NEO4J_URI", "").strip()
-    username = os.getenv("CLINICAL_KG_NEO4J_USER", "neo4j").strip()
+    uri = os.getenv("CLINICAL_KG_NEO4J_URI", "neo4j+s://e72f4649.databases.neo4j.io").strip()
+    username = os.getenv("CLINICAL_KG_NEO4J_USER", "e72f4649").strip()
     password = os.getenv("CLINICAL_KG_NEO4J_PASSWORD", "")
     if not uri or not password:
         raise ClinicalKnowledgeGraphUnavailableError(
@@ -165,7 +165,7 @@ def _read_graph(tx) -> Dict[str, Any]:
 def get_clinical_knowledge_graph() -> Dict[str, Any]:
     """Return the shared clinical concept graph without changing Neo4j data."""
     try:
-        database = os.getenv("CLINICAL_KG_NEO4J_DATABASE", "neo4j").strip() or "neo4j"
+        database = os.getenv("CLINICAL_KG_NEO4J_DATABASE", "e72f4649").strip() or "e72f4649"
         with _driver().session(database=database) as session:
             return session.execute_read(_read_graph)
     except ClinicalKnowledgeGraphUnavailableError:

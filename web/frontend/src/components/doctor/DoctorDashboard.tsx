@@ -22,16 +22,16 @@ export function DoctorDashboard({ patients, onOpen }: {
   ];
   const select = (value: ReviewFilter) => { setFilter(value); setLimit(6); };
   const stats = [
-    { label: "Patients", value: patients.length, icon: Users, surface: "border-white bg-white/90", color: "bg-teal-50 text-teal-700" },
-    { label: "Low glucose recorded", value: signals.filter(s => s.low).length, icon: Activity, surface: "border-rose-100 bg-rose-50", color: "bg-white/80 text-rose-700" },
-    { label: "HbA1c ≥8.5%", value: signals.filter(s => s.hba1c).length, icon: ClipboardList, surface: "border-amber-100 bg-amber-50", color: "bg-white/80 text-amber-700" },
-    { label: "Missing HbA1c", value: signals.filter(s => s.missing).length, icon: FileQuestion, surface: "border-sky-100 bg-sky-50", color: "bg-white/80 text-sky-700" },
+    { label: "Patients", value: patients.length, icon: Users, color: "bg-teal-50 text-teal-700" },
+    { label: "Low glucose recorded", value: signals.filter(s => s.low).length, icon: Activity, color: "bg-white/80 text-rose-700" },
+    { label: "HbA1c ≥8.5%", value: signals.filter(s => s.hba1c).length, icon: ClipboardList, color: "bg-white/80 text-amber-700" },
+    { label: "Missing HbA1c", value: signals.filter(s => s.missing).length, icon: FileQuestion, color: "bg-white/80 text-sky-700" },
   ];
   return <div className="space-y-6" data-testid="doctor-dashboard">
-    <section aria-labelledby="care-overview-heading" data-testid="care-overview-summary" className="space-y-6 rounded-3xl border border-teal-200/70 bg-[#edf6f3] p-5 sm:p-6">
-      <div><h1 id="care-overview-heading" className="text-2xl font-bold tracking-tight text-teal-950 sm:text-3xl">Care overview</h1><p className="mt-2 text-sm text-teal-900/75">Review your patients and open the records that need a closer look.</p></div>
+    <section aria-labelledby="care-overview-heading" data-testid="care-overview-summary" className="space-y-6 rounded-3xl border border-teal-900 bg-teal-950 p-5 sm:p-6">
+      <div><h1 id="care-overview-heading" className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Care overview</h1><p className="mt-2 text-sm text-teal-100/80">Review your patients and open the records that need a closer look.</p></div>
       <dl className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, color, surface }) => <div key={label} className={`rounded-2xl border p-4 sm:p-5 ${surface}`}>
+        {stats.map(({ label, value, icon: Icon, color }) => <div key={label} className="rounded-2xl border border-white bg-white p-4 sm:p-5">
           <dt className="flex items-center justify-between gap-2"><span className="text-sm font-medium text-slate-600">{label}</span><span className={`hidden rounded-lg p-2 sm:block ${color}`}><Icon size={17} /></span></dt>
           <dd className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{value}</dd>
         </div>)}

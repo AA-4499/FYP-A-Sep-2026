@@ -146,10 +146,10 @@ def extract_patient_conditions(patient: Mapping[str, Any]) -> List[Dict[str, str
 
 def _neo4j_settings() -> Tuple[str, str, str, str]:
     """Resolve connection settings at runtime, preferring the shared Aura instance."""
-    uri = (os.getenv("CLINICAL_KG_NEO4J_URI") or os.getenv("PATIENT_NEO4J_URI") or "").strip()
-    username = (os.getenv("CLINICAL_KG_NEO4J_USER") or os.getenv("PATIENT_NEO4J_USER") or "").strip()
-    password = os.getenv("CLINICAL_KG_NEO4J_PASSWORD") or os.getenv("PATIENT_NEO4J_PASSWORD") or ""
-    database = (os.getenv("CLINICAL_KG_NEO4J_DATABASE") or os.getenv("PATIENT_NEO4J_DATABASE") or "").strip()
+    uri = (os.getenv("CLINICAL_KG_NEO4J_URI") or os.getenv("NEO4J_URI") or os.getenv("PATIENT_NEO4J_URI") or "").strip()
+    username = (os.getenv("CLINICAL_KG_NEO4J_USER") or os.getenv("NEO4J_USERNAME") or os.getenv("NEO4J_USER") or os.getenv("PATIENT_NEO4J_USER") or "").strip()
+    password = os.getenv("CLINICAL_KG_NEO4J_PASSWORD") or os.getenv("NEO4J_PASSWORD") or os.getenv("PATIENT_NEO4J_PASSWORD") or ""
+    database = (os.getenv("CLINICAL_KG_NEO4J_DATABASE") or os.getenv("NEO4J_DATABASE") or os.getenv("PATIENT_NEO4J_DATABASE") or "").strip()
     if not uri or not username or not password:
         raise KnowledgeGraphUnavailableError(
             "Patient KG connection is not configured. Set CLINICAL_KG_NEO4J_URI, "

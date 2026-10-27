@@ -1,6 +1,8 @@
-"""Seed Neo4j database from ShanghaiT2DM patient records.
-Team Member Assignment: Personal Health Knowledge Graph.
-Swinburne University of Technology Sarawak · Ts. Dr. Vong Wan Tze
+"""Legacy patient-data graph scaffold; not used by the shared Aura clinical KG.
+
+The integrated application intentionally composes patient graph views in memory
+and persists only reusable MedicalConcept data to Aura. Do not pass a shared Aura
+driver to this legacy helper.
 """
 from __future__ import annotations
 

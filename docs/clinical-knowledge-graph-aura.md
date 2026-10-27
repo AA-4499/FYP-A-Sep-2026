@@ -30,9 +30,23 @@ This service connects using the Bolt URI and the Neo4j Python driver. The Aura Q
 
 ## Seed the new Aura instance
 
-A newly created Aura instance starts with an empty database. Before the Clinical Concepts tab can display the curated Type 2 Diabetes concept graph, import the curated seed package using the included seed and verification instructions. The previous instance's graph is not automatically copied into this instance.
+A newly created Aura instance starts empty; changing the URI does not copy data from the previous instance. **This branch currently does not contain the curated Cypher seed files for the shared `:MedicalConcept` catalogue.** Recover the reviewed seed package from the team's controlled copy and inspect it before running it against the new Aura instance. The previously used package was reported to contain 37 concepts and 42 relationships, but those counts cannot be reproduced from the checked-in source files alone.
 
-The known curated package was previously verified to contain 37 clinical concepts and 42 concept relationships. After import, use its audit/verification queries to confirm counts and metadata before relying on relationship analysis. Seed the shared concept catalogue before selecting patient graphs; do not run a destructive cleanup query after Patient/Condition nodes have been added.
+Do not use `knowledge_graph/seed_graph.py` to populate this shared clinical graph. That legacy scaffold creates patient-specific `Patient`, `Biomarker`, and `RiskFactor` nodes, whereas the integrated Doctor Knowledge Graph reads reusable `:MedicalConcept` nodes from Aura and composes each patient's graph in memory from Supabase.
+
+After importing the reviewed concept package, run these queries separately in Aura Query to verify the target database and graph contents:
+
+```cypher
+MATCH (n:MedicalConcept)
+RETURN count(n) AS medicalConcepts;
+```
+
+```cypher
+MATCH (source:MedicalConcept)-[r]->(target:MedicalConcept)
+RETURN count(r) AS conceptRelationships;
+```
+
+If either count is zero, the Clinical Concepts view can be empty even when the application successfully connects to Aura. Keep the imported catalogue curated and do not run broad cleanup/deletion queries against the shared instance.
 
 ## Doctor assignments and patient selection
 

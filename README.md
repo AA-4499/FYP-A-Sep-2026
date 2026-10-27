@@ -71,7 +71,7 @@ FYP-A-Sep-2026/
 ├── knowledge_graph/               # 📁 3. KNOWLEDGE GRAPH & ONTOLOGY (Outside Web)
 │   ├── ontology/                  # SNOMED-CT / ShanghaiT2DM ontology mapping files
 │   ├── cypher/                    # Neo4j CQL scripts (constraints, relations, queries)
-│   └── seed_graph.py              # Script to populate Neo4j from patient data
+│   └── seed_graph.py              # Legacy scaffold; not for shared Aura clinical KG
 │
 ├── digital_twin/                  # 📁 4. DIGITAL TWIN & SIMULATION CORE (Outside Web)
 │   ├── biophysical_models/        # Organ stress algorithms (pancreas, cardiovascular, renal)

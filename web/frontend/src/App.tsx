@@ -332,7 +332,7 @@ function Workspace({
                 )}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
-                  recommendations={sharedRecommendations}
+                  recommendations={[]}
                 />
               )}
             </>

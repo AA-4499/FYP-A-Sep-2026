@@ -50,7 +50,12 @@ class PatientConditionServiceTests(unittest.TestCase):
         session = driver.session.return_value.__enter__ = Mock(return_value=Mock())
         driver.session.return_value.__exit__ = Mock(return_value=False)
         session.return_value.execute_write.side_effect = lambda callback, record, conditions: {'patientId': record, 'conditions': conditions}
-        with patch.object(kg, 'get_patient', return_value={'condition': 'T2DM'}), patch.object(kg, '_driver', return_value=driver):
+        with patch.dict(os.environ, {
+            'CLINICAL_KG_NEO4J_URI': 'neo4j+s://example.databases.neo4j.io',
+            'CLINICAL_KG_NEO4J_USER': 'test-user',
+            'CLINICAL_KG_NEO4J_PASSWORD': 'test-password',
+            'CLINICAL_KG_NEO4J_DATABASE': 'neo4j',
+        }), patch.object(kg, 'get_patient', return_value={'condition': 'T2DM'}), patch.object(kg, '_driver', return_value=driver):
             graph = kg.get_patient_knowledge_graph('record-a', {'id': 'record-a', 'condition': 'T1DM'})
         self.assertEqual('Type 2 Diabetes', graph['elements']['nodes'][1]['data']['label'])
         self.assertEqual(1, graph['stats']['condition_count'])
@@ -91,7 +96,8 @@ class PatientConditionApiTests(unittest.TestCase):
     def test_missing_record_and_unavailable_neo4j_are_explicit_errors(self):
         for error, status in ((kg.PatientNotFoundError('Unknown record'), 404),
                               (kg.KnowledgeGraphUnavailableError('Patient Neo4j unavailable'), 503)):
-            with patch.object(dashboard, 'get_patient_knowledge_graph', side_effect=error):
+            with patch.object(dashboard, 'get_doctor_assigned_patient_ids', return_value=['record-a']), \
+                 patch.object(dashboard, 'get_patient_knowledge_graph', side_effect=error):
                 response = self.client.get(self.url, headers=headers())
                 self.assertEqual(status, response.status_code)
                 self.assertIn('error', response.json)

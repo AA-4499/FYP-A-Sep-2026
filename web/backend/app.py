@@ -198,6 +198,10 @@ def patient_knowledge_graph(patient_id: str):
         payload = {}
     if not isinstance(payload, dict) or (payload.get("patient") is not None and not isinstance(payload["patient"], dict)):
         return jsonify({"error": "Provide a JSON object with an optional patient object."}), 400
+    if getattr(g, "current_user", {}).get("role") == "doctor":
+        denial = _verify_doctor_patient_assignment(patient_id)
+        if denial is not None:
+            return denial
     try:
         graph = get_patient_knowledge_graph(patient_id, patient_payload=payload.get("patient"))
         return jsonify(graph)

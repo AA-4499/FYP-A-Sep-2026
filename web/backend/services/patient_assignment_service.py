@@ -6,7 +6,7 @@ from typing import List
 
 import requests
 
-from models.training.supabase_io import supabase_config, supabase_headers
+from models.training.supabase_io import SupabaseStorageError, supabase_config, supabase_headers
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ def get_doctor_assigned_patient_ids(doctor_id: str, access_token: str) -> List[s
     """Return the caller's assigned IDs, respecting assignment-table RLS."""
     if not doctor_id or not access_token:
         raise PatientAssignmentUnavailableError("The doctor identity could not be verified.")
-    url, key = supabase_config()
     try:
+        url, key = supabase_config()
         response = requests.get(
             url.rstrip("/") + "/rest/v1/clinician_patient_assignments",
             headers={
@@ -36,7 +36,7 @@ def get_doctor_assigned_patient_ids(doctor_id: str, access_token: str) -> List[s
         )
         response.raise_for_status()
         rows = response.json()
-    except (requests.RequestException, ValueError) as exc:
+    except (requests.RequestException, ValueError, SupabaseStorageError) as exc:
         logger.warning("Could not verify doctor assignments: %s", type(exc).__name__)
         raise PatientAssignmentUnavailableError(
             "Could not read the doctor assignment list from Supabase."

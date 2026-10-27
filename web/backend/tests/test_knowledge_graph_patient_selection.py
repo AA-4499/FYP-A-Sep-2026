@@ -35,6 +35,12 @@ class AssignmentServiceTests(unittest.TestCase):
         self.assertEqual("Bearer caller-token", get.call_args.kwargs["headers"]["Authorization"])
         self.assertEqual("eq.doctor-1", get.call_args.kwargs["params"]["clinician_id"])
 
+    def test_missing_supabase_config_fails_closed(self):
+        from models.training.supabase_io import SupabaseStorageError
+        with patch.object(assignment_service, "supabase_config", side_effect=SupabaseStorageError("config missing")):
+            with self.assertRaises(assignment_service.PatientAssignmentUnavailableError):
+                assignment_service.get_doctor_assigned_patient_ids("doctor-1", "caller-token")
+
 
 class KnowledgeGraphAnalysisTests(unittest.TestCase):
     def test_candidate_relationships_are_excluded_from_analysis(self):

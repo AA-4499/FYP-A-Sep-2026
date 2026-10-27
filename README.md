@@ -179,14 +179,17 @@ npm run build
 5. Deploy. (Routing is handled automatically by `web/frontend/vercel.json`).
 
 ### Deploying Backend on Render
-1. Create a **Web Service** on **Render** linked to this repo.
-2. In Render settings (or via `render.yaml`):
-   - **Root Directory:** `web/backend`
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn -w 2 -b 0.0.0.0:$PORT app:app`
-3. Set Environment Variables:
-   - `PORT`: `5000`
-   - (Optional) `GEMINI_API_KEY` or `NEO4J_URI`
+1. Create or sync the **Web Service** from this repository's `render.yaml`.
+2. The manifest uses the repository root as its root directory and starts the Flask API from `web/backend`.
+3. Configure these environment variables on the backend service:
+   - `SUPABASE_URL`: the URL of the project that contains `patient_summary`, `patient_detail`, `profiles`, and `clinician_patient_assignments`.
+   - `SUPABASE_SECRET_KEY`: a server-only Supabase secret key (`sb_secret_...`). A legacy service-role key is also supported via `SUPABASE_SERVICE_ROLE_KEY`. Do **not** put the frontend publishable key in a backend secret variable.
+   - `CLINICAL_KG_NEO4J_URI`: `neo4j+s://e72f4649.databases.neo4j.io`
+   - `CLINICAL_KG_NEO4J_USER`: `e72f4649`
+   - `CLINICAL_KG_NEO4J_PASSWORD`: the current Aura password stored as a private backend environment value.
+   - `CLINICAL_KG_NEO4J_DATABASE`: `neo4j` (Aura's default user database, not the instance ID).
+   - `ALLOWED_ORIGINS`: the exact origin of the deployed frontend, such as your Vercel domain.
+4. For the frontend build, configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (or `VITE_SUPABASE_PUBLISHABLE_KEY`) with the same project's URL and publishable key. Set `VITE_API_BASE_URL` to the backend origin. These are browser-side settings and must not contain the Neo4j or Supabase server secret.
 
 ---
 

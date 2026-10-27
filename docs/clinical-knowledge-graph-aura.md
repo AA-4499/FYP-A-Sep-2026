@@ -16,11 +16,15 @@ Configure these variables on the Python backend (Render for the hosted applicati
 | `CLINICAL_KG_NEO4J_URI` | `neo4j+s://e72f4649.databases.neo4j.io` |
 | `CLINICAL_KG_NEO4J_USER` | `e72f4649` |
 | `CLINICAL_KG_NEO4J_PASSWORD` | Use the newly rotated Aura database password |
-| `CLINICAL_KG_NEO4J_DATABASE` | `e72f4649` |
+| `CLINICAL_KG_NEO4J_DATABASE` | `neo4j` |
 
-The backend also accepts the standard Aura variable names NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD and NEO4J_DATABASE. The CLINICAL_KG_* names are recommended in this project because they take priority over generic/local Neo4j values.
+The Aura instance ID in the URI and username is not normally the database name. Aura instances use `neo4j` as the default user database. Use a different value only if the Aura console explicitly shows that a custom database exists in this instance.
 
-The password was exposed in a chat message. Rotate it in Neo4j Aura before use and configure the replacement only as a backend secret. Do not commit it, put it into Vercel, put it in any `VITE_*` variable, or send it in a message. Restart/redeploy the backend after updating environment variables. The checked-in `.env.example` files intentionally contain a placeholder, not a real password.
+The backend also accepts the standard Aura variable names `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` and `NEO4J_DATABASE`. The `CLINICAL_KG_*` names take priority over generic/local Neo4j values.
+
+Configure the Aura password only as a backend secret. Do not commit it, put it into Vercel, or put it in any `VITE_*` variable. If it has ever been exposed, rotate it in Aura and restart/redeploy the backend after updating environment variables. The checked-in `.env.example` files intentionally contain placeholders.
+
+The backend also requires `SUPABASE_URL` and a server-only `SUPABASE_SECRET_KEY` (an `sb_secret_...` key), or the legacy `SUPABASE_SERVICE_ROLE_KEY`. The code retains `SUPABASE_KEY` as a backwards-compatible alias, but its value must still be a server-only secret/service-role key. The `sb_publishable_...` key belongs only in the frontend configuration (`VITE_SUPABASE_ANON_KEY` or `VITE_SUPABASE_PUBLISHABLE_KEY`); the backend deliberately rejects a publishable key for server-side database access.
 
 This service connects using the Bolt URI and the Neo4j Python driver. The Aura Query API URL and MCP URL are not used by this code path.
 

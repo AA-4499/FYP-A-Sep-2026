@@ -165,7 +165,7 @@ def _read_graph(tx) -> Dict[str, Any]:
 def get_clinical_knowledge_graph() -> Dict[str, Any]:
     """Return the shared clinical concept graph without changing Neo4j data."""
     try:
-        database = (os.getenv("CLINICAL_KG_NEO4J_DATABASE") or os.getenv("NEO4J_DATABASE") or "e72f4649").strip() or "e72f4649"
+        database = (os.getenv("CLINICAL_KG_NEO4J_DATABASE") or os.getenv("NEO4J_DATABASE") or "neo4j").strip() or "neo4j"
         with _driver().session(database=database) as session:
             return session.execute_read(_read_graph)
     except ClinicalKnowledgeGraphUnavailableError:

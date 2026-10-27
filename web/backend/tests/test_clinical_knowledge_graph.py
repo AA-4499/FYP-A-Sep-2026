@@ -128,6 +128,15 @@ class ClinicalKnowledgeGraphServiceTests(unittest.TestCase):
                             for query in self.transaction.queries))
         self.assertEqual("neo4j", self.driver.database)
 
+    def test_defaults_to_auras_default_database_when_database_name_is_unset(self):
+        clinical_kg._DRIVER = None
+        with patch.dict(os.environ, {
+            "CLINICAL_KG_NEO4J_DATABASE": "",
+            "NEO4J_DATABASE": "",
+        }, clear=False):
+            clinical_kg.get_clinical_knowledge_graph()
+        self.assertEqual("neo4j", self.driver.database)
+
     def test_missing_password_fails_closed(self):
         clinical_kg._DRIVER = None
         with patch.dict(os.environ, {

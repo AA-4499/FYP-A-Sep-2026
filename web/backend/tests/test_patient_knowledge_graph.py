@@ -37,13 +37,14 @@ class PatientConditionServiceTests(unittest.TestCase):
         self.assertEqual([], kg.extract_patient_conditions({'Comorbidities': '/',
             'Type of Diabetes': None, 'Hypoglycemia (yes/no)': 'no', 'hypertension': False}))
 
-    def test_missing_patient_and_mismatched_fallback_never_touch_database(self):
-        with patch.object(kg, 'get_patient', return_value=None), patch.object(kg, '_driver') as driver:
+    def test_missing_patient_and_mismatched_fallback_never_query_graph_source(self):
+        with patch.object(kg, 'get_patient', return_value=None), \
+             patch('services.clinical_knowledge_graph_service.get_clinical_knowledge_graph') as clinical_graph:
             with self.assertRaises(kg.PatientNotFoundError):
                 kg.get_patient_knowledge_graph('record-a')
             with self.assertRaises(kg.PatientNotFoundError):
                 kg.get_patient_knowledge_graph('record-a', {'id': 'record-b', 'condition': 'T2DM'})
-            driver.assert_not_called()
+            clinical_graph.assert_not_called()
 
     def test_authoritative_patient_takes_priority_over_browser_fallback(self):
         concepts = {

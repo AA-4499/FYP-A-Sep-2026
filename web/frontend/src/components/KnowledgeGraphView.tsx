@@ -288,6 +288,9 @@ export const KnowledgeGraphView: React.FC<Props> = ({
             { label: "Node type", value: kind },
             { label: "Category", value: category },
             { label: "Patient record", value: patientId },
+            { label: "Source references", value: Array.isArray(data.sourceRefs) ? data.sourceRefs.map(String).join(", ") || "Not recorded" : "Not recorded" },
+            { label: "Scope", value: textValue(data.scope, "Not specified") },
+            { label: "Schema version", value: textValue(data.schemaVersion, "Not specified") },
           ],
         };
       });
@@ -319,9 +322,9 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           source: textValue(data.source, ""),
           target: textValue(data.target, ""),
           label: textValue(data.label, "related to"),
-          status: "recorded",
-          sourceRefs: [],
-          evidenceNote: "",
+          status: textValue(data.evidenceStatus, textValue(data.status, "recorded")),
+          sourceRefs: Array.isArray(data.sourceRefs) ? data.sourceRefs.map(String) : [],
+          evidenceNote: textValue(data.evidenceNote, ""),
         };
       });
     }

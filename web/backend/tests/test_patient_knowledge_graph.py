@@ -46,31 +46,66 @@ class PatientConditionServiceTests(unittest.TestCase):
             driver.assert_not_called()
 
     def test_authoritative_patient_takes_priority_over_browser_fallback(self):
-        driver = Mock()
-        session = driver.session.return_value.__enter__ = Mock(return_value=Mock())
-        driver.session.return_value.__exit__ = Mock(return_value=False)
-        session.return_value.execute_write.side_effect = lambda callback, record, conditions: {'patientId': record, 'conditions': conditions}
-        with patch.dict(os.environ, {
-            'CLINICAL_KG_NEO4J_URI': 'neo4j+s://example.databases.neo4j.io',
-            'CLINICAL_KG_NEO4J_USER': 'test-user',
-            'CLINICAL_KG_NEO4J_PASSWORD': 'test-password',
-            'CLINICAL_KG_NEO4J_DATABASE': 'neo4j',
-        }), patch.object(kg, 'get_patient', return_value={'condition': 'T2DM'}), patch.object(kg, '_driver', return_value=driver):
+        concepts = {
+            'nodes': [
+                {'id': 'concept-t2dm', 'name': 'Type 2 Diabetes', 'category': 'Disease',
+                 'description': 'T2D', 'sourceRefs': ['[17]'], 'scope': 'Type 2 Diabetes',
+                 'schemaVersion': 't2dm-medical-kg-v1'},
+                {'id': 'concept-diabetes', 'name': 'Diabetes', 'category': 'Disease',
+                 'description': 'Parent concept', 'sourceRefs': ['[17]'], 'scope': 'Type 2 Diabetes',
+                 'schemaVersion': 't2dm-medical-kg-v1'},
+            ],
+            'edges': [{
+                'id': 'concept-edge-1', 'source': 'concept-t2dm', 'target': 'concept-diabetes',
+                'predicate': 'IS_A', 'label': 'is a', 'sourceRefs': ['[17]'],
+                'evidenceNote': 'Candidate edge', 'evidenceStatus': 'candidate_for_review',
+            }],
+        }
+        with patch.object(kg, 'get_patient', return_value={'condition': 'T2DM'}), \
+             patch('services.clinical_knowledge_graph_service.get_clinical_knowledge_graph', return_value=concepts):
             graph = kg.get_patient_knowledge_graph('record-a', {'id': 'record-a', 'condition': 'T1DM'})
         self.assertEqual('Type 2 Diabetes', graph['elements']['nodes'][1]['data']['label'])
         self.assertEqual(1, graph['stats']['condition_count'])
+        self.assertEqual(1, graph['stats']['matched_concept_count'])
+        self.assertIn('not persisted to Aura', graph['stats']['graph_scope'])
+        self.assertTrue(any(edge['data'].get('evidenceStatus') == 'candidate_for_review'
+                            for edge in graph['elements']['edges']))
 
-    def test_database_updates_are_parameterized_and_scoped_to_one_patient(self):
-        tx = Mock()
-        tx.run.return_value.single.return_value = {'patientId': "record'a", 'conditions': []}
-        kg._write_and_read(tx, "record'a", [{'id': 'comorbidity::hypertension', 'name': 'Hypertension',
-                                           'category': 'comorbidity', 'edgeLabel': 'has comorbidity'}])
-        for call in tx.run.call_args_list:
-            self.assertNotIn("record'a", call.args[0])
-            self.assertEqual("record'a", call.kwargs['patientId'])
-        deletion = tx.run.call_args_list[1].args[0]
-        self.assertIn('Patient {patientId: $patientId}', deletion)
-        self.assertIn('HAS_CONDITION', deletion)
+    def test_patient_graph_composes_conditions_without_persisting_patient_nodes(self):
+        patient = {'recorded_fields': {
+            'Type of Diabetes': 'T2DM',
+            'Comorbidities': 'Hypertension',
+            'Diabetic Microvascular Complications': 'Nephropathy',
+        }}
+        concepts = {
+            'nodes': [
+                {'id': 'concept-t2dm', 'name': 'Type 2 Diabetes', 'category': 'Disease',
+                 'description': 'T2D', 'sourceRefs': ['[17]'], 'scope': 'Type 2 Diabetes',
+                 'schemaVersion': 't2dm-medical-kg-v1'},
+                {'id': 'concept-hypertension', 'name': 'Hypertension', 'category': 'Disease',
+                 'description': 'Hypertension', 'sourceRefs': ['[23]'], 'scope': 'Type 2 Diabetes',
+                 'schemaVersion': 't2dm-medical-kg-v1'},
+                {'id': 'concept-diabetes', 'name': 'Diabetes', 'category': 'Disease',
+                 'description': 'Parent concept', 'sourceRefs': ['[17]'], 'scope': 'Type 2 Diabetes',
+                 'schemaVersion': 't2dm-medical-kg-v1'},
+            ],
+            'edges': [{
+                'id': 'concept-edge-1', 'source': 'concept-t2dm', 'target': 'concept-diabetes',
+                'predicate': 'IS_A', 'label': 'is a', 'sourceRefs': ['[17]'],
+                'evidenceNote': 'Candidate edge', 'evidenceStatus': 'candidate_for_review',
+            }],
+        }
+        with patch.object(kg, 'get_patient', return_value=patient), \
+             patch('services.clinical_knowledge_graph_service.get_clinical_knowledge_graph', return_value=concepts):
+            graph = kg.get_patient_knowledge_graph('record-a')
+        labels = {node['data'].get('label') for node in graph['elements']['nodes']}
+        kinds = [node['data'].get('kind') for node in graph['elements']['nodes']]
+        self.assertEqual(1, kinds.count('Patient'))
+        self.assertIn('Type 2 Diabetes', labels)
+        self.assertIn('Hypertension', labels)
+        self.assertIn('Diabetic Nephropathy', labels)
+        self.assertGreaterEqual(graph['stats']['matched_concept_count'], 2)
+        self.assertFalse(hasattr(kg, '_write_and_read'))
 
 
 class PatientConditionApiTests(unittest.TestCase):

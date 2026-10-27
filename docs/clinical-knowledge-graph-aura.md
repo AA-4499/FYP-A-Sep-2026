@@ -44,7 +44,7 @@ The existing general patient directory and other dashboard authorization rules a
 
 ## Patient graph details
 
-The patient graph is synchronised from the authorised `patient_summary` record when requested. Only condition labels and the minimum graph structure are written to Aura; raw CGM traces, demographic details, and the complete patient summary are not copied into Aura. Patient-specific graph data is kept distinct by the Patient identifier and connected to shared Condition concept nodes.
+The patient graph is composed on request from the authorised Supabase `patient_summary` record and shared Aura clinical concepts. Patient IDs, Patient nodes, Condition nodes, demographics, raw CGM traces and the complete patient summary are never written to Aura. The response includes a patient anchor, recorded-condition nodes, exact condition-to-concept matches, and one-hop clinical relationships connected to matched concepts. This patient-specific graph exists only in the API response/browser session; Aura remains the shared reusable concept store.
 
 For condition extraction, the backend reads the selected summary's recorded fields, including diabetes type, comorbidities, and acute, macrovascular, and microvascular complications.
 

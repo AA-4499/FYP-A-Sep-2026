@@ -37,7 +37,7 @@ def _graph_context(patient_graph: Mapping[str, Any], clinical_graph: Mapping[str
     conditions = []
     for element in nodes:
         data = element.get("data") if isinstance(element, dict) else None
-        if not isinstance(data, dict) or str(data.get("kind") or "").casefold() == "patient":
+        if not isinstance(data, dict) or str(data.get("kind") or "").casefold() != "condition":
             continue
         name = str(data.get("label") or "").strip()
         if name and name not in conditions:

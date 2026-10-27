@@ -154,13 +154,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   }`}
                 >
                   <span
-                    className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center text-[8px] shrink-0 ${
+                    className={`w-4 h-4 rounded-xs border flex items-center justify-center shrink-0 ${
                       isActive
-                        ? "border-purple-600 text-purple-600 bg-white font-bold"
-                        : "border-slate-300 text-slate-300"
+                        ? "border-purple-600 bg-white"
+                        : "border-slate-300"
                     }`}
                   >
-                    {isActive ? "▪" : ""}
+                    {isActive && (
+                      <span className="w-2 h-2 bg-purple-600 rounded-[1px]" />
+                    )}
                   </span>
                   <span>{item.label}</span>
                 </button>

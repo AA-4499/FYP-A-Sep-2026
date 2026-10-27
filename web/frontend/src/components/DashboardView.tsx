@@ -363,7 +363,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ patient, onNavigat
               </h3>
               {hasCGM && cgmSummary && (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  TIR {cgmSummary.timeInRangePct}% · {cgmSummary.meanGlucose} mg/dL
+                  TIR {Number(cgmSummary.timeInRangePct).toFixed(1)}% · {Number(cgmSummary.meanGlucose).toFixed(1)} mg/dL
                 </span>
               )}
             </div>

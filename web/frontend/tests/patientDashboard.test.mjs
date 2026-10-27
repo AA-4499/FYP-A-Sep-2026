@@ -80,16 +80,22 @@ test('new accounts retain empty measurements, predictions, and sensor data', () 
 async function componentModule(name) {
   const source = readFileSync(new URL(`../src/components/${name}.tsx`, import.meta.url), 'utf8');
   let { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.React } });
-  outputText = outputText.replace(/from (['"])(react|lucide-react)\1/g, (_, quote, specifier) => `from ${JSON.stringify(import.meta.resolve(specifier))}`);
+  outputText = outputText.replace(/from (['"])(react|lucide-react|recharts)\1/g, (_, quote, specifier) => `from ${JSON.stringify(import.meta.resolve(specifier))}`);
+  for (const name of ['clinicalData', 'dashboardOverview']) {
+    const lib = readFileSync(new URL(`../src/lib/${name}.ts`, import.meta.url), 'utf8');
+    const compiled = ts.transpileModule(lib, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } }).outputText;
+    const uri = 'data:text/javascript;base64,' + Buffer.from(compiled).toString('base64');
+    outputText = outputText.replaceAll('"../lib/' + name + '"', JSON.stringify(uri));
+  }
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 
 test('Patient Home retains recorded information and hides Doctor-only simulation', async () => {
   const { DashboardView } = await componentModule('DashboardView');
   const html = renderToStaticMarkup(React.createElement(DashboardView, { patient: toDashboardPatient(unlinked), selfService: true, onNavigate() {} }));
-  for (const title of ['Continuous CGM Waveform', 'Why this risk? Key factors', 'Your health at a glance']) assert.ok(html.includes(title), title);
+  for (const title of ['Glucose trend', 'Glucose range', 'Key health results', 'No CGM readings available']) assert.ok(html.includes(title), title);
   assert.doesNotMatch(html, /NaN|62%|Patient 2000|Patients 2000|Prototype:/);
-  assert.doesNotMatch(html, /What-if simulation|Open prediction and what-if|Simulated HbA1c/);
+  assert.doesNotMatch(html, /What-if simulation|Open digital twin|Current risk|Simulated HbA1c/);
 });
 
 test('Patient sidebar retains the original navigation without a care-team switch', async () => {
@@ -110,6 +116,6 @@ test('Doctor prediction navigation is denied by default, including anonymous pre
   const { Sidebar } = await componentModule('Sidebar');
   const hidden = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',onSelectModule(){}}));
   const doctor = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',canViewPredictions:true,onSelectModule(){}}));
-  assert.doesNotMatch(hidden, /Prediction lab/);
-  assert.match(doctor, /Prediction lab/);
+  assert.doesNotMatch(hidden, /Digital twin/);
+  assert.match(doctor, /Digital twin/);
 });

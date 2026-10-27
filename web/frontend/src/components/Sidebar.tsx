@@ -83,8 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectMo
           </button>
         </div>
         {!doctor && currentPatientName && <p className="mt-5 truncate text-sm font-medium text-slate-500">{currentPatientName}</p>}
-        <nav className="mt-7 flex flex-col gap-1">
-          {items.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-current={activeModule === id ? "page" : undefined} onClick={() => { onSelectModule(id); if (mobileOpen) closeMobile(); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition ${activeModule === id ? doctor ? "bg-teal-50 text-teal-700" : "bg-purple-50 text-purple-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}><Icon size={18} className="shrink-0" /><span>{label}</span></button>)}
+        <nav className="sidebar-menu mt-7 flex flex-col gap-1.5">
+          {items.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-current={activeModule === id ? "page" : undefined} onClick={() => { onSelectModule(id); if (mobileOpen) closeMobile(); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] leading-6 font-medium transition ${activeModule === id ? doctor ? "bg-teal-50 text-teal-700" : "bg-purple-50 text-purple-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}><Icon size={18} className="shrink-0" /><span>{label}</span></button>)}
         </nav>
         {!doctor && onReturnToCareTeam && !selfService && <button type="button" onClick={() => { onReturnToCareTeam(); if (mobileOpen) closeMobile(); }} className="mt-7 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-5 text-sm font-medium text-slate-600"><ArrowLeft size={16} />Doctor dashboard</button>}
       </aside>

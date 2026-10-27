@@ -9,15 +9,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { DoctorDashboard } from "./doctor/DoctorDashboard";
 import { LongitudinalMonitoringView } from "./LongitudinalMonitoringView";
 import type { Patient, NavigationModule } from "../types";
 import { clinicalValue } from "../lib/clinicalData";
@@ -88,148 +80,12 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function CohortOverview({
-  patients,
-  onOpen,
-  onRegistry,
-  onMonitor,
-}: {
+export function CohortOverview({ patients, onOpen, onRegistry }: {
   patients: Patient[];
   onOpen: (id: string) => void;
   onRegistry: () => void;
-  onMonitor: () => void;
 }) {
-  const measured = patients.filter((p) => Number.isFinite(p.hba1c));
-  const mean = measured.length
-    ? measured.reduce((sum, p) => sum + p.hba1c, 0) / measured.length
-    : NaN;
-  const sensors = patients.filter((p) => p.hasContinuousCGM);
-  const groups = [
-    { label: "< 7%", count: measured.filter((p) => p.hba1c < 7).length },
-    {
-      label: "7–8.5%",
-      count: measured.filter((p) => p.hba1c >= 7 && p.hba1c <= 8.5).length,
-    },
-    { label: "> 8.5%", count: measured.filter((p) => p.hba1c > 8.5).length },
-  ];
-  const review = [...patients]
-    .filter(
-      (p) =>
-        (Number.isFinite(p.hba1c) && p.hba1c > 8.5) ||
-        (p.cgmSummary?.timeBelowRangePct ?? 0) > 0,
-    )
-    .sort((a, b) => (b.hba1c || 0) - (a.hba1c || 0));
-  return (
-    <div className="space-y-6">
-      <RecordSource />
-      <section className="relative overflow-hidden rounded-3xl bg-teal-950 p-6 text-white sm:p-8">
-        <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full border-[40px] border-white/5" />
-        <p className="relative text-[10px] font-bold uppercase tracking-[.22em] text-teal-200">
-          Your clinical workspace
-        </p>
-        <h1 className="relative mt-3 text-3xl font-bold tracking-tight">
-          Cohort overview
-        </h1>
-        <button
-          className="relative mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-teal-900"
-          onClick={onRegistry}
-        >
-          Explore {patients.length} patient records <ArrowRight size={14} />
-        </button>
-      </section>
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric
-          label="Accessible patient records"
-          value={String(patients.length)}
-        />
-        <Metric
-          label="Mean recorded HbA1c"
-          value={clinicalValue(mean, "%")}
-        />
-        <Metric
-          label="Records with dated CGM"
-          value={String(sensors.length)}
-        />
-        <Metric
-          label="Review signals"
-          value={String(review.length)}
-        />
-      </div>
-      <div className="grid gap-5 xl:grid-cols-[1fr_1.1fr]">
-        <section className={panel}>
-          <h2 className="text-sm font-bold">Recorded glycaemic profile</h2>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500">
-            HbA1c distribution across measured records. Reference bands support
-            review; individual targets vary.
-          </p>
-          {measured.length ? (
-            <div className="mt-5 h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={groups}>
-                  <CartesianGrid vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar
-                    isAnimationActive={false}
-                    dataKey="count"
-                    name="Patient records"
-                    fill="#0f766e"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="mt-5">
-              <Empty>No HbA1c measurements are available.</Empty>
-            </div>
-          )}
-        </section>
-        <section className={panel}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold">Records to review</h2>
-            <button
-              onClick={onMonitor}
-              className="text-xs font-semibold text-teal-700"
-            >
-              View patients
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Signals from recorded measurements, not new diagnoses.
-          </p>
-          <div className="mt-5 divide-y divide-slate-100">
-            {review.slice(0, 5).map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onOpen(p.id)}
-                className="flex w-full items-center justify-between gap-4 py-4 text-left"
-              >
-                <div>
-                  <p className="max-w-[180px] truncate text-xs font-semibold">
-                    {p.name}
-                  </p>
-                  <p className="mt-1 text-[10px] text-slate-400">
-                    {p.hasContinuousCGM
-                      ? `${p.cgmReadings?.length} sensor readings`
-                      : "Summary measurements"}
-                  </p>
-                </div>
-                <span className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
-                  {clinicalValue(p.hba1c, "% HbA1c")}
-                </span>
-                <ArrowRight size={14} className="shrink-0 text-slate-400" />
-              </button>
-            ))}
-            {!review.length && (
-              <Empty>No records match these review signals.</Empty>
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+  return <DoctorDashboard patients={patients} onOpen={onOpen} onRegistry={onRegistry} />;
 }
 
 export function PatientRegistry({

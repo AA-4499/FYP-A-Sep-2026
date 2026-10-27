@@ -270,7 +270,6 @@ function Workspace({
               patients={patients}
               onOpen={openPatient}
               onRegistry={() => setDoctorPage("doctor_patients")}
-              onMonitor={() => setDoctorPage("doctor_patients")}
             />
           )}
           {settings && (

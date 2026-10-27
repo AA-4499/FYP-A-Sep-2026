@@ -80,7 +80,7 @@ model-viewer {
 .navigation-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(15 23 42 / 35%); }
 .is-mobile-open > .navigation-toggle { position: fixed; right: 8px; top: 12px; z-index: 80; }
 @media (min-width: 1024px) {
-  .workspace-navigation { position: sticky; top: 28px; align-self: flex-start; width: 240px; height: calc(100dvh - 56px); }
+  .workspace-navigation { position: sticky; top: 28px; align-self: flex-start; width: 256px; height: calc(100dvh - 56px); }
   .workspace-navigation > .navigation-toggle { display: none; }
   .navigation-panel { position: absolute; inset: 0; width: 240px; height: 100%; border: 1px solid #e2e8f0; border-radius: 24px; transform: none; visibility: visible; }
   .is-collapsed.workspace-navigation { width: 40px; }

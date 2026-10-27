@@ -275,6 +275,26 @@
     await open("?logincheck");
     await ready("2 accessible records");
     await screenshot("clean-doctor-overview.png");
+    assert(await evaluate(`document.querySelectorAll('[data-testid="dashboard-review-list"] > button').length===1`), 'Review queue must show the low-glucose record');
+    await click('Missing results');
+    assert(await evaluate(`document.querySelector('[data-testid="dashboard-review-list"]').innerText.includes('test-b') && !document.querySelector('[data-testid="dashboard-review-list"]').innerText.includes('test-a')`), 'Missing HbA1c filter failed');
+    await evaluate(`(() => {const input=document.querySelector('[aria-label="Search dashboard patients"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'test-a');input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await ready('No matching records');
+    await evaluate(`(() => {const input=document.querySelector('[aria-label="Search dashboard patients"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'');input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+    await evaluate(`document.querySelector('[data-testid="dashboard-review-list"] > button').click()`);
+    await ready('No CGM readings available');
+    assert(await evaluate(`!document.querySelector('main').innerText.includes('NaN') && document.querySelector('main').innerText.includes('Not recorded')`), 'Missing-data dashboard must stay factual');
+    await screenshot('patient-dashboard-no-cgm.png');
+    await click('Doctor dashboard', "document.querySelector('aside')");
+    await send('Emulation.setDeviceMetricsOverride', {width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await delay(300);
+    assert(await evaluate(`document.documentElement.scrollWidth<=window.innerWidth+2`), 'Doctor dashboard mobile overflow');
+    await screenshot('doctor-dashboard-mobile.png');
+    await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1050,deviceScaleFactor:1,mobile:false});
+    await delay(300);
+    console.log('PASS: doctor dashboard review filters, search, patient drill-down and mobile layout');
+    await open('');
+    await ready('2 accessible records');
     for (const [label, text] of [
       ["Patient management", "Patient list"],
       ["Reports", "Complete recorded summary"],
@@ -327,14 +347,25 @@
     await click("Share with patient");
     await ready("Visible in patient view");
     await click("Preview patient view");
-    await ready("Continuous CGM Waveform");
+    await ready("Glucose trend");
     assert(
       await evaluate(
-        `document.querySelector('[aria-label="Compact ambulatory glucose profile with percentile bands and median glucose"]') !== null`,
+        `document.querySelector('[aria-label="Recorded glucose trend with 70 to 180 mg/dL reference range"]') !== null`,
       ),
       "Jody compact AGP did not render",
     );
     await screenshot("restored-jody-patient-home.png");
+    const firstRange = await evaluate(`document.querySelector('[data-testid="patient-health-dashboard"]').innerText`);
+    await click('All readings');
+    assert(await evaluate(`document.querySelector('[aria-label="Glucose chart period"] button[aria-pressed="true"]').textContent==='All readings'`), 'Chart period did not change');
+    await click('Last recorded day');
+    assert((await evaluate(`document.querySelector('[data-testid="patient-health-dashboard"]').innerText`))===firstRange, 'Period switching changed record metrics');
+    await send('Emulation.setDeviceMetricsOverride', {width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await delay(300);
+    assert(await evaluate(`document.documentElement.scrollWidth<=window.innerWidth+2`), 'Patient dashboard mobile overflow');
+    await screenshot('patient-dashboard-mobile.png');
+    await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1050,deviceScaleFactor:1,mobile:false});
+    await delay(300);
     await expectPage(
       "My recommendations",
       "Review the glucose monitoring plan",
@@ -402,7 +433,7 @@
     );
     await click("Switch to Patient workspace");
     for (const [label, text] of [
-      ["Home", "Continuous CGM Waveform"],
+      ["Home", "Glucose trend"],
       ["My profile", "Complete recorded summary"],
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],
@@ -412,7 +443,7 @@
     ])
       await expectPage(label, text);
     await click("Doctor dashboard", "document.querySelector('aside')");
-    await ready("Cohort overview");
+    await ready("Care overview");
     await open("?empty");
     await ready("0 accessible records");
     await ready("Patient data requires sign-in");
@@ -444,7 +475,7 @@
     );
     await open("?patient");
     await ready("Test Patient");
-    await ready("Continuous CGM Waveform");
+    await ready("Glucose trend");
     for (const [label, text] of [
       ["My health", "Ambulatory Glucose Profile (AGP)"],
       ["My digital twin", "Physiological evidence map"],

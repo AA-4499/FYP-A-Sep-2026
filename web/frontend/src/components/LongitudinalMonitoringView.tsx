@@ -457,10 +457,44 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
   const [selectedAgpRegion, setSelectedAgpRegion] =
     useState<AgpInteractiveRegion>(null);
 
+  const [hoveredAgpRegion, setHoveredAgpRegion] =
+    useState<AgpInteractiveRegion>(null);
+
   const toggleAgpRegion = (region: Exclude<AgpInteractiveRegion, null>) => {
     setSelectedAgpRegion((current) =>
       current === region ? null : region
     );
+  };
+
+  const getAgpRegionFromEvent = (
+    event: React.MouseEvent<SVGSVGElement>
+  ): Exclude<AgpInteractiveRegion, null> | null => {
+    const target = event.target as Element;
+
+    const regionElement = target.closest("[data-agp-region]");
+
+    if (!regionElement) return null;
+
+    const region = regionElement.getAttribute("data-agp-region");
+
+    const validRegions: Exclude<AgpInteractiveRegion, null>[] = [
+      "target",
+      "p10-p90",
+      "p25-p75",
+      "median",
+      "below",
+      "above",
+    ];
+
+    if (
+      !validRegions.includes(
+        region as Exclude<AgpInteractiveRegion, null>
+      )
+    ) {
+      return null;
+    }
+
+    return region as Exclude<AgpInteractiveRegion, null>;
   };
 
   const handleChartMouseMove = (
@@ -468,11 +502,12 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
   ) => {
     const rect = event.currentTarget.getBoundingClientRect();
 
-    // Convert the mouse position into SVG viewBox coordinates.
     const svgX =
       ((event.clientX - rect.left) / rect.width) * chartWidth;
 
-    // Restrict the crosshair to the actual plotting area.
+    const svgY =
+      ((event.clientY - rect.top) / rect.height) * chartHeight;
+
     const clampedX = Math.max(
       plotLeft,
       Math.min(plotRight, svgX)
@@ -483,6 +518,9 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     );
 
     setHoveredMinute(Math.min(1439, Math.max(0, minute)));
+
+    // Only highlight an actual SVG region under the pointer.
+    setHoveredAgpRegion(getAgpRegionFromEvent(event));
   };
 
   const handleAgpChartClick = (
@@ -537,37 +575,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
       null
     );
 
-    // Resolve overlapping visual regions from the most specific visible feature to the broader background region.
-    let clickedRegion: Exclude<AgpInteractiveRegion, null> | null =
-      null;
-
-    if (glucose < 70) {
-      clickedRegion = 'below';
-    } else if (glucose > 180) {
-      clickedRegion = 'above';
-    } else if (
-      nearestBin &&
-      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
-      Math.abs(glucose - nearestBin.median) <= 5
-    ) {
-      clickedRegion = 'median';
-    } else if (
-      nearestBin &&
-      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
-      glucose >= nearestBin.p25 &&
-      glucose <= nearestBin.p75
-    ) {
-      clickedRegion = 'p25-p75';
-    } else if (
-      nearestBin &&
-      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
-      glucose >= nearestBin.p10 &&
-      glucose <= nearestBin.p90
-    ) {
-      clickedRegion = 'p10-p90';
-    } else if (glucose >= 70 && glucose <= 180) {
-      clickedRegion = 'target';
-    }
+    const clickedRegion = getAgpRegionFromEvent(event);
 
     // Clicking empty chart space clears the current selection.
     if (!clickedRegion) {
@@ -576,6 +584,79 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     }
 
     toggleAgpRegion(clickedRegion);
+  };
+
+  const getAgpRegionAtPosition = (
+    svgX: number,
+    svgY: number,
+  ): Exclude<AgpInteractiveRegion, null> | null => {
+    if (
+      svgX < plotLeft ||
+      svgX > plotRight ||
+      svgY < plotTop ||
+      svgY > plotBottom
+    ) {
+      return null;
+    }
+
+    const minute = Math.max(
+      0,
+      Math.min(
+        1439,
+        Math.round(
+          ((svgX - plotLeft) / (plotRight - plotLeft)) * 1440
+        )
+      )
+    );
+
+    const glucose =
+      glucoseMin +
+      ((plotBottom - svgY) / (plotBottom - plotTop)) *
+        (glucoseMax - glucoseMin);
+
+    const nearestBin = agpBins.reduce<AGPProfileBin | null>(
+      (nearest, bin) => {
+        if (!nearest) return bin;
+
+        return Math.abs(bin.minuteOfDay - minute) <
+          Math.abs(nearest.minuteOfDay - minute)
+          ? bin
+          : nearest;
+      },
+      null
+    );
+
+    // Resolve the most specific region first.
+    if (glucose < 70) return 'below';
+    if (glucose > 180) return 'above';
+
+    if (
+      nearestBin &&
+      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
+      Math.abs(glucose - nearestBin.median) <= 5
+    ) {
+      return 'median';
+    }
+
+    if (
+      nearestBin &&
+      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
+      glucose >= nearestBin.p25 &&
+      glucose <= nearestBin.p75
+    ) {
+      return 'p25-p75';
+    }
+
+    if (
+      nearestBin &&
+      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
+      glucose >= nearestBin.p10 &&
+      glucose <= nearestBin.p90
+    ) {
+      return 'p10-p90';
+    }
+
+    return 'target';
   };
 
   const formatHoverTime = (minute: number) => {
@@ -629,6 +710,25 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
       ? nearest
       : null;
   }, [hoveredMinute, selectedAgpView, filteredAgpReadings]);
+
+  const isAgpRegionActive = (
+    region: Exclude<AgpInteractiveRegion, null>
+  ) => {
+    return (
+      hoveredAgpRegion === region ||
+      (hoveredAgpRegion === null &&
+        selectedAgpRegion === region)
+    );
+  };
+
+  const isAgpRegionDimmed = (
+    region: Exclude<AgpInteractiveRegion, null>
+  ) => {
+    const activeRegion =
+      hoveredAgpRegion ?? selectedAgpRegion;
+
+    return activeRegion !== null && activeRegion !== region;
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -1082,7 +1182,10 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                 role="img"
                 aria-label="Ambulatory glucose profile showing median glucose and glucose percentile bands by time of day"
                 onMouseMove={handleChartMouseMove}
-                onMouseLeave={() => setHoveredMinute(null)}
+                onMouseLeave={() => {
+                  setHoveredMinute(null);
+                  setHoveredAgpRegion(null);
+                }}
                 onClick={handleAgpChartClick}
                 className="w-full min-w-[620px] h-auto cursor-pointer"
               >
@@ -1120,17 +1223,25 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   clipPath="url(#agp-plot-clip)"
                   pointerEvents="all"
                 >
-                  <rect
-                    x={plotLeft}
-                    y={yForGlucose(180)}
-                    width={plotRight - plotLeft}
-                    height={yForGlucose(70) - yForGlucose(180)}
-                    fill="#34D399"
-                    fillOpacity={selectedAgpRegion === 'target' ? 0.45 : 0.12}
-                    stroke={selectedAgpRegion === 'target' ? '#047857' : 'none'}
-                    strokeWidth={selectedAgpRegion === 'target' ? 2 : 0}
-                    pointerEvents="none"
-                  />
+                  {(() => {
+                    const active = isAgpRegionActive('target');
+                    const dimmed = isAgpRegionDimmed('target');
+
+                    return (
+                      <rect
+                        x={plotLeft}
+                        y={yForGlucose(180)}
+                        width={plotRight - plotLeft}
+                        height={yForGlucose(70) - yForGlucose(180)}
+                        fill="#34D399"
+                        fillOpacity={active ? 0.42 : 0.12}
+                        stroke={active ? '#047857' : 'none'}
+                        strokeWidth={active ? 2 : 0}
+                        opacity={dimmed ? 0.5 : 1}
+                        pointerEvents="none"
+                      />
+                    );
+                  })()}
                 </g>
 
                 {/* Glucose reference lines and Y-axis labels */}
@@ -1214,97 +1325,150 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                     return (
                       <g key={`agp-segment-${index}`}>
                         <path
+                          data-agp-region="p10-p90"
                           d={outerPath}
                           fill="#86EFAC"
-                          fillOpacity={selectedAgpRegion === 'p10-p90' ? 0.85 : 0.65}
-                          opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'p10-p90'
-                              ? 1
-                              : 0.2
-                          }
-                          stroke={selectedAgpRegion === 'p10-p90' ? '#15803D' : 'none'}
-                          strokeWidth={selectedAgpRegion === 'p10-p90' ? 2 : 0}
+                          fillOpacity={isAgpRegionActive("p10-p90") ? 0.9 : 0.65}
+                          opacity={isAgpRegionDimmed("p10-p90") ? 0.2 : 1}
+                          stroke={isAgpRegionActive("p10-p90") ? "#15803D" : "none"}
+                          strokeWidth={isAgpRegionActive("p10-p90") ? 2.5 : 0}
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="below"
                           d={outerPath}
                           fill="#FED7AA"
-                          fillOpacity="0.9"
                           clipPath="url(#below-target-clip)"
-                          opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'below'
-                              ? 1
-                              : 0.2
+                          fillOpacity={
+                            isAgpRegionActive('below') ? 1 : 0.9
                           }
-                          stroke={selectedAgpRegion === 'below' ? '#C2410C' : 'none'}
-                          strokeWidth={selectedAgpRegion === 'below' ? 2 : 0}
+                          opacity={
+                            isAgpRegionDimmed('below') ? 0.2 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('below') ? '#9A3412' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('below') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="above"
                           d={outerPath}
                           fill="#FECACA"
-                          fillOpacity="0.9"
                           clipPath="url(#above-target-clip)"
-                          opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'above'
-                              ? 1
-                              : 0.15
+                          fillOpacity={
+                            isAgpRegionActive('above') ? 1 : 0.9
                           }
-                          stroke={selectedAgpRegion === 'above' ? '#B91C1C' : 'none'}
-                          strokeWidth={selectedAgpRegion === 'above' ? 2 : 0}
+                          opacity={
+                            isAgpRegionDimmed('above') ? 0.15 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('above') ? '#991B1B' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('above') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="p25-p75"
                           d={innerPath}
                           fill="#15803D"
-                          fillOpacity={selectedAgpRegion === 'p25-p75' ? 0.75 : 0.45}
-                          opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'p25-p75'
-                              ? 1
-                              : 0.2
+                          fillOpacity={
+                            isAgpRegionActive('p25-p75') ? 0.85 : 0.45
                           }
-                          stroke={selectedAgpRegion === 'p25-p75' ? '#14532D' : 'none'}
-                          strokeWidth={selectedAgpRegion === 'p25-p75' ? 2 : 0}
+                          opacity={
+                            isAgpRegionDimmed('p25-p75') ? 0.2 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('p25-p75') ? '#14532D' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('p25-p75') ? 2.5 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="below"
                           d={innerPath}
                           fill="#F97316"
-                          fillOpacity="0.9"
-                          stroke="none"
                           clipPath="url(#below-target-clip)"
-                          opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'below'
-                              ? 1
-                              : 0.2
+                          fillOpacity={
+                            isAgpRegionActive('below') ? 1 : 0.9
                           }
+                          opacity={
+                            isAgpRegionDimmed('below') ? 0.2 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('below') ? '#9A3412' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('below') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="above"
                           d={innerPath}
                           fill="#DC2626"
-                          fillOpacity="0.9"
-                          stroke="none"
                           clipPath="url(#above-target-clip)"
-                          opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'above'
-                              ? 1
-                              : 0.15
+                          fillOpacity={
+                            isAgpRegionActive('above') ? 1 : 0.9
                           }
+                          opacity={
+                            isAgpRegionDimmed('above') ? 0.15 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('above') ? '#991B1B' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('above') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="median"
                           d={medianPath}
                           fill="none"
                           stroke="#1D4ED8"
-                          strokeWidth={selectedAgpRegion === 'median' ? 4 : 2.4}
+                          strokeWidth={
+                            isAgpRegionActive('median') ? 4.5 : 2.4
+                          }
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           opacity={
-                            selectedAgpRegion === null || selectedAgpRegion === 'median'
-                              ? 1
-                              : 0.2
+                            isAgpRegionDimmed('median') ? 0.2 : 1
                           }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
                       </g>
                     );

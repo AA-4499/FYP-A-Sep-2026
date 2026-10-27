@@ -32,6 +32,10 @@ from services import (
 )
 
 from forecast_routes import forecast_api
+from services.clinical_knowledge_graph_service import (
+    ClinicalKnowledgeGraphUnavailableError,
+    get_clinical_knowledge_graph,
+)
 from models.training.supabase_io import SupabaseStorageError
 
 app = Flask(__name__)
@@ -193,6 +197,21 @@ def patient_knowledge_graph(patient_id: str):
     except RuntimeError as exc:
         app.logger.warning("Patient KG unavailable: %s", exc)
         return jsonify({"error": str(exc)}), 503
+
+
+# --------------------------------------------------------------------------
+# Read-only Clinical Knowledge Graph (Doctor workspace)
+# --------------------------------------------------------------------------
+
+@app.route("/api/doctor/knowledge-graph", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_clinical_knowledge_graph():
+    """Return the shared clinical concept graph from Neo4j Aura (read-only)."""
+    try:
+        return jsonify(get_clinical_knowledge_graph())
+    except ClinicalKnowledgeGraphUnavailableError as exc:
+        app.logger.warning("Clinical KG unavailable: %s", exc)
+        return jsonify({"error": str(exc), "source": "neo4j-aura"}), 503
 
 
 # --------------------------------------------------------------------------

@@ -9,6 +9,7 @@ import {
   Info,
   Network,
   RotateCcw,
+  RefreshCw,
   Send,
   ShieldCheck,
   Sparkles,
@@ -17,6 +18,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { Patient } from '../types';
+import { getSupabaseClient } from '../lib/supabase';
+import { getForecastApiUrl } from '../lib/forecast';
 import type { ClinicalRecommendation, RecommendationStatus } from '../data/knowledgeGraphDemoData';
 
 interface Props {
@@ -29,9 +32,47 @@ interface Props {
 }
 
 type GraphGroup = 'patient' | 'patient-data' | 'condition' | 'concept' | 'monitoring' | 'care';
-type GraphFilter = 'all' | 'patient' | 'concepts' | 'monitoring';
+type GraphFilter = 'all' | 'conditions' | 'monitoring' | 'management';
 type ViewTab = 'graph' | 'recommendations';
 
+interface ClinicalKnowledgeGraphNodeRecord {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  sourceRefs: string[];
+  scope: string;
+  schemaVersion: string;
+}
+interface ClinicalKnowledgeGraphEdgeRecord {
+  id: string;
+  source: string;
+  target: string;
+  sourceName: string;
+  targetName: string;
+  predicate: string;
+  label: string;
+  sourceRefs: string[];
+  evidenceNote: string;
+  evidenceStatus: string;
+  evidenceType: string;
+  scope: string;
+  schemaVersion: string;
+}
+interface ClinicalKnowledgeGraphResponse {
+  source: string;
+  readOnly: boolean;
+  scope: string;
+  stats: {
+    totalNodes: number;
+    totalEdges: number;
+    reviewedEdges: number;
+    candidateEdges: number;
+  };
+  nodes: ClinicalKnowledgeGraphNodeRecord[];
+  edges: ClinicalKnowledgeGraphEdgeRecord[];
+  error?: string;
+}
 interface GraphNode {
   id: string;
   label: string;
@@ -45,6 +86,9 @@ interface GraphEdge {
   source: string;
   target: string;
   label: string;
+  status: string;
+  sourceRefs: string[];
+  evidenceNote: string;
 }
 interface GraphModel {
   nodes: GraphNode[];
@@ -52,183 +96,61 @@ interface GraphModel {
   elements: ElementDefinition[];
 }
 
-const formatValue = (value: number | string | undefined, suffix = ''): string => {
-  if (value === undefined || value === null || value === '' || (typeof value === 'number' && !Number.isFinite(value))) return 'Not recorded';
-  return String(value) + suffix;
-};
+function groupForCategory(category: string): GraphGroup {
+  const value = category.toLowerCase();
+  if (/disease|clinical state|glycaemic event|glycemic event|crisis|complication/.test(value)) return 'condition';
+  if (/indicator|metric|monitoring|measurement/.test(value)) return 'monitoring';
+  if (/treatment|lifestyle|behaviour|behavior|pathophysiology|risk factor/.test(value)) return 'care';
+  return 'concept';
+}
 
-function buildGraphModel(patient: Patient, patientId: string): GraphModel {
-  const conditionName = patient.condition || 'Condition not recorded';
-  const patientName = patient.name || 'Selected patient';
-  const displayId = patient.displayId || patientId || patient.id;
-
-  const nodes: GraphNode[] = [
-    {
-      id: 'patient-record',
-      label: displayId,
-      group: 'patient',
-      value: patientName,
-      description: 'The currently selected patient record. Recorded measurements come from the clinical database; general concept relationships remain an interface prototype.',
-      details: [
-        { label: 'Patient', value: patientName },
-        { label: 'Record ID', value: patientId || patient.id },
-        { label: 'Condition label', value: conditionName },
-      ],
-    },
-    {
-      id: 'recorded-condition',
-      label: conditionName,
-      group: 'condition',
-      value: 'Recorded condition',
-      description: 'A condition label associated with the currently selected patient record. It is displayed as context, not as a new diagnosis.',
-      details: [
-        { label: 'Source', value: 'Selected patient context' },
-        { label: 'Interpretation', value: 'Verify against the clinical record' },
-      ],
-    },
-    {
-      id: 'hba1c',
-      label: 'HbA1c',
-      group: 'patient-data',
-      value: formatValue(patient.hba1c, '%'),
-      description: 'A summary metric included to demonstrate how patient-specific measurements can connect to broader clinical concepts.',
-      details: [
-        { label: 'Displayed value', value: formatValue(patient.hba1c, '%') },
-        { label: 'Data role', value: 'Patient measurement' },
-        { label: 'Clinical note', value: 'Interpret alongside history and other observations' },
-      ],
-    },
-    {
-      id: 'fasting-glucose',
-      label: 'Fasting glucose',
-      group: 'patient-data',
-      value: formatValue(patient.fastingGlucose, ' mmol/L'),
-      description: 'A fasting glucose value from the selected patient summary, represented in the prototype as a patient-context node.',
-      details: [
-        { label: 'Displayed value', value: formatValue(patient.fastingGlucose, ' mmol/L') },
-        { label: 'Data role', value: 'Patient measurement' },
-        { label: 'Clinical note', value: 'Confirm units and collection context in the real data source' },
-      ],
-    },
-    {
-      id: 'bmi',
-      label: 'BMI',
-      group: 'patient-data',
-      value: formatValue(patient.bmi),
-      description: 'A body-mass-index summary value, included to demonstrate a relationship between patient measurements and medical concepts.',
-      details: [
-        { label: 'Displayed value', value: formatValue(patient.bmi) },
-        { label: 'Data role', value: 'Patient measurement' },
-        { label: 'Clinical note', value: 'Not interpreted as a standalone diagnosis' },
-      ],
-    },
-    {
-      id: 'glycaemic-control',
-      label: 'Glycaemic control',
+function buildGraphModel(response: ClinicalKnowledgeGraphResponse | null): GraphModel {
+  if (!response || !Array.isArray(response.nodes) || response.nodes.length === 0) {
+    const placeholder: GraphNode = {
+      id: 'kg-no-data',
+      label: 'No live graph data',
       group: 'concept',
-      value: 'Medical concept',
-      description: 'A general clinical concept used to organise measures such as HbA1c and glucose observations.',
+      value: 'Neo4j Aura',
+      description: 'No clinical concept nodes have been loaded. Check the connection status above and retry the request.',
       details: [
-        { label: 'Concept type', value: 'Clinical monitoring concept' },
-        { label: 'Connected measures', value: 'HbA1c and glucose values' },
-        { label: 'Evidence', value: 'Illustrative connection in mock data' },
+        { label: 'Data source', value: 'Neo4j Aura through the Flask backend' },
+        { label: 'Graph scope', value: 'MedicalConcept nodes and their relationships only' },
       ],
-    },
-    {
-      id: 'glucose-monitoring',
-      label: 'Glucose monitoring',
-      group: 'monitoring',
-      value: 'Monitoring concept',
-      description: 'Monitoring context from the selected record. Counts and summaries below use recorded CGM; the conceptual links do not imply a new diagnosis.',
-      details: [
-        { label: 'Concept type', value: 'Monitoring' },
-        { label: 'Dated CGM readings', value: String(patient.cgmReadings?.length ?? 0) },
-        { label: 'Mean recorded CGM', value: formatValue(patient.cgmSummary?.meanGlucose, ' mg/dL') },
-        { label: 'Data source', value: 'patient_detail for the selected Patient Number' },
-      ],
-    },
-    {
-      id: 'metabolic-health',
-      label: 'Metabolic health',
-      group: 'concept',
-      value: 'Medical concept',
-      description: 'A broad concept shown to demonstrate how multiple clinical and lifestyle topics may be organised in a knowledge graph.',
-      details: [
-        { label: 'Concept type', value: 'General medical concept' },
-        { label: 'Connected topics', value: 'Clinical measurements and lifestyle context' },
-        { label: 'Evidence', value: 'Illustrative connection in mock data' },
-      ],
-    },
-    {
-      id: 'lifestyle-context',
-      label: 'Lifestyle context',
-      group: 'care',
-      value: 'Care context',
-      description: 'A conversation area for a clinician and patient. This node does not assume anything about the patient’s current habits.',
-      details: [
-        { label: 'Purpose', value: 'Support a shared-decision conversation' },
-        { label: 'Examples', value: 'Nutrition, activity, daily routine' },
-        { label: 'Current state', value: 'General placeholder' },
-      ],
-    },
-    {
-      id: 'follow-up',
-      label: 'Follow-up discussion',
-      group: 'care',
-      value: 'Care planning',
-      description: 'A general care-planning node illustrating how clinical context may lead to a discussion during a follow-up appointment.',
-      details: [
-        { label: 'Purpose', value: 'Support clinician review' },
-        { label: 'Decision owner', value: 'Doctor and patient together' },
-        { label: 'Current state', value: 'Placeholder; no appointment is being scheduled' },
-      ],
-    },
-    {
-      id: 'complication-screening',
-      label: 'Complication screening',
-      group: 'care',
-      value: 'Care concept',
-      description: 'A general concept that can be linked to relevant medical guidelines and the patient’s verified history when the real knowledge graph is connected.',
-      details: [
-        { label: 'Purpose', value: 'Organise follow-up topics' },
-        { label: 'Source', value: 'General concept placeholder' },
-        { label: 'Clinical note', value: 'Not a finding that this patient has a complication' },
-      ],
-    },
-  ];
-
-  const edges: GraphEdge[] = [
-    { id: 'e-condition', source: 'patient-record', target: 'recorded-condition', label: 'record has label' },
-    { id: 'e-hba1c', source: 'patient-record', target: 'hba1c', label: 'has measurement' },
-    { id: 'e-glucose', source: 'patient-record', target: 'fasting-glucose', label: 'has measurement' },
-    { id: 'e-bmi', source: 'patient-record', target: 'bmi', label: 'has measurement' },
-    { id: 'e-hba1c-control', source: 'hba1c', target: 'glycaemic-control', label: 'helps monitor' },
-    { id: 'e-glucose-control', source: 'fasting-glucose', target: 'glycaemic-control', label: 'helps monitor' },
-    { id: 'e-control-monitoring', source: 'glycaemic-control', target: 'glucose-monitoring', label: 'is tracked by' },
-    { id: 'e-bmi-metabolic', source: 'bmi', target: 'metabolic-health', label: 'provides context for' },
-    { id: 'e-lifestyle-metabolic', source: 'lifestyle-context', target: 'metabolic-health', label: 'discussion topic for' },
-    { id: 'e-condition-followup', source: 'recorded-condition', target: 'follow-up', label: 'may inform' },
-    { id: 'e-followup-screening', source: 'follow-up', target: 'complication-screening', label: 'may include' },
-    { id: 'e-followup-lifestyle', source: 'follow-up', target: 'lifestyle-context', label: 'may include' },
-  ];
-
-  // Extend the branch graph with measured insulin-related evidence, without
-  // interpreting a laboratory value as beta-cell capacity or insulin action.
-  for (const [index, key] of ['Fasting C-peptide (nmol/L)', 'Fasting Insulin (pmol/L)', '2-hour Postprandial C-peptide (nmol/L)'].entries()) {
-    const raw = patient.recordedFields?.[key];
-    if (raw == null || raw === '' || (typeof raw !== 'number' && typeof raw !== 'string')) continue;
-    const id = `recorded-lab-${index}`;
-    nodes.push({ id, label: key, group: 'patient-data', value: formatValue(raw), description: 'Recorded laboratory evidence; not a fitted physiological parameter.', details: [{ label: 'Recorded value', value: formatValue(raw) }, { label: 'Source', value: 'patient_summary' }] });
-    edges.push({ id: `edge-${id}`, source: 'patient-record', target: id, label: 'has measurement' });
+    };
+    const elements: ElementDefinition[] = [{
+      data: { id: placeholder.id, label: placeholder.label, group: placeholder.group, value: placeholder.value },
+    }];
+    return { nodes: [placeholder], edges: [], elements };
   }
+
+  const nodes: GraphNode[] = response.nodes.map((node) => ({
+    id: node.id,
+    label: node.name,
+    group: groupForCategory(node.category || ''),
+    value: node.category || 'Clinical concept',
+    description: node.description || 'No description is stored for this concept.',
+    details: [
+      { label: 'Category', value: node.category || 'Uncategorised' },
+      { label: 'Source references', value: node.sourceRefs?.join(', ') || 'Not recorded' },
+      { label: 'Scope', value: node.scope || 'Not specified' },
+      { label: 'Schema version', value: node.schemaVersion || 'Not specified' },
+    ],
+  }));
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const edges: GraphEdge[] = response.edges
+    .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+    .map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label || edge.predicate.toLowerCase().replace(/_/g, ' '),
+      status: edge.evidenceStatus || 'candidate_for_review',
+      sourceRefs: edge.sourceRefs || [],
+      evidenceNote: edge.evidenceNote || '',
+    }));
   const elements: ElementDefinition[] = [
     ...nodes.map((node) => ({
-      data: {
-        id: node.id,
-        label: node.label,
-        group: node.group,
-        value: node.value,
-      },
+      data: { id: node.id, label: node.label, group: node.group, value: node.value },
     })),
     ...edges.map((edge) => ({
       data: {
@@ -236,18 +158,18 @@ function buildGraphModel(patient: Patient, patientId: string): GraphModel {
         source: edge.source,
         target: edge.target,
         label: edge.label,
+        evidenceStatus: edge.status,
       },
     })),
   ];
-
   return { nodes, edges, elements };
 }
 
 function isGroupVisible(group: GraphGroup, filter: GraphFilter): boolean {
   if (filter === 'all') return true;
-  if (filter === 'patient') return ['patient', 'patient-data', 'condition'].includes(group);
-  if (filter === 'concepts') return ['condition', 'concept'].includes(group);
-  return ['monitoring', 'care', 'concept'].includes(group);
+  if (filter === 'conditions') return group === 'condition';
+  if (filter === 'monitoring') return group === 'monitoring';
+  return ['care', 'concept'].includes(group);
 }
 
 function statusLabel(status: RecommendationStatus): string {
@@ -276,20 +198,77 @@ export const KnowledgeGraphView: React.FC<Props> = ({
   const cyRef = useRef<Core | null>(null);
   const [activeTab, setActiveTab] = useState<ViewTab>('graph');
   const [graphFilter, setGraphFilter] = useState<GraphFilter>('all');
-  const [selectedNodeId, setSelectedNodeId] = useState('patient-record');
+  const [selectedNodeId, setSelectedNodeId] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [clinicalGraph, setClinicalGraph] = useState<ClinicalKnowledgeGraphResponse | null>(null);
+  const [graphLoading, setGraphLoading] = useState(true);
+  const [graphError, setGraphError] = useState('');
+  const [graphRefreshCounter, setGraphRefreshCounter] = useState(0);
 
-  const graphModel = useMemo(
-    () => buildGraphModel(patient, patientId),
-    [patient, patientId],
-  );
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    const loadClinicalGraph = async () => {
+      setGraphLoading(true);
+      setGraphError('');
+      try {
+        const client = getSupabaseClient();
+        if (!client) {
+          throw new Error('Supabase authentication is not configured. Sign in with an authorised Doctor account.');
+        }
+        const { data, error } = await client.auth.getSession();
+        if (error) throw new Error(error.message);
+        if (!data.session) {
+          throw new Error('Sign in with a Doctor account to load the live clinical graph.');
+        }
+
+        const apiBase = getForecastApiUrl();
+        if (!apiBase) {
+          throw new Error('The Python backend is not configured. Set VITE_API_BASE_URL to the backend origin.');
+        }
+
+        const response = await fetch(\`\${apiBase}/api/doctor/knowledge-graph\`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { Authorization: \`Bearer \${data.session.access_token}\` },
+        });
+        const result = await response.json() as ClinicalKnowledgeGraphResponse;
+        if (!response.ok) {
+          throw new Error(result.error || \`The clinical graph request failed (\${response.status}).\`);
+        }
+        if (!Array.isArray(result.nodes) || !Array.isArray(result.edges)) {
+          throw new Error('The backend returned an unexpected clinical graph response.');
+        }
+        if (active) {
+          setClinicalGraph(result);
+          setSelectedNodeId(result.nodes[0]?.id || '');
+        }
+      } catch (error) {
+        if (active && !controller.signal.aborted) {
+          setClinicalGraph(null);
+          setGraphError(error instanceof Error ? error.message : 'Could not load the clinical graph.');
+        }
+      } finally {
+        if (active && !controller.signal.aborted) setGraphLoading(false);
+      }
+    };
+
+    void loadClinicalGraph();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [graphRefreshCounter]);
+
+  const graphModel = useMemo(() => buildGraphModel(clinicalGraph), [clinicalGraph]);
   const selectedNode = graphModel.nodes.find((node) => node.id === selectedNodeId) ?? graphModel.nodes[0];
   const selectedEdges = graphModel.edges.filter(
     (edge) => edge.source === selectedNode.id || edge.target === selectedNode.id,
   );
-  const pendingCount = recommendations.filter((item) => item.status === 'pending_review').length;
-  const approvedCount = recommendations.filter((item) => item.status === 'approved').length;
-  const publishedCount = recommendations.filter((item) => item.status === 'published').length;
+  const candidateEdgeCount = clinicalGraph?.edges.filter((edge) => edge.evidenceStatus === 'candidate_for_review').length ?? 0;
+  const reviewedEdgeCount = clinicalGraph?.edges.filter((edge) => edge.evidenceStatus === 'reviewed').length ?? 0;
+
 
   useEffect(() => {
     if (!graphContainerRef.current) return undefined;
@@ -395,6 +374,21 @@ export const KnowledgeGraphView: React.FC<Props> = ({
             'text-background-padding': '2px',
           },
         },
+        {
+          selector: 'edge[evidenceStatus = "candidate_for_review"]',
+          style: {
+            'line-style': 'dashed',
+            'line-color': '#f59e0b',
+            'target-arrow-color': '#f59e0b',
+          },
+        },
+        {
+          selector: 'edge[evidenceStatus = "reviewed"]',
+          style: {
+            'line-color': '#0f766e',
+            'target-arrow-color': '#0f766e',
+          },
+        },
       ],
       layout: {
         name: 'cose',
@@ -419,6 +413,12 @@ export const KnowledgeGraphView: React.FC<Props> = ({
       cyRef.current = null;
     };
   }, [graphModel]);
+
+  useEffect(() => {
+    if (!graphModel.nodes.some((node) => node.id === selectedNodeId)) {
+      setSelectedNodeId(graphModel.nodes[0]?.id || '');
+    }
+  }, [graphModel, selectedNodeId]);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -446,7 +446,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
 
   useEffect(() => {
     if (selectedNode && !isGroupVisible(selectedNode.group, graphFilter)) {
-      setSelectedNodeId('patient-record');
+      setSelectedNodeId(graphModel.nodes.find((node) => isGroupVisible(node.group, graphFilter))?.id || graphModel.nodes[0]?.id || '');
     }
   }, [graphFilter, selectedNode]);
 
@@ -482,36 +482,64 @@ export const KnowledgeGraphView: React.FC<Props> = ({
               <Network className="h-3.5 w-3.5" />
               Doctor workspace only
             </span>
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
-              Recorded patient context · concept graph prototype
+            <span className={\`rounded-full border px-2.5 py-1 text-[11px] font-semibold \${graphError ? 'border-rose-200 bg-rose-50 text-rose-800' : graphLoading ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-teal-200 bg-teal-50 text-teal-800'}\`}>
+              {graphLoading ? 'Connecting to Neo4j Aura…' : graphError ? 'Aura unavailable' : \`\${clinicalGraph?.stats.totalNodes ?? 0} concepts loaded from Aura\`}
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Knowledge Graph</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-            Explore the selected patient context alongside connected medical concepts, then review example suggestions before deciding what the patient should see.
+            Browse clinical concepts and their literature-linked relationships from Neo4j Aura. Patient records remain in the existing patient-data store.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onPreviewPatientView}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-teal-300 hover:bg-teal-50"
-        >
-          <Eye className="h-4 w-4" />
-          Preview patient view
-        </button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setGraphRefreshCounter((value) => value + 1)}
+            disabled={graphLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-xs font-semibold text-teal-800 shadow-sm transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw className={\`h-4 w-4 \${graphLoading ? 'animate-spin' : ''}\`} />
+            Refresh Aura graph
+          </button>
+          <button
+            type="button"
+            onClick={onPreviewPatientView}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-teal-300 hover:bg-teal-50"
+          >
+            <Eye className="h-4 w-4" />
+            Preview patient view
+          </button>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+      <div className="rounded-2xl border border-teal-200 bg-teal-50/80 p-4">
         <div className="flex items-start gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-teal-800" />
           <div>
-            <p className="text-sm font-semibold text-amber-950">Recorded measurements · prototype concepts and recommendation workflow</p>
-            <p className="mt-1 text-xs leading-5 text-amber-900/90">
-              Patient measurements are loaded from the selected database record. General concept links and recommendation cards are examples from the KnowledgeGraph branch. Approval and sharing affect this session only; they do not update Aura, call an AI service, or send a real patient notification.
+            <p className="text-sm font-semibold text-teal-950">Read-only clinical graph from Neo4j Aura</p>
+            <p className="mt-1 text-xs leading-5 text-teal-900/90">
+              This view reads only MedicalConcept nodes and their relationships. Patient information stays in the application data store. Candidate relationships are visible with their evidence status, but are not approved clinical facts and are not supplied to an AI recommendation service.
             </p>
           </div>
         </div>
       </div>
+      {graphError && (
+        <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-rose-900">Could not load the live clinical graph</p>
+            <p className="mt-1 text-xs leading-5 text-rose-800">{graphError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setGraphRefreshCounter((value) => value + 1)}
+            disabled={graphLoading}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50"
+          >
+            <RefreshCw className={\`h-4 w-4 \${graphLoading ? 'animate-spin' : ''}\`} />
+            Retry connection
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -524,19 +552,19 @@ export const KnowledgeGraphView: React.FC<Props> = ({
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-medium text-slate-500">Awaiting doctor review</p>
-            <Sparkles className="h-4 w-4 text-amber-600" />
+            <p className="text-xs font-medium text-slate-500">Aura concepts</p>
+            <Network className="h-4 w-4 text-violet-700" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{pendingCount}</p>
-          <p className="mt-1 text-[11px] text-slate-500">Placeholder suggestions for the selected record</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{clinicalGraph?.stats.totalNodes ?? 0}</p>
+          <p className="mt-1 text-[11px] text-slate-500">MedicalConcept nodes returned by Neo4j</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-medium text-slate-500">Shared in this demo</p>
-            <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+            <p className="text-xs font-medium text-slate-500">Aura relationships</p>
+            <Workflow className="h-4 w-4 text-teal-700" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{publishedCount}</p>
-          <p className="mt-1 text-[11px] text-slate-500">Only these appear in the patient view</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{clinicalGraph?.stats.totalEdges ?? 0}</p>
+          <p className="mt-1 text-[11px] text-slate-500">{reviewedEdgeCount} reviewed · {candidateEdgeCount} candidates not supplied to AI</p>
         </div>
       </div>
 
@@ -566,15 +594,15 @@ export const KnowledgeGraphView: React.FC<Props> = ({
             <div className="border-b border-slate-100 p-4 sm:p-5">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">Patient and medical concept map</h2>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">Select a node to inspect it. The labels and links are illustrative until Neo4j is connected.</p>
+                  <h2 className="text-sm font-bold text-slate-900">Clinical concept graph</h2>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Select a node to inspect its metadata and cited relationships from Aura.</p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {([
-                    ['all', 'All connections'],
-                    ['patient', 'Patient context'],
-                    ['concepts', 'Medical concepts'],
-                    ['monitoring', 'Care & monitoring'],
+                    ['all', 'All concepts'],
+                    ['conditions', 'Conditions'],
+                    ['monitoring', 'Metrics & monitoring'],
+                    ['management', 'Care & management'],
                   ] as Array<[GraphFilter, string]>).map(([filter, label]) => (
                     <button
                       key={filter}
@@ -592,17 +620,15 @@ export const KnowledgeGraphView: React.FC<Props> = ({
               <div
                 ref={graphContainerRef}
                 role="img"
-                aria-label="Interactive example knowledge graph for the selected patient"
+                aria-label="Interactive clinical concept knowledge graph from Neo4j Aura"
                 className="h-[430px] w-full bg-slate-50/70 sm:h-[500px]"
               />
               <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm">
                 {[
-                  ['bg-teal-700', 'Patient'],
-                  ['bg-orange-300', 'Condition'],
-                  ['bg-violet-300', 'Medical concept'],
-                  ['bg-blue-300', 'Patient measurement'],
-                  ['bg-cyan-300', 'Monitoring'],
-                  ['bg-green-300', 'Care topic'],
+                  ['bg-orange-300', 'Disease / clinical state'],
+                  ['bg-violet-300', 'General concept'],
+                  ['bg-cyan-300', 'Metric / monitoring'],
+                  ['bg-green-300', 'Treatment / lifestyle'],
                 ].map(([color, label]) => (
                   <span key={label} className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-600">
                     <span className={'h-2.5 w-2.5 rounded-sm ' + color} />
@@ -617,12 +643,13 @@ export const KnowledgeGraphView: React.FC<Props> = ({
                 type="button"
                 onClick={() => {
                   setGraphFilter('all');
-                  setSelectedNodeId('patient-record');
+                  const firstNodeId = graphModel.nodes[0]?.id || '';
+                  setSelectedNodeId(firstNodeId);
                   const cy = cyRef.current;
                   if (cy) {
                     cy.elements().style('display', 'element');
                     cy.fit(undefined, 32);
-                    cy.center(cy.getElementById('patient-record'));
+                    if (firstNodeId) cy.center(cy.getElementById(firstNodeId));
                   }
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100"
@@ -674,6 +701,9 @@ export const KnowledgeGraphView: React.FC<Props> = ({
                       <span className="min-w-0">
                         <span className="block text-[11px] font-semibold text-slate-800">{edge.label}</span>
                         <span className="mt-1 block truncate text-[11px] text-slate-500">{other?.label || otherId}</span>
+                        <span className="mt-1 block text-[10px] font-semibold text-amber-700">{edge.status.replace(/_/g, ' ')}</span>
+                        <span className="mt-1 block text-[10px] text-slate-500">Sources: {edge.sourceRefs.join(', ') || 'not recorded'}</span>
+                        {edge.evidenceNote && <span className="mt-1 block text-[10px] leading-4 text-slate-500">{edge.evidenceNote}</span>}
                       </span>
                       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     </button>

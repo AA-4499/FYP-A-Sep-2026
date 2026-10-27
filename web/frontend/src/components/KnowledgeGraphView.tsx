@@ -228,14 +228,14 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           throw new Error('The Python backend is not configured. Set VITE_API_BASE_URL to the backend origin.');
         }
 
-        const response = await fetch(\`\${apiBase}/api/doctor/knowledge-graph\`, {
+        const response = await fetch(`${apiBase}/api/doctor/knowledge-graph`, {
           method: 'GET',
           signal: controller.signal,
-          headers: { Authorization: \`Bearer \${data.session.access_token}\` },
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
         });
         const result = await response.json() as ClinicalKnowledgeGraphResponse;
         if (!response.ok) {
-          throw new Error(result.error || \`The clinical graph request failed (\${response.status}).\`);
+          throw new Error(result.error || `The clinical graph request failed (${response.status}).`);
         }
         if (!Array.isArray(result.nodes) || !Array.isArray(result.edges)) {
           throw new Error('The backend returned an unexpected clinical graph response.');
@@ -268,6 +268,8 @@ export const KnowledgeGraphView: React.FC<Props> = ({
   );
   const candidateEdgeCount = clinicalGraph?.edges.filter((edge) => edge.evidenceStatus === 'candidate_for_review').length ?? 0;
   const reviewedEdgeCount = clinicalGraph?.edges.filter((edge) => edge.evidenceStatus === 'reviewed').length ?? 0;
+  const approvedCount = recommendations.filter((item) => item.status === 'approved').length;
+  const publishedCount = recommendations.filter((item) => item.status === 'published').length;
 
 
   useEffect(() => {
@@ -482,8 +484,8 @@ export const KnowledgeGraphView: React.FC<Props> = ({
               <Network className="h-3.5 w-3.5" />
               Doctor workspace only
             </span>
-            <span className={\`rounded-full border px-2.5 py-1 text-[11px] font-semibold \${graphError ? 'border-rose-200 bg-rose-50 text-rose-800' : graphLoading ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-teal-200 bg-teal-50 text-teal-800'}\`}>
-              {graphLoading ? 'Connecting to Neo4j Aura…' : graphError ? 'Aura unavailable' : \`\${clinicalGraph?.stats.totalNodes ?? 0} concepts loaded from Aura\`}
+            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${graphError ? 'border-rose-200 bg-rose-50 text-rose-800' : graphLoading ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-teal-200 bg-teal-50 text-teal-800'}`}>
+              {graphLoading ? 'Connecting to Neo4j Aura…' : graphError ? 'Aura unavailable' : `${clinicalGraph?.stats.totalNodes ?? 0} concepts loaded from Aura`}
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Knowledge Graph</h1>
@@ -498,7 +500,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
             disabled={graphLoading}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-xs font-semibold text-teal-800 shadow-sm transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <RefreshCw className={\`h-4 w-4 \${graphLoading ? 'animate-spin' : ''}\`} />
+            <RefreshCw className={`h-4 w-4 ${graphLoading ? 'animate-spin' : ''}`} />
             Refresh Aura graph
           </button>
           <button
@@ -535,7 +537,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
             disabled={graphLoading}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50"
           >
-            <RefreshCw className={\`h-4 w-4 \${graphLoading ? 'animate-spin' : ''}\`} />
+            <RefreshCw className={`h-4 w-4 ${graphLoading ? 'animate-spin' : ''}`} />
             Retry connection
           </button>
         </div>

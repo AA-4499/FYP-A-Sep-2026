@@ -1,40 +1,75 @@
-# Neo4j Aura clinical knowledge graph connection
+# Neo4j Aura Knowledge Graph integration
 
-The Doctor Knowledge Graph page reads the shared clinical concept graph from Neo4j Aura through the Flask backend. The frontend never connects directly to Neo4j and never receives the Neo4j password.
+The Doctor Knowledge Graph workspace reads two graph views from one Neo4j Aura database.
 
-## Architecture
+- **Patient graph:** the selected patient's recorded diabetes type, comorbidities and complications, represented as a Patient node linked to Condition nodes.
+- **Clinical concept graph:** shared \`:MedicalConcept\` nodes and their literature-linked relationships.
 
-1. The React page requests \`GET /api/doctor/knowledge-graph\` from the Python backend.
-2. The backend validates the signed-in Supabase access token and requires the trusted Doctor role.
-3. The backend uses the Neo4j Python driver with the Aura Bolt URI and server-side environment variables.
-4. The backend runs read-only queries against \`:MedicalConcept\` nodes and relationships between those nodes.
-5. The frontend renders the returned concepts and relationships using Cytoscape. Relationship source references and \`evidenceStatus\` are shown in the inspector.
+The browser never connects directly to Neo4j and never receives the Neo4j password. The Flask backend authenticates Doctor requests, checks the authenticated user's patient assignments, and then accesses Aura.
 
-The endpoint does not create, update or delete graph data. It does not query patient-specific nodes. Patient context displayed elsewhere on the page continues to come from the selected application record. Candidate relationships can be visualised with their status, but this endpoint is not an AI recommendation endpoint and does not mark candidates as reviewed.
+## Current Aura connection
 
-## Server environment variables
-
-Configure these variables on the **Python backend service** (Render for the deployed application), not in Vercel's public frontend variables:
+Configure these variables on the Python backend (Render for the hosted application):
 
 | Variable | Value |
 | --- | --- |
-| \`CLINICAL_KG_NEO4J_URI\` | \`neo4j+s://63525938.databases.neo4j.io\` |
-| \`CLINICAL_KG_NEO4J_USER\` | The Neo4j Aura database username, usually \`neo4j\` |
-| \`CLINICAL_KG_NEO4J_PASSWORD\` | The Aura database password (server-side secret) |
-| \`CLINICAL_KG_NEO4J_DATABASE\` | \`neo4j\`, unless the Aura instance uses another database name |
+| \`CLINICAL_KG_NEO4J_URI\` | \`neo4j+s://e72f4649.databases.neo4j.io\` |
+| \`CLINICAL_KG_NEO4J_USER\` | \`e72f4649\` |
+| \`CLINICAL_KG_NEO4J_PASSWORD\` | Use the newly rotated Aura database password |
+| \`CLINICAL_KG_NEO4J_DATABASE\` | \`e72f4649\` |
 
-Use a dedicated read-only database account for this visualisation where your Aura setup supports it. Do not commit a real password or place it in a \`VITE_*\` variable. The checked-in \`.env.example\` contains only a placeholder; put real values in a local ignored \`.env\` file or the hosting provider's secret environment-variable settings.
+The password was exposed in a chat message. Rotate it in Neo4j Aura before use and configure the replacement only as a backend secret. Do not commit it, put it into Vercel, put it in any \`VITE_*\` variable, or send it in a message. Restart/redeploy the backend after updating environment variables. The checked-in \`.env.example\` files intentionally contain a placeholder, not a real password.
 
-For local development, keep \`VITE_API_BASE_URL\` set to the Flask server origin (usually \`http://localhost:5000\`). For deployment, set it to the deployed Python API origin without a trailing \`/api\`, and ensure the exact Vercel origin is included in the backend \`ALLOWED_ORIGINS\`.
+This service connects using the Bolt URI and the Neo4j Python driver. The Aura Query API URL and MCP URL are not used by this code path.
 
-## URLs provided by Aura
+## Seed the new Aura instance
 
-The application uses the Bolt URI with the Neo4j Python driver. The Query API URL and MCP URL are not used by this implementation; they are alternative interfaces for different integration styles and do not replace the username/password required by the Bolt driver.
+A newly created Aura instance starts with an empty database. Before the Clinical Concepts tab can display the curated Type 2 Diabetes concept graph, import the curated seed package using the included seed and verification instructions. The previous instance's graph is not automatically copied into this instance.
 
-## Failure behavior
+The known curated package was previously verified to contain 37 clinical concepts and 42 concept relationships. After import, use its audit/verification queries to confirm counts and metadata before relying on relationship analysis. Seed the shared concept catalogue before selecting patient graphs; do not run a destructive cleanup query after Patient/Condition nodes have been added.
 
-If the backend variables are missing, the Aura instance is unavailable, the signed-in user is not a Doctor, or the backend is not configured, the API returns a clear error. The frontend displays the error and offers a retry button. The UI must not substitute static demo graph data when the live request fails.
+## Doctor assignments and patient selection
 
-## API response
+The UI gets selectable patient IDs from \`public.clinician_patient_assignments\`. Each assignment row binds \`clinician_id\` to a \`patient_id\`. The backend independently validates the assignment before returning a selected patient's graph or analysis. It fails closed if the table cannot be read or the patient is not assigned.
 
-The response contains graph source/scope, counts, concept nodes (including category, description, source references and schema version), and concept edges (including predicate, source references, evidence note and evidence status). All fields are returned as JSON-safe strings, arrays and counts.
+Make sure:
+1. The \`public.clinician_patient_assignments\` table and its row-level security policies exist.
+2. The authenticated Doctor can read their own assignment rows.
+3. Each Doctor has one row per patient they manage.
+4. The configured Supabase backend credentials point at the same project where the app's patient records and assignments live.
+
+The existing general patient directory and other dashboard authorization rules are controlled by Supabase policies. This KG-specific backend guard is not a substitute for reviewing policies on all patient-record endpoints.
+
+## Patient graph details
+
+The patient graph is synchronised from the authorised \`patient_summary\` record when requested. Only condition labels and the minimum graph structure are written to Aura; raw CGM traces, demographic details, and the complete patient summary are not copied into Aura. Patient-specific graph data is kept distinct by the Patient identifier and connected to shared Condition concept nodes.
+
+For condition extraction, the backend reads the selected summary's recorded fields, including diabetes type, comorbidities, and acute, macrovascular, and microvascular complications.
+
+## Graph analysis and AI provider
+
+The Doctor's Graph Analysis tab compares the selected patient's recorded condition nodes against the shared clinical concept graph.
+
+By default \`KG_AI_PROVIDER=rules\` produces an on-backend graph-grounded summary. It reports direct condition/concept matches and uses only relationships with \`evidenceStatus=reviewed\`. Relationships labelled \`candidate_for_review\` are counted but excluded from reasoning.
+
+To enable a hosted model, configure backend-only values:
+
+\`\`\`dotenv
+KG_AI_PROVIDER=openai
+OPENAI_API_KEY=<your-own-server-side-key>
+OPENAI_MODEL=gpt-4.1-mini
+\`\`\`
+
+Never send the OpenAI key to the frontend or commit it. The model request is minimised to recorded condition labels, matched concept details, cited source references, and reviewed relationships; it omits the patient ID, demographic values and raw readings. Because condition labels are still health-related data, enable external model processing only if it is permitted by the team's privacy and project governance. The analysis is decision support for a clinician, not a diagnosis or a treatment plan.
+
+## Endpoints to verify
+
+| Endpoint | Expected purpose |
+| --- | --- |
+| \`GET /api/health\` | Backend liveness |
+| \`GET /api/doctor/assigned-patients\` | Patient IDs assigned to the current Doctor |
+| \`GET /api/doctor/knowledge-graph\` | Shared clinical concepts and relationships |
+| \`GET /api/doctor/patients/<patient_id>/knowledge-graph\` | Selected assigned patient's condition graph |
+| \`POST /api/doctor/patients/<patient_id>/knowledge-graph/analysis\` | Graph-grounded interpretation of the selected patient graph |
+
+Backend unit tests mock Neo4j and Supabase. Passing CI validates the code paths and access checks but does not prove that live Aura credentials, seed data, Supabase assignments, or deployment environment variables are configured correctly.

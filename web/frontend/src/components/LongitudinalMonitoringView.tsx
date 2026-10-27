@@ -445,17 +445,69 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
   }, [filteredAgpReadings, selectedAgpView]);
 
   const [hoveredMinute, setHoveredMinute] = useState<number | null>(null);
+  type AgpInteractiveRegion =
+  | 'target'
+  | 'p10-p90'
+  | 'p25-p75'
+  | 'median'
+  | 'below'
+  | 'above'
+  | null;
+
+  const [selectedAgpRegion, setSelectedAgpRegion] =
+    useState<AgpInteractiveRegion>(null);
+
+  const [hoveredAgpRegion, setHoveredAgpRegion] =
+    useState<AgpInteractiveRegion>(null);
+
+  const toggleAgpRegion = (region: Exclude<AgpInteractiveRegion, null>) => {
+    setSelectedAgpRegion((current) =>
+      current === region ? null : region
+    );
+  };
+
+  const getAgpRegionFromEvent = (
+    event: React.MouseEvent<SVGSVGElement>
+  ): Exclude<AgpInteractiveRegion, null> | null => {
+    const target = event.target as Element;
+
+    const regionElement = target.closest("[data-agp-region]");
+
+    if (!regionElement) return null;
+
+    const region = regionElement.getAttribute("data-agp-region");
+
+    const validRegions: Exclude<AgpInteractiveRegion, null>[] = [
+      "target",
+      "p10-p90",
+      "p25-p75",
+      "median",
+      "below",
+      "above",
+    ];
+
+    if (
+      !validRegions.includes(
+        region as Exclude<AgpInteractiveRegion, null>
+      )
+    ) {
+      return null;
+    }
+
+    return region as Exclude<AgpInteractiveRegion, null>;
+  };
 
   const handleChartMouseMove = (
     event: React.MouseEvent<SVGSVGElement>
   ) => {
     const rect = event.currentTarget.getBoundingClientRect();
 
-    // Convert the mouse position into SVG viewBox coordinates.
     const svgX =
       ((event.clientX - rect.left) / rect.width) * chartWidth;
 
-    // Restrict the crosshair to the actual plotting area.
+    const svgY =
+      ((event.clientY - rect.top) / rect.height) * chartHeight;
+
     const clampedX = Math.max(
       plotLeft,
       Math.min(plotRight, svgX)
@@ -466,6 +518,145 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     );
 
     setHoveredMinute(Math.min(1439, Math.max(0, minute)));
+
+    // Only highlight an actual SVG region under the pointer.
+    setHoveredAgpRegion(getAgpRegionFromEvent(event));
+  };
+
+  const handleAgpChartClick = (
+    event: React.MouseEvent<SVGSVGElement>
+  ) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    // Convert screen coordinates into SVG viewBox coordinates.
+    const svgX =
+      ((event.clientX - rect.left) / rect.width) * chartWidth;
+
+    const svgY =
+      ((event.clientY - rect.top) / rect.height) * chartHeight;
+
+    // Ignore clicks outside the actual plotting area.
+    if (
+      svgX < plotLeft ||
+      svgX > plotRight ||
+      svgY < plotTop ||
+      svgY > plotBottom
+    ) {
+      setSelectedAgpRegion(null);
+      return;
+    }
+
+    const minute = Math.max(
+      0,
+      Math.min(
+        1439,
+        Math.round(
+          ((svgX - plotLeft) / (plotRight - plotLeft)) * 1440
+        )
+      )
+    );
+
+    // Convert the clicked Y position back to glucose (mg/dL).
+    const glucose =
+      glucoseMin +
+      ((plotBottom - svgY) / (plotBottom - plotTop)) *
+        (glucoseMax - glucoseMin);
+
+    // Find the nearest populated 15-minute bin.
+    const nearestBin = agpBins.reduce<AGPProfileBin | null>(
+      (nearest, bin) => {
+        if (!nearest) return bin;
+
+        return Math.abs(bin.minuteOfDay - minute) <
+          Math.abs(nearest.minuteOfDay - minute)
+          ? bin
+          : nearest;
+      },
+      null
+    );
+
+    const clickedRegion = getAgpRegionFromEvent(event);
+
+    // Clicking empty chart space clears the current selection.
+    if (!clickedRegion) {
+      setSelectedAgpRegion(null);
+      return;
+    }
+
+    toggleAgpRegion(clickedRegion);
+  };
+
+  const getAgpRegionAtPosition = (
+    svgX: number,
+    svgY: number,
+  ): Exclude<AgpInteractiveRegion, null> | null => {
+    if (
+      svgX < plotLeft ||
+      svgX > plotRight ||
+      svgY < plotTop ||
+      svgY > plotBottom
+    ) {
+      return null;
+    }
+
+    const minute = Math.max(
+      0,
+      Math.min(
+        1439,
+        Math.round(
+          ((svgX - plotLeft) / (plotRight - plotLeft)) * 1440
+        )
+      )
+    );
+
+    const glucose =
+      glucoseMin +
+      ((plotBottom - svgY) / (plotBottom - plotTop)) *
+        (glucoseMax - glucoseMin);
+
+    const nearestBin = agpBins.reduce<AGPProfileBin | null>(
+      (nearest, bin) => {
+        if (!nearest) return bin;
+
+        return Math.abs(bin.minuteOfDay - minute) <
+          Math.abs(nearest.minuteOfDay - minute)
+          ? bin
+          : nearest;
+      },
+      null
+    );
+
+    // Resolve the most specific region first.
+    if (glucose < 70) return 'below';
+    if (glucose > 180) return 'above';
+
+    if (
+      nearestBin &&
+      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
+      Math.abs(glucose - nearestBin.median) <= 5
+    ) {
+      return 'median';
+    }
+
+    if (
+      nearestBin &&
+      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
+      glucose >= nearestBin.p25 &&
+      glucose <= nearestBin.p75
+    ) {
+      return 'p25-p75';
+    }
+
+    if (
+      nearestBin &&
+      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
+      glucose >= nearestBin.p10 &&
+      glucose <= nearestBin.p90
+    ) {
+      return 'p10-p90';
+    }
+
+    return 'target';
   };
 
   const formatHoverTime = (minute: number) => {
@@ -519,6 +710,25 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
       ? nearest
       : null;
   }, [hoveredMinute, selectedAgpView, filteredAgpReadings]);
+
+  const isAgpRegionActive = (
+    region: Exclude<AgpInteractiveRegion, null>
+  ) => {
+    return (
+      hoveredAgpRegion === region ||
+      (hoveredAgpRegion === null &&
+        selectedAgpRegion === region)
+    );
+  };
+
+  const isAgpRegionDimmed = (
+    region: Exclude<AgpInteractiveRegion, null>
+  ) => {
+    const activeRegion =
+      hoveredAgpRegion ?? selectedAgpRegion;
+
+    return activeRegion !== null && activeRegion !== region;
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -895,37 +1105,60 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-slate-600">
               {selectedAgpView === 'range' ? (
                 <>
-                  <span className="inline-flex items-center gap-2">
-                    <span className="relative w-5 h-3 rounded-sm bg-emerald-100 border border-emerald-300">
-                      <span className="absolute left-0 right-0 top-1/2 border-t border-dashed border-emerald-600" />
-                    </span>
-                    Target range: 70–180 mg/dL
-                  </span>
-
-                  <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-green-300 border border-green-400" />
-                    10th–90th percentile
-                  </span>
-
-                  <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-green-700" />
-                    25th–75th percentile
-                  </span>
-
-                  <span className="inline-flex items-center gap-2">
-                    <span className="w-5 h-0.5 bg-blue-700" />
-                    Median glucose
-                  </span>
-
-                  <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-orange-500" />
-                    Below target (&lt;70 mg/dL)
-                  </span>
-
-                  <span className="inline-flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-red-600" />
-                    Above target (&gt;180 mg/dL)
-                  </span>
+                  {(
+                    [
+                      {
+                        id: 'target',
+                        label: 'Target range: 70–180 mg/dL',
+                        swatch: 'bg-emerald-100 border border-emerald-400',
+                      },
+                      {
+                        id: 'p10-p90',
+                        label: '10th–90th percentile',
+                        swatch: 'bg-green-300 border border-green-400',
+                      },
+                      {
+                        id: 'p25-p75',
+                        label: '25th–75th percentile',
+                        swatch: 'bg-green-700',
+                      },
+                      {
+                        id: 'median',
+                        label: 'Median glucose',
+                        swatch: 'h-0.5 bg-blue-700',
+                      },
+                      {
+                        id: 'below',
+                        label: 'Below target (<70 mg/dL)',
+                        swatch: 'bg-orange-500',
+                      },
+                      {
+                        id: 'above',
+                        label: 'Above target (>180 mg/dL)',
+                        swatch: 'bg-red-500',
+                      },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={selectedAgpRegion === item.id}
+                      onClick={() => toggleAgpRegion(item.id)}
+                      className={`inline-flex items-center gap-2 rounded-md px-1 py-1
+                      text-left transition-colors duration-150
+                      focus:outline-none focus-visible:outline-none focus-visible:ring-0
+                      ${
+                        selectedAgpRegion === item.id
+                          ? 'font-bold text-slate-900'
+                          : 'font-normal text-slate-600 hover:font-bold hover:text-slate-900'
+                      }`}
+                    >
+                      <span
+                        className={`w-3 h-3 shrink-0 rounded-sm ${item.swatch}`}
+                      />
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
                 </>
               ) : (
                 <>
@@ -946,11 +1179,15 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
             <div className="w-full overflow-x-auto">
               <svg
                 viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-                className="w-full min-w-[620px] h-auto"
                 role="img"
                 aria-label="Ambulatory glucose profile showing median glucose and glucose percentile bands by time of day"
                 onMouseMove={handleChartMouseMove}
-                onMouseLeave={() => setHoveredMinute(null)}
+                onMouseLeave={() => {
+                  setHoveredMinute(null);
+                  setHoveredAgpRegion(null);
+                }}
+                onClick={handleAgpChartClick}
+                className="w-full min-w-[620px] h-auto cursor-pointer"
               >
                 <defs>
                   <clipPath id="agp-plot-clip">
@@ -980,6 +1217,32 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                     />
                   </clipPath>
                 </defs>
+
+                {/* Interactive target range: 70–180 mg/dL */}
+                <g
+                  clipPath="url(#agp-plot-clip)"
+                  pointerEvents="all"
+                >
+                  {(() => {
+                    const active = isAgpRegionActive('target');
+                    const dimmed = isAgpRegionDimmed('target');
+
+                    return (
+                      <rect
+                        x={plotLeft}
+                        y={yForGlucose(180)}
+                        width={plotRight - plotLeft}
+                        height={yForGlucose(70) - yForGlucose(180)}
+                        fill="#34D399"
+                        fillOpacity={active ? 0.42 : 0.12}
+                        stroke={active ? '#047857' : 'none'}
+                        strokeWidth={active ? 2 : 0}
+                        opacity={dimmed ? 0.5 : 1}
+                        pointerEvents="none"
+                      />
+                    );
+                  })()}
+                </g>
 
                 {/* Glucose reference lines and Y-axis labels */}
                 {[40, 70, 100, 140, 180, 220, 260, 300, 340].map(
@@ -1062,58 +1325,150 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                     return (
                       <g key={`agp-segment-${index}`}>
                         <path
+                          data-agp-region="p10-p90"
                           d={outerPath}
                           fill="#86EFAC"
-                          fillOpacity="0.65"
-                          stroke="none"
+                          fillOpacity={isAgpRegionActive("p10-p90") ? 0.9 : 0.65}
+                          opacity={isAgpRegionDimmed("p10-p90") ? 0.2 : 1}
+                          stroke={isAgpRegionActive("p10-p90") ? "#15803D" : "none"}
+                          strokeWidth={isAgpRegionActive("p10-p90") ? 2.5 : 0}
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="below"
                           d={outerPath}
                           fill="#FED7AA"
-                          fillOpacity="0.9"
-                          stroke="none"
                           clipPath="url(#below-target-clip)"
+                          fillOpacity={
+                            isAgpRegionActive('below') ? 1 : 0.9
+                          }
+                          opacity={
+                            isAgpRegionDimmed('below') ? 0.2 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('below') ? '#9A3412' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('below') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="above"
                           d={outerPath}
                           fill="#FECACA"
-                          fillOpacity="0.9"
-                          stroke="none"
                           clipPath="url(#above-target-clip)"
+                          fillOpacity={
+                            isAgpRegionActive('above') ? 1 : 0.9
+                          }
+                          opacity={
+                            isAgpRegionDimmed('above') ? 0.15 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('above') ? '#991B1B' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('above') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="p25-p75"
                           d={innerPath}
                           fill="#15803D"
-                          fillOpacity="0.45"
-                          stroke="none"
+                          fillOpacity={
+                            isAgpRegionActive('p25-p75') ? 0.85 : 0.45
+                          }
+                          opacity={
+                            isAgpRegionDimmed('p25-p75') ? 0.2 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('p25-p75') ? '#14532D' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('p25-p75') ? 2.5 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="below"
                           d={innerPath}
                           fill="#F97316"
-                          fillOpacity="0.9"
-                          stroke="none"
                           clipPath="url(#below-target-clip)"
+                          fillOpacity={
+                            isAgpRegionActive('below') ? 1 : 0.9
+                          }
+                          opacity={
+                            isAgpRegionDimmed('below') ? 0.2 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('below') ? '#9A3412' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('below') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="above"
                           d={innerPath}
                           fill="#DC2626"
-                          fillOpacity="0.9"
-                          stroke="none"
                           clipPath="url(#above-target-clip)"
+                          fillOpacity={
+                            isAgpRegionActive('above') ? 1 : 0.9
+                          }
+                          opacity={
+                            isAgpRegionDimmed('above') ? 0.15 : 1
+                          }
+                          stroke={
+                            isAgpRegionActive('above') ? '#991B1B' : 'none'
+                          }
+                          strokeWidth={
+                            isAgpRegionActive('above') ? 2 : 0
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
 
                         <path
+                          data-agp-region="median"
                           d={medianPath}
                           fill="none"
                           stroke="#1D4ED8"
-                          strokeWidth="2.4"
+                          strokeWidth={
+                            isAgpRegionActive('median') ? 4.5 : 2.4
+                          }
                           strokeLinecap="round"
                           strokeLinejoin="round"
+                          opacity={
+                            isAgpRegionDimmed('median') ? 0.2 : 1
+                          }
+                          style={{
+                            transition:
+                              "stroke 500ms ease, stroke-width 500ms ease, opacity 500ms ease, fill-opacity 500ms ease",
+                          }}
                         />
                       </g>
                     );
@@ -1125,8 +1480,8 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                     <g pointerEvents="none">
                       {(() => {
                         const x = xForMinute(hoveredMinute);
-                        const tooltipWidth = 190;
-                        const tooltipHeight = 90;
+                        const tooltipWidth = 218;
+                        const tooltipHeight = selectedAgpRegion === null ? 116 : 88;
 
                         // Keep the tooltip inside the chart boundaries.
                         const tooltipX = Math.max(
@@ -1181,11 +1536,11 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                               strokeWidth="0.8"
                               opacity="0.97"
                             />
-
-                            {/* Tooltip content */}
+                            
+                            {/* Region-aware tooltip content */}
                             <text
-                              x={tooltipX + 10}
-                              y={tooltipY + 17}
+                              x={tooltipX + 12}
+                              y={tooltipY + 19}
                               fontSize="11"
                               fontWeight="700"
                               fill="#111827"
@@ -1195,51 +1550,204 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
 
                             {hasNearbyBin ? (
                               <>
-                                <text
-                                  x={tooltipX + 10}
-                                  y={tooltipY + 36}
-                                  fontSize="10"
-                                  fill="#374151"
-                                >
-                                  Median: {hoveredAgpBin!.median.toFixed(1)} mg/dL
-                                </text>
+                                {selectedAgpRegion === null ? (
+                                  <>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 39}
+                                      fontSize="10"
+                                      fill="#374151"
+                                    >
+                                      Median: {hoveredAgpBin!.median.toFixed(1)} mg/dL
+                                    </text>
 
-                                <text
-                                  x={tooltipX + 10}
-                                  y={tooltipY + 53}
-                                  fontSize="10"
-                                  fill="#374151"
-                                >
-                                  P25–P75: {hoveredAgpBin!.p25.toFixed(1)}
-                                  {" – "}
-                                  {hoveredAgpBin!.p75.toFixed(1)}
-                                </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 57}
+                                      fontSize="10"
+                                      fill="#374151"
+                                    >
+                                      P25–P75: {hoveredAgpBin!.p25.toFixed(1)}
+                                      {' – '}
+                                      {hoveredAgpBin!.p75.toFixed(1)} mg/dL
+                                    </text>
 
-                                <text
-                                  x={tooltipX + 10}
-                                  y={tooltipY + 70}
-                                  fontSize="10"
-                                  fill="#374151"
-                                >
-                                  P10–P90: {hoveredAgpBin!.p10.toFixed(1)}
-                                  {" – "}
-                                  {hoveredAgpBin!.p90.toFixed(1)}
-                                </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 75}
+                                      fontSize="10"
+                                      fill="#374151"
+                                    >
+                                      P10–P90: {hoveredAgpBin!.p10.toFixed(1)}
+                                      {' – '}
+                                      {hoveredAgpBin!.p90.toFixed(1)} mg/dL
+                                    </text>
 
-                                <text
-                                  x={tooltipX + 10}
-                                  y={tooltipY + 91}
-                                  fontSize="9"
-                                  fill="#6b7280"
-                                >
-                                </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 96}
+                                      fontSize="10"
+                                      fontWeight="600"
+                                      fill={
+                                        hoveredAgpBin!.median < 70
+                                          ? '#C2410C'
+                                          : hoveredAgpBin!.median > 180
+                                          ? '#B91C1C'
+                                          : '#047857'
+                                      }
+                                    >
+                                      {hoveredAgpBin!.median < 70
+                                        ? 'Median below target'
+                                        : hoveredAgpBin!.median > 180
+                                        ? 'Median above target'
+                                        : 'Median within target'}
+                                    </text>
+                                  </>
+                                ) : selectedAgpRegion === 'p10-p90' ? (
+                                  <>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 41}
+                                      fontSize="10"
+                                      fill="#166534"
+                                    >
+                                      P10: {hoveredAgpBin!.p10.toFixed(1)} mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 60}
+                                      fontSize="10"
+                                      fill="#166534"
+                                    >
+                                      P90: {hoveredAgpBin!.p90.toFixed(1)} mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 77}
+                                      fontSize="9"
+                                      fill="#6B7280"
+                                    >
+                                      Central 80% of readings
+                                    </text>
+                                  </>
+                                ) : selectedAgpRegion === 'p25-p75' ? (
+                                  <>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 41}
+                                      fontSize="10"
+                                      fill="#166534"
+                                    >
+                                      P25: {hoveredAgpBin!.p25.toFixed(1)} mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 60}
+                                      fontSize="10"
+                                      fill="#166534"
+                                    >
+                                      P75: {hoveredAgpBin!.p75.toFixed(1)} mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 77}
+                                      fontSize="9"
+                                      fill="#6B7280"
+                                    >
+                                      Central 50% of readings
+                                    </text>
+                                  </>
+                                ) : selectedAgpRegion === 'median' ? (
+                                  <>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 45}
+                                      fontSize="14"
+                                      fontWeight="700"
+                                      fill="#1D4ED8"
+                                    >
+                                      {hoveredAgpBin!.median.toFixed(1)} mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 65}
+                                      fontSize="9"
+                                      fill="#6B7280"
+                                    >
+                                      Median glucose
+                                    </text>
+                                  </>
+                                ) : selectedAgpRegion === 'target' ? (
+                                  <>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 42}
+                                      fontSize="10"
+                                      fontWeight="600"
+                                      fill="#047857"
+                                    >
+                                      Target: 70–180 mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 61}
+                                      fontSize="10"
+                                      fill="#374151"
+                                    >
+                                      Median: {hoveredAgpBin!.median.toFixed(1)} mg/dL
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 78}
+                                      fontSize="9"
+                                      fill="#6B7280"
+                                    >
+                                      {hoveredAgpBin!.median >= 70 &&
+                                      hoveredAgpBin!.median <= 180
+                                        ? 'Median within target'
+                                        : 'Median outside target'}
+                                    </text>
+                                  </>
+                                ) : (
+                                  <>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 43}
+                                      fontSize="11"
+                                      fontWeight="600"
+                                      fill={selectedAgpRegion === 'above' ? '#B91C1C' : '#C2410C'}
+                                    >
+                                      {selectedAgpRegion === 'above'
+                                        ? 'Above 180 mg/dL'
+                                        : 'Below 70 mg/dL'}
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 62}
+                                      fontSize="10"
+                                      fill="#374151"
+                                    >
+                                      P10–P90: {hoveredAgpBin!.p10.toFixed(1)}
+                                      {' – '}
+                                      {hoveredAgpBin!.p90.toFixed(1)}
+                                    </text>
+                                    <text
+                                      x={tooltipX + 12}
+                                      y={tooltipY + 78}
+                                      fontSize="9"
+                                      fill="#6B7280"
+                                    >
+                                      Threshold: {selectedAgpRegion === 'above' ? '>180' : '<70'} mg/dL
+                                    </text>
+                                  </>
+                                )}
                               </>
                             ) : (
                               <text
-                                x={tooltipX + 10}
-                                y={tooltipY + 39}
+                                x={tooltipX + 12}
+                                y={tooltipY + 45}
                                 fontSize="10"
-                                fill="#6b7280"
+                                fill="#6B7280"
                               >
                                 No nearby readings
                               </text>
@@ -1632,17 +2140,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
             )}
           </div>
         )}
-
-        <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-          <span className="font-semibold text-emerald-700">
-            Green:
-          </span>{" "}
-          target glucose range ·{" "}
-          <span className="font-semibold text-blue-700">
-            Blue:
-          </span>{" "}
-          median glucose · Orange: below 70 mg/dL · Red: above 180 mg/dL
-        </div>
       </div>
 
       {/* 5. Daily Glycemic Distribution Bar Chart (Day 1 - Day 14) */}

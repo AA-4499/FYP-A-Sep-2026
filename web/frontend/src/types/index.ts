@@ -10,7 +10,10 @@ export type AdminModule =
   | "admin_users"
   | "admin_approvals"
   | "admin_assignments"
-  | "admin_activity";
+  | "admin_activity"
+  | "admin_retraining"
+  | "admin_predictions"
+  | "admin_settings";
 
 export type DoctorModule =
   | "doctor_overview"
@@ -35,7 +38,9 @@ export type PatientModule =
   | "patient_digital_twin"
   | "patient_knowledge_graph"
   | "patient_recommendations"
-  | "patient_reports";
+  | "patient_reports"
+  | "patient_lab_results"
+  | "patient_settings";
 
 export type NavigationModule = PatientModule | AdminModule | DoctorModule;
 

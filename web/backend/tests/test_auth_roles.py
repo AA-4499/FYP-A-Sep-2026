@@ -116,16 +116,15 @@ class PlatformRoleTests(unittest.TestCase):
         self.assertEqual(401, self.client.get(self.url).status_code)
         self.patient.assert_not_called()
 
-    def test_prediction_rejects_non_doctors_before_entering_forecast_route(self):
+    def test_prediction_accepts_admin_and_patient_own_record(self):
         route = Mock(return_value=({'accepted': True}, 200))
         with patch.dict(dashboard.app.view_functions, {'forecast_api.glucose_forecast': route}):
             for role in ('patient', 'admin'):
                 with self.subTest(role=role):
                     response = self.client.post('/api/patients/record-a/glucose-forecast',
                         json={}, headers=headers(app_metadata={'role': role, 'patient_id': 'record-a'}))
-                    self.assertEqual(403, response.status_code)
-                    self.assertIn('Doctor accounts only', response.json['error'])
-            route.assert_not_called()
+                    self.assertEqual(200, response.status_code)
+            self.assertEqual(2, route.call_count)
 
     def test_doctor_and_legacy_clinician_can_enter_prediction_route(self):
         route = Mock(return_value=({'accepted': True}, 200))
@@ -168,27 +167,16 @@ class PlatformRoleTests(unittest.TestCase):
         route.assert_not_called()
         get.assert_called_once()
 
-    def test_admin_is_denied_before_any_assignment_lookup(self):
+    def test_admin_and_patient_use_their_authorization_without_doctor_assignment(self):
         route = Mock(return_value=({'accepted': True}, 200))
         with patch('auth.requests.get') as get, \
              patch.dict(dashboard.app.view_functions, {'forecast_api.glucose_forecast': route}):
-            response = self.client.post('/api/patients/record-a/glucose-forecast',
-                json={}, headers=headers(app_metadata={'role': 'admin', 'patient_id': 'record-a'}))
-        self.assertEqual(403, response.status_code)
-        self.assertIn('Doctor accounts only', response.json['error'])
+            for role in ('admin', 'patient'):
+                response = self.client.post('/api/patients/record-a/glucose-forecast',
+                    json={}, headers=headers(app_metadata={'role': role, 'patient_id': 'record-a'}))
+                self.assertEqual(200, response.status_code)
         get.assert_not_called()
-        route.assert_not_called()
-
-    def test_patient_is_denied_before_any_assignment_lookup(self):
-        route = Mock(return_value=({'accepted': True}, 200))
-        with patch('auth.requests.get') as get, \
-             patch.dict(dashboard.app.view_functions, {'forecast_api.glucose_forecast': route}):
-            response = self.client.post('/api/patients/record-a/glucose-forecast',
-                json={}, headers=headers(app_metadata={'role': 'patient', 'patient_id': 'record-a'}))
-        self.assertEqual(403, response.status_code)
-        self.assertIn('Doctor accounts only', response.json['error'])
-        get.assert_not_called()
-        route.assert_not_called()
+        self.assertEqual(2, route.call_count)
 
     def test_assignment_lookup_transport_failure_returns_503_without_entering_route(self):
         route = Mock(return_value=({'accepted': True}, 200))

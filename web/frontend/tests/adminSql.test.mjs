@@ -72,6 +72,8 @@ test('Admin workspace migration and RPC contract hold in an isolated PostgreSQL 
   await db.exec(dashboard);
   await db.exec(admin);
   await db.exec(admin);
+  await db.exec(sql('supabase_prediction_results'));
+  await db.exec(sql('supabase_prediction_results'));
 
   // Supabase default privileges grant the client roles access to public tables;
   // ACLs still gate execution because RLS policies decide which rows are visible.
@@ -379,6 +381,26 @@ test('Admin workspace migration and RPC contract hold in an isolated PostgreSQL 
     );
     assert.ok(await auditCount('Patient assigned') >= 2);
     assert.ok(await auditCount('Patient unassigned') >= 1);
+  });
+
+  await t.test('saved predictions are shared with the owner and assigned doctor, and remain immutable', async () => {
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', id(10)]);
+    const insert = `insert into patient_prediction_results(id,patient_id,event_summary,engine,output,model_sha256)
+      values($1,$2,'Baseline','gru',$3,'model-v1')`;
+    await asAccount(2, tx => tx.query(insert, [id(90), 'PT-000001', JSON.stringify({patient_id:'PT-000001', baseline_end:120})]));
+    for (const n of [1, 2, 10]) {
+      const result = await asAccount(n, tx => tx.query('select * from patient_prediction_results'));
+      assert.equal(result.rows.length, 1);
+      assert.equal(result.rows[0].model_sha256, 'model-v1');
+    }
+    assert.equal((await asAccount(3, tx => tx.query('select * from patient_prediction_results'))).rows.length, 0);
+    await assert.rejects(asAccount(3, tx => tx.query(insert, [id(91), 'PT-000001', JSON.stringify({patient_id:'PT-000001'})])), /row-level security/);
+    await assert.rejects(asAccount(2, tx => tx.query(insert, [id(92), 'PT-000001', '{}'])), /check constraint/);
+    await assert.rejects(asAccount(2, tx => tx.query("update patient_prediction_results set model_sha256='tampered'")), /permission denied/);
+    await assert.rejects(asAnon(tx => tx.query('select * from patient_prediction_results')), /permission denied/);
+    await adminCall("select admin_set_account_status($1, 'suspended') as data", [id(2)]);
+    assert.equal((await asAccount(2, tx => tx.query('select * from patient_prediction_results'))).rows.length, 0);
+    await adminCall("select admin_set_account_status($1, 'active') as data", [id(2)]);
   });
 
   await t.test('RLS scopes clinical reads to the assigned or owned record and to active accounts', async () => {

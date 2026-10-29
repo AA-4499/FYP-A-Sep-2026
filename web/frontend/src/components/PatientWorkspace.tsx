@@ -5,6 +5,8 @@ import { getSupabaseClient } from "../lib/supabase";
 import { loadPatientDashboard } from "../lib/patientDashboard";
 import type { PatientDashboardData } from "../lib/patientDashboard";
 import type { NavigationModule } from "../types";
+import { LabResultsView } from "./LabResultsView";
+import { FontSizeSettings } from "./FontSizeSettings";
 import { Sidebar } from "./Sidebar";
 import {
   RecordedMonitoring,
@@ -25,6 +27,8 @@ const pages = new Set<NavigationModule>([
   "patient_digital_twin",
   "patient_recommendations",
   "patient_reports",
+  "patient_settings",
+  "patient_lab_results",
 ]);
 
 export function PatientWorkspace({
@@ -202,6 +206,7 @@ export function PatientWorkspace({
               </details>
             </div>
           </header>
+          {page === "patient_settings" && <FontSizeSettings />}
           {authError && (
             <p
               role="alert"
@@ -274,6 +279,7 @@ export function PatientWorkspace({
                     allowPatientSelection={false}
                   />
                 )}
+                {page === "patient_lab_results" && <LabResultsView key={patient.id} patientId={patient.id} />}
                 {page === "patient_reports" && (
                   <RecordedReport patient={patient} />
                 )}

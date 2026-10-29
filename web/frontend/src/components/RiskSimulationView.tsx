@@ -1,4 +1,5 @@
 import { PhysiologyLab } from "./PhysiologyLab";
+import { savePrediction } from "../lib/predictionResults";
 import { ScenarioBuilder } from "./ScenarioBuilder";
 import { PredictionChart } from "./PredictionChart";
 import {
@@ -22,7 +23,7 @@ import {
   glucoseReferenceZones,
   rangeAverage,
 } from "../lib/glucoseRangeDisplay";
-import React, { useEffect, useId, useMemo, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   RefreshCw,
@@ -61,6 +62,7 @@ import {
 } from "../lib/forecast";
 
 type Props = {
+  canViewPhysiology?: boolean;
   patient: Patient;
   onNavigate: (module: NavigationModule) => void;
   patients?: Patient[];
@@ -531,12 +533,13 @@ function GlucoseChart({
 }
 
 function ForecastPanel({
+  canViewPhysiology = false,
   patient,
   patients,
   onNavigate,
   onOpenPhysiology,
 }: Props & { onOpenPhysiology: () => void }) {
-  const [source, setSource] = useState<ForecastSource>("browser");
+  const [source, setSource] = useState<ForecastSource>("supabase");
   const preview = source === "preview";
   const browser = source === "browser";
   const [horizon, setHorizon] = useState(6);
@@ -577,6 +580,12 @@ function ForecastPanel({
   const [connectionError, setConnectionError] = useState("");
   const [showAllRows, setShowAllRows] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [snapshotId, setSnapshotId] = useState(() => crypto.randomUUID());
+  const snapshotRef = useRef(snapshotId);
+  snapshotRef.current = snapshotId;
   const current =
     result?.patient_id === patient.id &&
     result.source === source &&
@@ -640,6 +649,27 @@ function ForecastPanel({
       ? simulation
       : null;
   const output = activeSimulation || current;
+  useEffect(() => {
+    setSnapshotId(crypto.randomUUID()); setSaveNotice(''); setSaveError('');
+  }, [current, activeSimulation]);
+  const saveResult = async () => {
+    if (!current || loading) return;
+    setSaving(true); setSaveError('');
+    try {
+      await savePrediction({
+        id: snapshotId, patient_id: patient.id,
+        engine: activeSimulation ? 'physiology' : 'gru',
+        model_sha256: current.model_sha256, output: current,
+        scenario: activeSimulation,
+        event_summary: activeSimulation
+          ? activeSimulation.schedule.map(event => `${event.at} UTC | ${event.kind}: ${event.description} | ${event.amount}${event.kind === 'meal' ? ` g food, ${event.carbohydrate} g carbohydrate` : event.kind === 'insulin' ? ' units' : event.kind === 'activity' ? ' minutes' : ''}`).join('\n')
+          : request.events.length ? request.events.map(event => `${event.kind}: ${event.amount} ${event.kind === 'meal' ? 'g carbohydrate' : 'units'}, +${event.minutes_ahead} minutes`).join('; ')
+          : 'Baseline prediction · no scheduled events',
+      });
+      if (snapshotRef.current === snapshotId) setSaveNotice('Saved to lab results.');
+    } catch (failure) { if (snapshotRef.current === snapshotId) setSaveError(failure instanceof Error ? failure.message : 'Unable to save prediction.'); }
+    finally { setSaving(false); }
+  };
   const historicalRange = useMemo(
     () =>
       current
@@ -839,6 +869,12 @@ function ForecastPanel({
 
   return (
     <div className="space-y-5 pb-10 animate-fadeIn">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
+        <button type="button" disabled={!current || loading || saving || !!saveNotice} onClick={() => void saveResult()} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Saving…' : saveNotice ? 'Saved' : 'Save to lab results'}</button>
+        <button type="button" onClick={() => onNavigate('patient_lab_results')} className="text-sm font-semibold text-teal-700">View lab results</button>
+        {saveNotice && <span role="status" className="text-sm text-teal-700">{saveNotice}</span>}
+        {saveError && <span role="alert" className="text-sm text-rose-700">{saveError}</span>}
+      </div>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div
           className={
@@ -880,7 +916,7 @@ function ForecastPanel({
           <p className="mt-1 text-xs leading-relaxed">
             Charts use precomputed predictions from the local Excel records and
             the saved GRU model. No Python service is required. These results do
-            not update from Supabase and are not saved to Supabase. Choose
+            not update from Supabase. Use Save to lab results to keep a snapshot. Choose
             Repository GRU or the online service to calculate new what-if
             scenarios.
           </p>
@@ -1001,7 +1037,7 @@ function ForecastPanel({
                 </p>
                 <p className="mt-1 text-[11px] text-slate-500">
                   Historical repository record, not refreshed Supabase
-                  observations. Results stay in this browser.
+                  observations. Use Save to lab results to keep a snapshot.
                 </p>
               </div>
             </div>
@@ -1011,10 +1047,10 @@ function ForecastPanel({
               </summary>
               <p className="mt-2 leading-relaxed">
                 The checked-in model uses this exact record's bundled workbook
-                history. It runs without Render and does not save forecasts to
-                Supabase. Historical diagnostics match the record and
+                history. It runs without Render. Snapshots are saved to Supabase
+                only when you choose Save to lab results. Historical diagnostics match the record and
                 checkpoint. Scheduled events use a separate, unvalidated
-                physiology model. Doctor sign-in is required to enter this
+                physiology model. Sign-in is required to enter this
                 workspace.
               </p>
             </details>
@@ -1258,13 +1294,13 @@ function ForecastPanel({
                       : "The GRU rolls a next-step estimate forward in time. It can settle towards a stable value. Event simulations use a separate reduced physiological model and do not establish clinical accuracy."}
                   </p>
                   <div className="flex flex-wrap gap-4">
-                    <button
+                    {canViewPhysiology && <button
                       type="button"
                       onClick={onOpenPhysiology}
                       className="font-semibold text-black hover:underline"
                     >
                       Explore the Physiology lab
-                    </button>
+                    </button>}
                     <a
                       href="https://proceedings.mlr.press/v230/galvao-lopes24a.html"
                       target="_blank"
@@ -1817,7 +1853,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
               ["forecast", "CGM forecast"],
               ["physiology", "Physiology lab"],
             ] as const
-          ).map(([id, label]) => (
+          ).filter(([id]) => id !== 'physiology' || props.canViewPhysiology).map(([id, label]) => (
             <button
               key={id}
               role="tab"
@@ -1835,7 +1871,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
           ))}
         </div>
       </section>
-      {tab === "forecast" ? (
+      {tab === "forecast" || !props.canViewPhysiology ? (
         <ForecastPanel
           key={props.patient.id}
           {...props}

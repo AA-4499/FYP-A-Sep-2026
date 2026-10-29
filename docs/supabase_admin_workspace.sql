@@ -1050,18 +1050,11 @@ declare
       coalesce(auth.jwt()->'app_metadata'->>'role', 'patient') = 'admin'
       or (
         coalesce(auth.jwt()->'app_metadata'->>'role', 'patient') in ('doctor', 'clinician')
-        and exists (
-          select 1 from public.clinician_patient_assignments a
-          where a.clinician_id = auth.uid()
-            and a.patient_id = "Patient Number"::text
-        )
+        and public.is_assigned_to_patient("Patient Number"::text)
       )
       or (
         coalesce(auth.jwt()->'app_metadata'->>'role', 'patient') = 'patient'
-        and exists (
-          select 1 from public.profiles p
-          where p.id = auth.uid() and p.patient_id = "Patient Number"::text
-        )
+        and public.current_patient_number() = "Patient Number"::text
       )
     )
   )$rule$;

@@ -32,6 +32,8 @@ from services import (
 )
 
 from forecast_routes import forecast_api
+from retraining_routes import retraining_api
+from services.retraining_service import recover_interrupted_training
 from services.clinical_knowledge_graph_service import (
     ClinicalKnowledgeGraphUnavailableError,
     get_clinical_knowledge_graph,
@@ -49,6 +51,8 @@ from services.knowledge_graph_analysis_service import (
 
 app = Flask(__name__)
 app.register_blueprint(forecast_api)
+app.register_blueprint(retraining_api)
+recover_interrupted_training()
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 @app.errorhandler(SupabaseStorageError)
@@ -65,16 +69,15 @@ def authorize_api_request():
     user = getattr(g, "current_user", {})
     patient_id = request.view_args.get("patient_id") if request.view_args else None
     if request.endpoint == "forecast_api.glucose_forecast":
-        if user.get("role") != "doctor":
-            return jsonify({"error": "Glucose prediction is available to Doctor accounts only."}), 403
         if not patient_id:
             return jsonify({"error": "A patient record is required for a glucose forecast."}), 403
-        try:
-            assigned = patient_is_assigned(user.get("id", ""), patient_id, request_access_token() or "")
-        except RuntimeError:
-            return jsonify({"error": "This patient's care-team assignment could not be verified. Please try again later."}), 503
-        if not assigned:
-            return jsonify({"error": "This patient is not assigned to your care team."}), 403
+        if user.get("role") == "doctor":
+            try:
+                assigned = patient_is_assigned(user.get("id", ""), patient_id, request_access_token() or "")
+            except RuntimeError:
+                return jsonify({"error": "This patient's care-team assignment could not be verified. Please try again later."}), 503
+            if not assigned:
+                return jsonify({"error": "This patient is not assigned to your care team."}), 403
     if user.get("role") == "patient" and not patient_id:
         return jsonify({"error": "Patients cannot browse the patient directory."}), 403
     if patient_id and user.get("role") == "patient" and user.get("claims", {}).get("patient_id") != patient_id:

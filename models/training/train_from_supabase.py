@@ -188,6 +188,7 @@ def train_on_supabase_timelines(
     training_stride: int = DEFAULT_TRAIN_WINDOW_STRIDE,
     seed: int = 2026,
     device_name: str | None = None,
+    copy_to_weights: bool = True,
 ) -> dict[str, Any]:
     """Train GRU model and evaluate on held-out test windows."""
     import random
@@ -324,7 +325,7 @@ def train_on_supabase_timelines(
         "test_metrics": test_metrics,
     }
     torch.save(checkpoint_data, checkpoint_path)
-    for model_copy_dir in [PROJECT_DIR / "models" / "weights"]:
+    for model_copy_dir in ([PROJECT_DIR / "models" / "weights"] if copy_to_weights else []):
         model_copy_dir.mkdir(parents=True, exist_ok=True)
         torch.save(checkpoint_data, model_copy_dir / "gru_t2dm_forecaster.pt")
     print(f"Local model checkpoint saved: {checkpoint_path}")

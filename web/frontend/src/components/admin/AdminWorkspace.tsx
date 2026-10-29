@@ -1,3 +1,6 @@
+import { AdminRetrainingView } from "./AdminRetrainingView";
+import { AdminPredictionView } from "./AdminPredictionView";
+import { FontSizeSettings } from "../FontSizeSettings";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, ArrowLeft, ChevronRight, LayoutDashboard, Link2, RefreshCw,
@@ -26,6 +29,9 @@ const pages = [
   { id: 'admin_approvals', label: 'Doctor approvals', icon: ShieldCheck },
   { id: 'admin_assignments', label: 'Patient assignments', icon: Link2 },
   { id: 'admin_activity', label: 'Activity history', icon: Activity },
+  { id: 'admin_retraining', label: 'Retrain model', icon: RefreshCw },
+  { id: 'admin_predictions', label: 'Digital twin', icon: Activity },
+  { id: 'admin_settings', label: 'Settings', icon: LayoutDashboard },
 ] as const;
 
 function initials(name: string, email: string): string {
@@ -112,6 +118,9 @@ export function AdminWorkspace({ admin, onExit }: AdminWorkspaceProps) {
         {page === 'admin_users' && <AdminAccountsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
         {page === 'admin_approvals' && <AdminApprovalsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
         {page === 'admin_assignments' && <AdminAssignmentsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
+        {page === 'admin_retraining' && <AdminRetrainingView />}
+        {page === 'admin_predictions' && <AdminPredictionView />}
+        {page === 'admin_settings' && <FontSizeSettings />}
         {page === 'admin_activity' && <AdminActivityPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
         <footer className="flex flex-wrap justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-400"><span>DiaTwin · Smart Diabetes Digital Twin</span><span>Admin workspace · Live platform data</span></footer>
       </main>

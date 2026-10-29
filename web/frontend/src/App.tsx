@@ -1,5 +1,7 @@
 /** Clinical workspace. Database facts and research simulations have separate views. */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { LabResultsView } from "./components/LabResultsView";
+import { FontSizeSettings } from "./components/FontSizeSettings";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
@@ -115,7 +117,7 @@ function Workspace({
     setDoctorPage("doctor_overview");
   };
   const page = mode === "doctor" ? doctorPage : patientPage;
-  const settings = page === "doctor_settings";
+  const settings = page === "doctor_settings" || page === "patient_settings";
   const overview = page === "doctor_overview";
   return (
     <div className="min-h-screen bg-[#f5f8f8] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
@@ -235,6 +237,7 @@ function Workspace({
               />
             </React.Suspense>
           )}
+          {settings && <FontSizeSettings />}
           {settings && (
             <section className="rounded-3xl border border-slate-200 bg-white p-6">
               <h1 className="text-2xl font-bold">Workspace settings</h1>
@@ -301,6 +304,7 @@ function Workspace({
                 <RiskSimulationView
                   key={patient.id}
                   patient={patient}
+                  canViewPhysiology={!isPreview && initialRole === "doctor"}
                   onNavigate={navigate}
                   patients={mode === "doctor" ? patients : undefined}
                   onSelectPatient={
@@ -331,6 +335,7 @@ function Workspace({
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,
               ) && <RecordedReport patient={patient} />}
+              {page === "patient_lab_results" && <LabResultsView key={patient.id} patientId={patient.id} />}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
                   recommendations={[]}

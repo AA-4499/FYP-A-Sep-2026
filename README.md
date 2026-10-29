@@ -18,6 +18,8 @@ For Patient registration, login, and the personal dashboard, follow the [step-by
 
 The platform has three user roles: **Admin**, **Patient**, and **Doctor**, represented in code as `admin`, `patient`, and `doctor`. Doctor has a clinical dashboard; Patient has a personal workspace. Admin has a dedicated source-of-truth workspace backed by Supabase: overview, user accounts, Doctor applications/approvals, patient-to-Doctor assignments, and an audit-backed activity history. Doctor access is requested through the **Doctor? Apply to join your care workspace** form and granted only after an administrator verifies the application; Admin access is assigned by an existing administrator. Admin actions are enforced by database functions and row-level security, not browser state. The first Admin must be bootstrapped once with SQL — see the [Admin operations runbook](docs/admin-operations.md) and [role configuration and database migration instructions](docs/training-model-migration.md#authentication). Existing `clinician` accounts are treated as Doctor accounts for compatibility.
 
+For Admin model retraining, saved prediction history, role visibility, text size, and required deployment migrations, see [Retraining and lab results setup](docs/admin-retraining-and-lab-results.md).
+
 ### The 9-Step Clinical Digital Twin Workflow
 The system orchestrates an end-to-end, patient-centric clinical journey:
 ```text

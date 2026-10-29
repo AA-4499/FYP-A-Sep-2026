@@ -333,88 +333,6 @@ export function RecordedMonitoring({
   );
 }
 
-const evidenceGroups = [
-  [
-    "Pancreatic context",
-    [
-      "Fasting C-peptide (nmol/L)",
-      "2-hour Postprandial C-peptide (nmol/L)",
-      "Fasting Insulin (pmol/L)",
-      "2-hour Postprandial insulin (pmol/L)",
-    ],
-  ],
-  [
-    "Kidney context",
-    [
-      "Creatinine (umol/L)",
-      "Estimated Glomerular Filtration Rate  (ml/min/1.73m²)",
-      "Blood Urea Nitrogen (mmol/L)",
-    ],
-  ],
-  [
-    "Cardiometabolic context",
-    [
-      "Total Cholesterol (mmol/L)",
-      "Triglyceride (mmol/L)",
-      "Low-Density Lipoprotein Cholesterol (mmol/L)",
-      "High-Density Lipoprotein Cholesterol (mmol/L)",
-    ],
-  ],
-  [
-    "Recorded complications",
-    [
-      "Acute Diabetic Complications",
-      "Diabetic Macrovascular Complications",
-      "Diabetic Microvascular Complications",
-      "Comorbidities",
-    ],
-  ],
-] as const;
-export function OrganEvidence({ patient }: { patient: Patient }) {
-  return (
-    <div className="space-y-5">
-      <RecordSource patient={patient} />
-      <Heading
-        eyebrow="Digital twin"
-        title="Physiological evidence map"
-        icon={HeartPulse}
-      />
-      <div className="grid gap-5 xl:grid-cols-2">
-        {evidenceGroups.map(([title, keys]) => (
-          <section className={panel} key={title}>
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-bold">{title}</h2>
-              <span className="rounded-full bg-teal-50 px-2 py-1 text-[10px] font-semibold text-teal-700">
-                Recorded evidence
-              </span>
-            </div>
-            <dl className="mt-5 divide-y divide-slate-100">
-              {keys.map((key) => (
-                <div
-                  key={key}
-                  className="flex flex-wrap justify-between gap-3 py-3 text-xs"
-                >
-                  <dt className="max-w-[70%] text-slate-500">{key}</dt>
-                  <dd className="font-semibold">
-                    {observed(patient.recordedFields?.[key])
-                      ? String(patient.recordedFields?.[key])
-                      : "Not recorded"}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        ))}
-      </div>
-      <Empty>
-        Organ stress, beta-cell capacity, and insulin sensitivity have not been
-        clinically estimated for this record. Explore the physiology lab to
-        compare explicitly stated research assumptions.
-      </Empty>
-    </div>
-  );
-}
-
 export function RecordedGraph({ patient }: { patient: Patient }) {
   const [selected, setSelected] = useState("Type of Diabetes");
   const entries = Object.entries(patient.recordedFields ?? {}).filter(
@@ -518,7 +436,6 @@ export function RecordedReport({ patient }: { patient: Patient }) {
         </button>
       </div>
       <PatientSnapshot patient={patient} />
-      <OrganEvidence patient={patient} />
       <section className={panel}>
         <h2 className="text-sm font-bold">Complete recorded summary</h2>
         <dl className="mt-4 divide-y divide-slate-100">

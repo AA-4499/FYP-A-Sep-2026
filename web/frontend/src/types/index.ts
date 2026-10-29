@@ -34,7 +34,6 @@ export type PatientModule =
   | "patient_monitoring"
   | "patient_digital_twin"
   | "patient_knowledge_graph"
-  | "patient_insights"
   | "patient_recommendations"
   | "patient_reports";
 

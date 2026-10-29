@@ -17,7 +17,6 @@ import {
   CohortOverview,
   PatientRegistry,
   RecordedMonitoring,
-  OrganEvidence,
   RecordedReport,
 } from "./components/ClinicalWorkspace";
 import { fetchSupabasePatients } from "./lib/supabase";
@@ -148,11 +147,7 @@ function Workspace({
   const navigate = (page: NavigationModule) => {
     if (["doctor_monitoring", "doctor_digital_twin", "doctor_knowledge_graph"].includes(page)) return;
     if (page === "patient_knowledge_graph" && !canViewKnowledgeGraph) return;
-    if (
-      ["doctor_predictions", "patient_insights", "risk"].includes(page) &&
-      !canViewPredictions
-    )
-      return;
+    if (page === "doctor_predictions" && !canViewPredictions) return;
     if (page.startsWith("doctor_")) {
       setMode("doctor");
       setDoctorPage(page);
@@ -333,10 +328,18 @@ function Workspace({
                   onNavigate={navigate}
                 />
               )}
-              {[
-                "patient_digital_twin",
-                "digital_twin",
-              ].includes(page) && <OrganEvidence patient={patient} />}
+              {(["patient_digital_twin", "digital_twin"].includes(page) ||
+                (page === "doctor_predictions" && canViewPredictions)) && (
+                <RiskSimulationView
+                  key={patient.id}
+                  patient={patient}
+                  onNavigate={navigate}
+                  patients={mode === "doctor" ? patients : undefined}
+                  onSelectPatient={
+                    mode === "doctor" ? setSelectedId : undefined
+                  }
+                />
+              )}
               {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (
                 <React.Suspense
                   fallback={
@@ -362,20 +365,6 @@ function Workspace({
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,
               ) && <RecordedReport patient={patient} />}
-              {["doctor_predictions", "patient_insights", "risk"].includes(
-                page,
-              ) &&
-                canViewPredictions && (
-                  <RiskSimulationView
-                    key={patient.id}
-                    patient={patient}
-                    onNavigate={navigate}
-                    patients={mode === "doctor" ? patients : undefined}
-                    onSelectPatient={
-                      mode === "doctor" ? setSelectedId : undefined
-                    }
-                  />
-                )}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
                   recommendations={sharedRecommendations}

@@ -441,12 +441,17 @@
       ["Home", "Glucose trend"],
       ["My profile", "Complete recorded summary"],
       ["My health", "Ambulatory Glucose Profile (AGP)"],
-      ["My digital twin", "Physiological evidence map"],
-      ["Risk prediction & what-if", "CGM forecast"],
+      ["My digital twin", "CGM forecast"],
       ["My recommendations", "No recommendations shared yet"],
       ["Reports", "Complete recorded summary"],
     ])
       await expectPage(label, text);
+    assert(
+      await evaluate(
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Risk prediction')) && [...document.querySelectorAll('aside button')].filter(b=>b.textContent.trim()==='My digital twin').length===1`,
+      ),
+      "Patient workspace must expose exactly one 'My digital twin' prediction tab",
+    );
     await click("Doctor dashboard", "document.querySelector('aside')");
     await ready("Care overview");
     await open("?empty");
@@ -483,10 +488,17 @@
     await ready("Glucose trend");
     for (const [label, text] of [
       ["My health", "Ambulatory Glucose Profile (AGP)"],
-      ["My digital twin", "Physiological evidence map"],
+      ["My digital twin", "CGM forecast"],
       ["Reports", "Complete recorded summary"],
     ])
       await expectPage(label, text);
+    await expectPage("My digital twin", "CGM forecast");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-panel"]')!==null && !document.querySelector('[aria-label="Prediction patient"]')`,
+      ),
+      "Patient self-care digital twin must open the predictive simulation without the doctor patient selector",
+    );
     assert(
       !(await evaluate(
         `document.body.innerText.includes('test-b') || document.body.innerText.includes('Doctor dashboard')`,
@@ -536,9 +548,9 @@
     await screenshot("restored-my-health-mobile.png");
     assert(
       await evaluate(
-        `!document.body.innerText.includes('Risk prediction & what-if') && !document.body.innerText.includes('Explore prediction and what-if') && !document.body.innerText.includes('Open prediction and what-if lab')`,
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Risk prediction')) && [...document.querySelectorAll('aside button')].filter(b=>b.textContent.trim()==='My digital twin').length===1`,
       ),
-      "Patient account can see Doctor-only prediction entry points",
+      "Patient account must have one 'My digital twin' tab and no separate prediction tab",
     );
     await send("Emulation.setDeviceMetricsOverride", {
       width: 390,

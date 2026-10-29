@@ -57,7 +57,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectMo
     { id: "patient_profile", label: "My profile", icon: User },
     { id: "patient_monitoring", label: "My health", icon: Activity },
     { id: "patient_digital_twin", label: "My digital twin", icon: Heart },
-    ...(canViewPredictions ? [{ id: "patient_insights" as const, label: "Risk prediction & what-if", icon: Sparkles }] : []),
     ...(canViewKnowledgeGraph && !selfService ? [{ id: "patient_knowledge_graph" as const, label: "Knowledge graph", icon: Share2 }] : []),
     { id: "patient_recommendations", label: "My recommendations", icon: Lightbulb },
     { id: "patient_reports", label: "Reports", icon: FileText },

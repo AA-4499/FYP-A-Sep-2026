@@ -8,9 +8,9 @@ import type { NavigationModule } from "../types";
 import { Sidebar } from "./Sidebar";
 import {
   RecordedMonitoring,
-  OrganEvidence,
   RecordedReport,
 } from "./ClinicalWorkspace";
+import { RiskSimulationView } from "./RiskSimulationView";
 import { mapClinicalRecord } from "../lib/clinicalData";
 import { readClinicalRows } from "../lib/supabaseRows";
 import { PatientRecommendationsView } from "./PatientRecommendationsView";
@@ -281,7 +281,11 @@ export function PatientWorkspace({
                   <PatientRecommendationsView recommendations={[]} />
                 )}
                 {page === "patient_digital_twin" && (
-                  <OrganEvidence patient={patient} />
+                  <RiskSimulationView
+                    key={patient.id}
+                    patient={patient}
+                    onNavigate={navigate}
+                  />
                 )}
               </>
             )

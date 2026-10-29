@@ -37,7 +37,7 @@ workspace), and `KnowledgeGraph` into `TrainingModel`.
 - **Digital twin:** online Supabase inference is the default and reads the active
   checkpoint on every request, with a cache keyed by its modification time.
   Browser GRU and static preview remain fixed repository snapshots and do not
-  receive retrained weights. Admin and Doctor can open Physiology lab. Patient
+  receive retrained weights. Doctor can open Physiology lab. Patient
   can use CGM prediction only for their own linked record and has no lab tab/link.
 - **Save to lab results:** explicitly save a completed forecast or applied
   scenario. The snapshot includes server save time, forecast origin, event

@@ -12,7 +12,6 @@ export type AdminModule =
   | "admin_assignments"
   | "admin_activity"
   | "admin_retraining"
-  | "admin_predictions"
   | "admin_settings";
 
 export type DoctorModule =

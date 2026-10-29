@@ -1754,7 +1754,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                         {(() => {
                           const x = xForMinute(hoveredMinute);
                           const tooltipWidth = 170;
-                          const tooltipHeight = 58;
+                          const tooltipHeight = 72;
 
                           const tooltipX = Math.max(
                             plotLeft,
@@ -1813,16 +1813,76 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                                 {formatHoverTime(hoveredMinute)}
                               </text>
 
-                              <text
-                                x={tooltipX + 10}
-                                y={tooltipY + 39}
-                                fontSize="10"
-                                fill="#374151"
-                              >
-                                {hoveredCgmReading
-                                  ? `Glucose: ${hoveredCgmReading.cgm.toFixed(1)} mg/dL`
-                                  : "No nearby sensor reading"}
-                              </text>
+                              {hoveredCgmReading ? (
+                                (() => {
+                                  const glucose = hoveredCgmReading.cgm;
+
+                                  const status =
+                                    glucose > 180
+                                      ? 'above'
+                                      : glucose < 70
+                                      ? 'below'
+                                      : 'target';
+
+                                  const color =
+                                    status === 'above'
+                                      ? '#B91C1C'
+                                      : status === 'below'
+                                      ? '#C2410C'
+                                      : '#2563EB';
+
+                                  const message =
+                                    status === 'above'
+                                      ? `Above target by ${(glucose - 180).toFixed(1)} mg/dL`
+                                      : status === 'below'
+                                      ? `Below target by ${(70 - glucose).toFixed(1)} mg/dL`
+                                      : 'Within target range';
+
+                                  return (
+                                    <>
+                                      <text
+                                        x={tooltipX + 10}
+                                        y={tooltipY + 39}
+                                        fontSize="12"
+                                        fontWeight="700"
+                                        fill={color}
+                                      >
+                                        {glucose.toFixed(1)} mg/dL
+                                      </text>
+
+                                      <text
+                                        x={tooltipX + 10}
+                                        y={tooltipY + 54}
+                                        fontSize="9.5"
+                                        fill={color}
+                                      >
+                                        {message}
+                                      </text>
+                                    </>
+                                  );
+                                })()
+                              ) : (
+                                <>
+                                  <text
+                                    x={tooltipX + 10}
+                                    y={tooltipY + 39}
+                                    fontSize="10"
+                                    fontWeight="600"
+                                    fill="#6B7280"
+                                  >
+                                    No sensor data in this period
+                                  </text>
+
+                                  <text
+                                    x={tooltipX + 10}
+                                    y={tooltipY + 53}
+                                    fontSize="9"
+                                    fill="#6B7280"
+                                  >
+                                    Glucose level unavailable
+                                  </text>
+                                </>
+                              )}
                             </>
                           );
                         })()}

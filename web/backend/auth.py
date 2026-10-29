@@ -78,6 +78,8 @@ def require_auth(roles: AbstractSet[str] | None = None) -> Callable:
             except (jwt.InvalidTokenError, RuntimeError) as exc:
                 return jsonify({"error": "Invalid or expired access token.", "detail": str(exc)}), 401
             metadata = claims.get("app_metadata") or {}
+            if metadata.get("doctor_registration_status") == "pending":
+                return jsonify({"error": "Doctor application is awaiting administrator approval."}), 403
             role = metadata.get("role") or next(
                 (claims.get(key) for key in ROLE_CLAIMS if claims.get(key) in APP_ROLES | {"clinician"}),
                 "patient",

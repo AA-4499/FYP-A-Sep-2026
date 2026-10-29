@@ -14,6 +14,8 @@ This platform establishes a **Smart Diabetes Digital Twin and Personalised Healt
 
 ### User roles
 
+Doctor registration is available from **Register as a Doctor** on the sign-in page. Applicants confirm their email and await administrator approval. Follow the [Doctor registration setup and approval walkthrough](docs/doctor-auth-walkthrough.md) to apply the database scripts and approve real applications.
+
 For Patient registration, login, and the personal dashboard, follow the [step-by-step authentication walkthrough](docs/patient-auth-walkthrough.md). Apply the profile, dashboard, and automatic-provisioning SQL scripts in order. Registration generates a unique Patient Number and an empty medical record linked to the account. Confirmed Patients see their own dashboard; health measurements appear as their care team records them.
 
 The platform has three user roles: **Admin**, **Patient**, and **Doctor**, represented in code as `admin`, `patient`, and `doctor`. Doctor has a clinical dashboard; Patient has a personal workspace. Admin has a dedicated browser demo with an overview, user accounts, doctor approvals, patient assignments, and activity history. Open **Admin dashboard (Demo)** from the workspace profile dropdown to explore it. Admin changes use sample data saved in this browser and do not modify live Supabase accounts. Existing `clinician` accounts are treated as Doctor accounts for compatibility. See the [role configuration and database migration instructions](docs/training-model-migration.md#authentication).

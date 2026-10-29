@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { CheckCircle2, LogOut, RefreshCw } from "lucide-react";
 import { getSupabaseClient, clearSupabasePatientCache } from "../lib/supabase";
-import { authErrorMessage, trustedRole } from "../lib/accountAuth";
+import { authErrorMessage, loadAccountAccess, type AccountAccess } from "../lib/accountAuth";
 import type { UserRole } from "../types";
 import { AccountAuthView } from "./AccountAuthView";
 import { PatientWorkspace } from "./PatientWorkspace";
@@ -19,6 +19,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const acceptedUserId = useRef<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [access, setAccess] = useState<AccountAccess | null>(null);
   const [checking, setChecking] = useState(false);
   const [demo, setDemo] = useState(false);
   const [recovery, setRecovery] = useState(
@@ -80,22 +81,28 @@ export function AuthGateway({ renderWorkspace }: Props) {
   useEffect(() => {
     if (!session) {
       setUser(null);
+      setAccess(null);
       setChecking(false);
       return;
     }
     let cancelled = false;
     setChecking(true);
     setUser(null);
+    setAccess(null);
     // Verify outside the auth event callback, avoiding Supabase's callback lock.
     getSupabaseClient()!
       .auth.getUser()
-      .then(({ data, error: failure }) => {
+      .then(async ({ data, error: failure }) => {
         if (cancelled) return;
         if (failure || !data.user)
           setError(
             failure ? authErrorMessage(failure) : "Please sign in again.",
           );
         else {
+          // Recovery only changes the password; it must work even if table access fails.
+          const nextAccess = recovery ? null : await loadAccountAccess(getSupabaseClient()!, data.user);
+          if (cancelled) return;
+          setAccess(nextAccess);
           setUser(data.user);
           setError("");
         }
@@ -110,7 +117,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [session, retry]);
+  }, [session, retry, recovery]);
   const signOut = async () => {
     try {
       const { error: failure } = await getSupabaseClient()!.auth.signOut({
@@ -128,6 +135,17 @@ export function AuthGateway({ renderWorkspace }: Props) {
     } catch (failure) {
       setError(authErrorMessage(failure));
     }
+  };
+  const refreshAccess = async () => {
+    try {
+      const { data, error: failure } = await getSupabaseClient()!.auth.refreshSession();
+      if (failure) throw failure;
+      if (!data.session) throw new Error("Please sign in again.");
+      setError("");
+      setChecking(true);
+      setSession(data.session);
+      setRetry((value) => value + 1);
+    } catch (failure) { setError(authErrorMessage(failure)); }
   };
   if (checking)
     return (
@@ -184,7 +202,27 @@ export function AuthGateway({ renderWorkspace }: Props) {
         onExit={signOut}
       />
     );
-  const role = trustedRole(user);
+  const role = access?.role;
+  if (access?.doctorStatus === "pending")
+    return (
+      <AccountStatus
+        title="Your Doctor application is awaiting approval"
+        message={error || "Your email is confirmed. An administrator will review your professional registration and organisation before you can access the clinical workspace."}
+        onExit={signOut}
+        onRetry={refreshAccess}
+      />
+    );
+  if (access?.doctorStatus) {
+    const statuses = {
+      rejected: { title: "Your Doctor application was not approved", message: "Contact your administrator about the review of your application." },
+      missing: { title: "Your Doctor application needs attention", message: "This account requested Doctor registration, but no application record is visible. Ask your administrator to check your registration and application access." },
+      sync_required: { title: "Your Doctor access is being set up", message: "Your application is approved, but your sign-in permissions are not ready. Check again, or ask your administrator to synchronize your Doctor role." },
+      review: { title: "Your Doctor application needs review", message: "Your application status is not recognized. Contact your administrator." },
+      unavailable: { title: "Your Doctor application is awaiting verification", message: `You are signed in, but we could not load your application status. Check again shortly or contact your administrator with reference ${access.statusErrorCode || 'LOOKUP_FAILED'}.` },
+    };
+    const status = statuses[access.doctorStatus];
+    return <AccountStatus title={status.title} message={error || status.message} onExit={signOut} onRetry={refreshAccess} />;
+  }
   if (!role)
     return (
       <AccountStatus

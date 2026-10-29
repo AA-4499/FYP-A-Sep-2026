@@ -94,6 +94,15 @@ class PlatformRoleTests(unittest.TestCase):
         self.assertEqual(403, response.status_code)
         self.patient.assert_not_called()
 
+    def test_pending_doctor_cannot_access_records_even_with_a_role_or_record_link(self):
+        for role in ('patient', 'doctor'):
+            response = self.client.get(self.url, headers=headers(app_metadata={
+                'role': role, 'patient_id': 'record-a', 'doctor_registration_status': 'pending',
+            }))
+            self.assertEqual(403, response.status_code)
+            self.assertIn('awaiting administrator approval', response.json['error'])
+        self.patient.assert_not_called()
+
     def test_patient_cannot_browse_directory_even_with_a_linked_record(self):
         with patch.object(dashboard, 'list_patients') as directory:
             for patient_id in (None, 'record-a'):

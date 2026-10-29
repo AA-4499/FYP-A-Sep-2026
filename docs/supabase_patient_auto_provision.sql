@@ -59,16 +59,19 @@ declare
   empty_columns text;
   empty_values text;
   account_role text;
+  registration_status text;
 begin
   if new.role::text <> 'patient' or new.patient_id is not null then return new; end if;
   -- BEFORE INSERT fires even for ON CONFLICT DO NOTHING. Avoid orphan rows on reruns.
   if tg_op = 'INSERT' and exists (select 1 from public.profiles where id = new.id) then
     return new;
   end if;
-  select coalesce(raw_app_meta_data->>'role', 'patient') into account_role
+  select coalesce(raw_app_meta_data->>'role', 'patient'), raw_app_meta_data->>'doctor_registration_status'
+    into account_role, registration_status
     from auth.users where id = new.id;
   -- Existing/invited Doctor and Admin accounts do not receive Patient records.
   if account_role is distinct from 'patient' then return new; end if;
+  if registration_status = 'pending' then return new; end if;
 
   -- Explicit NULLs prevent clinical defaults (e.g. default glucose values) from
   -- appearing as measurements. Only system-generated fields retain defaults.

@@ -49,13 +49,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectMo
   const items: { id: NavigationModule; label: string; icon: typeof Menu }[] = doctor ? [
     { id: "doctor_overview", label: "Overview", icon: LayoutDashboard },
     { id: "doctor_patients", label: "Patient management", icon: Users },
+    ...(canViewPredictions ? [{ id: "doctor_predictions" as const, label: "Digital twin", icon: Sparkles }] : []),
     { id: "doctor_reports", label: "Reports", icon: FileText },
     { id: "doctor_settings", label: "Settings", icon: Settings },
   ] : [
     { id: "patient_home", label: "Home", icon: LayoutDashboard },
     { id: "patient_profile", label: "My profile", icon: User },
     { id: "patient_monitoring", label: "My health", icon: Activity },
-    ...(canViewPredictions ? [{ id: "doctor_predictions" as const, label: "Digital twin", icon: Sparkles }] : []),
+    { id: "patient_digital_twin", label: "My digital twin", icon: Heart },
     ...(canViewKnowledgeGraph && !selfService ? [{ id: "patient_knowledge_graph" as const, label: "Knowledge graph", icon: Share2 }] : []),
     { id: "patient_recommendations", label: "My recommendations", icon: Lightbulb },
     { id: "patient_reports", label: "Reports", icon: FileText },

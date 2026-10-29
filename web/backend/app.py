@@ -15,7 +15,7 @@ try:
 except ImportError:
     CORS = None
 
-from auth import APP_ROLES, require_auth
+from auth import APP_ROLES, patient_is_assigned, request_access_token, require_auth
 
 from services import (
     list_patients,
@@ -63,9 +63,18 @@ def authorize_api_request():
     if response is not None:
         return response
     user = getattr(g, "current_user", {})
-    if request.endpoint == "forecast_api.glucose_forecast" and user.get("role") != "doctor":
-        return jsonify({"error": "Glucose prediction is available to Doctor accounts only."}), 403
     patient_id = request.view_args.get("patient_id") if request.view_args else None
+    if request.endpoint == "forecast_api.glucose_forecast":
+        if user.get("role") != "doctor":
+            return jsonify({"error": "Glucose prediction is available to Doctor accounts only."}), 403
+        if not patient_id:
+            return jsonify({"error": "A patient record is required for a glucose forecast."}), 403
+        try:
+            assigned = patient_is_assigned(user.get("id", ""), patient_id, request_access_token() or "")
+        except RuntimeError:
+            return jsonify({"error": "This patient's care-team assignment could not be verified. Please try again later."}), 503
+        if not assigned:
+            return jsonify({"error": "This patient is not assigned to your care team."}), 403
     if user.get("role") == "patient" and not patient_id:
         return jsonify({"error": "Patients cannot browse the patient directory."}), 403
     if patient_id and user.get("role") == "patient" and user.get("claims", {}).get("patient_id") != patient_id:

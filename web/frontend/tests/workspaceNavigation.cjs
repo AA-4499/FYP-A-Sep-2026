@@ -156,6 +156,23 @@
  const patientLogin = parameters.has('patient');
  const anonymous = parameters.has('anonymous') || empty;
  const recovering = parameters.has('recovery');
+ const adminLogin = parameters.has('admin');
+ const loginRole = patientLogin ? 'patient' : adminLogin ? 'admin' : 'doctor';
+ const accessState = {role: loginRole, full_name: adminLogin ? 'Platform Admin' : patientLogin ? 'Test Patient' : 'Test Doctor', status: 'active', application: null};
+ const adminCalls:any[] = (window as any).__adminCalls = [];
+ const adminAccounts:any[] = [
+   {id:'admin-user',email:'admin@example.test',full_name:'Platform Admin',role:'admin',status:'active',department:'Platform operations',registration_id:null,joined_at:'2026-10-01T01:00:00Z',last_sign_in_at:'2026-10-29T01:00:00Z',email_confirmed:true,patient_id:null,doctor_application_status:null,assignment_count:0},
+   {id:'doctor-user',email:'doctor@example.test',full_name:'Dr. Test',role:'doctor',status:'active',department:'Endocrinology',registration_id:'MMC-1',joined_at:'2026-10-02T01:00:00Z',last_sign_in_at:'2026-10-29T01:00:00Z',email_confirmed:true,patient_id:null,doctor_application_status:'approved',assignment_count:1},
+   {id:'patient-user',email:'patient@example.test',full_name:'Test Patient',role:'patient',status:'active',department:null,registration_id:null,joined_at:'2026-10-03T01:00:00Z',last_sign_in_at:'2026-10-29T01:00:00Z',email_confirmed:true,patient_id:'test-a',doctor_application_status:null,assignment_count:0},
+ ];
+ const adminApplications:any[] = [
+   {user_id:'applicant-user',full_name:'Dr. Applicant',email:'applicant@example.test',organisation:'Borneo Clinic',registration_id:'MMC-9',status:'pending',review_note:null,applied_at:'2026-10-28T01:00:00Z',reviewed_at:null,email_confirmed:true},
+ ];
+ const adminActivity:any[] = [
+   {id:'1',action:'Doctor application received',detail:'Borneo Clinic',subject_label:'Dr. Applicant',patient_id:null,actor_email:'applicant@example.test',created_at:'2026-10-28T01:00:00Z'},
+ ];
+ const adminOverview = {accounts:3,activeDoctors:1,patients:1,pendingApplications:1,unassignedPatients:0,suspendedAccounts:0,recentActivity:adminActivity};
+ const adminDirectory = [{patient_number:'test-a',patient_name:'Test Patient',assigned_doctor_id:'doctor-user',assigned_doctor_name:'Dr. Test'}];
  const summaries = empty ? [] : [
    {'Patient Number':'test-a','Age (years)':55,'HbA1c (mmol/mol)':66,'Weight (kg)':70,'Fasting Plasma Glucose (mg/dl)':130,'Type of Diabetes':'T2D'},
    {'Patient Number':'test-b','Age (years)':null,'HbA1c (mmol/mol)':null},
@@ -166,7 +183,7 @@
  const client = getSupabaseClient()!;
  (window as any).__clinicalReads = 0;
  let authCallback:any;
- const user = {id:patientLogin?'browser-patient':'browser-doctor',email:patientLogin?'patient@example.test':'doctor@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:patientLogin?'patient':'doctor'},user_metadata:{role:'doctor'}};
+ const user = {id:patientLogin?'browser-patient':adminLogin?'browser-admin':'browser-doctor',email:patientLogin?'patient@example.test':adminLogin?'admin@example.test':'doctor@example.test',email_confirmed_at:'2026-10-24',app_metadata:{role:loginRole},user_metadata:{role:'doctor'}};
  client.auth.getUser = async () => ({data:{user},error:null}) as any;
  client.auth.getSession = async () => ({data:{session:anonymous?null:{user,access_token:'fixture-token'}},error:null}) as any;
  client.auth.onAuthStateChange = (callback:any) => {authCallback=callback;setTimeout(()=>callback(recovering?'PASSWORD_RECOVERY':'INITIAL_SESSION',anonymous ? null : {user}),0);return {data:{subscription:{unsubscribe(){}}}};};
@@ -174,7 +191,37 @@
  (window as any).__backgroundSignIn = () => authCallback('SIGNED_IN',{user});
  client.auth.updateUser = async () => ({data:{user},error:null}) as any;
  client.auth.signOut = async () => {authCallback('SIGNED_OUT',null);return {error:null};};
- client.rpc = async () => ((window as any).__clinicalReads++, {data:{profile:{id:user.id,full_name:'Test Patient',patient_id:'test-a'},summary:summaries[0],readings:[]},error:null}) as any;
+ client.rpc = async (fn:string, args?:any) => {
+   if (fn === 'get_my_access_state') return {data: accessState, error: null} as any;
+   if (adminLogin) {
+     adminCalls.push({fn: fn, args: args});
+     if (fn === 'admin_overview') return {data: adminOverview, error: null} as any;
+     if (fn === 'admin_list_accounts') return {data: {rows: adminAccounts, total: adminAccounts.length}, error: null} as any;
+     if (fn === 'admin_list_doctor_applications') return {data: {rows: adminApplications, total: adminApplications.length}, error: null} as any;
+     if (fn === 'admin_list_patient_directory') return {data: {rows: adminDirectory, total: adminDirectory.length}, error: null} as any;
+     if (fn === 'admin_list_assignable_doctors') return {data: [{id:'doctor-user',full_name:'Dr. Test',email:'doctor@example.test',assignment_count:1}], error: null} as any;
+     if (fn === 'admin_list_activity') return {data: {rows: adminActivity, total: adminActivity.length}, error: null} as any;
+     if (fn === 'admin_review_doctor_application') {
+       const application = adminApplications.find(item => item.user_id === args.p_user_id);
+       if (application) { application.status = args.p_decision; application.review_note = args.p_note || null; application.reviewed_at = '2026-10-29T02:00:00Z'; }
+       return {data: adminAccounts[0], error: null} as any;
+     }
+     if (fn === 'admin_set_account_status') {
+       const account = adminAccounts.find(item => item.id === args.p_user_id);
+       if (account) account.status = args.p_status;
+       return {data: account || adminAccounts[0], error: null} as any;
+     }
+     if (fn === 'admin_set_account_role') {
+       const account = adminAccounts.find(item => item.id === args.p_user_id);
+       if (account) { account.role = args.p_role; account.registration_id = args.p_registration_id; account.department = args.p_department; }
+       return {data: account || adminAccounts[0], error: null} as any;
+     }
+     if (fn === 'admin_set_patient_assignment') return {data: {patient_number: args.p_patient_number, doctor_id: args.p_doctor_id}, error: null} as any;
+     return {data: null, error: null} as any;
+   }
+   (window as any).__clinicalReads++;
+   return {data:{profile:{id:user.id,full_name:'Test Patient',patient_id:'test-a'},summary:summaries[0],readings:[]},error:null} as any;
+ };
  client.from = (table:string) => {
    (window as any).__clinicalReads++;
    let selected:string|undefined;
@@ -441,12 +488,17 @@
       ["Home", "Glucose trend"],
       ["My profile", "Complete recorded summary"],
       ["My health", "Ambulatory Glucose Profile (AGP)"],
-      ["My digital twin", "Physiological evidence map"],
-      ["Risk prediction & what-if", "CGM forecast"],
+      ["My digital twin", "CGM forecast"],
       ["My recommendations", "No recommendations shared yet"],
       ["Reports", "Complete recorded summary"],
     ])
       await expectPage(label, text);
+    assert(
+      await evaluate(
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Risk prediction')) && [...document.querySelectorAll('aside button')].filter(b=>b.textContent.trim()==='My digital twin').length===1`,
+      ),
+      "Patient workspace must expose exactly one 'My digital twin' prediction tab",
+    );
     await click("Doctor dashboard", "document.querySelector('aside')");
     await ready("Care overview");
     await open("?empty");
@@ -483,10 +535,17 @@
     await ready("Glucose trend");
     for (const [label, text] of [
       ["My health", "Ambulatory Glucose Profile (AGP)"],
-      ["My digital twin", "Physiological evidence map"],
+      ["My digital twin", "CGM forecast"],
       ["Reports", "Complete recorded summary"],
     ])
       await expectPage(label, text);
+    await expectPage("My digital twin", "CGM forecast");
+    assert(
+      await evaluate(
+        `document.querySelector('[data-testid="prediction-panel"]')!==null && !document.querySelector('[aria-label="Prediction patient"]')`,
+      ),
+      "Patient self-care digital twin must open the predictive simulation without the doctor patient selector",
+    );
     assert(
       !(await evaluate(
         `document.body.innerText.includes('test-b') || document.body.innerText.includes('Doctor dashboard')`,
@@ -536,9 +595,9 @@
     await screenshot("restored-my-health-mobile.png");
     assert(
       await evaluate(
-        `!document.body.innerText.includes('Risk prediction & what-if') && !document.body.innerText.includes('Explore prediction and what-if') && !document.body.innerText.includes('Open prediction and what-if lab')`,
+        `![...document.querySelectorAll('aside button')].some(b=>b.textContent.includes('Risk prediction')) && [...document.querySelectorAll('aside button')].filter(b=>b.textContent.trim()==='My digital twin').length===1`,
       ),
-      "Patient account can see Doctor-only prediction entry points",
+      "Patient account must have one 'My digital twin' tab and no separate prediction tab",
     );
     await send("Emulation.setDeviceMetricsOverride", {
       width: 390,
@@ -1066,6 +1125,38 @@
     );
     console.log(
       "PASS: login first despite restored/background sessions, invalid password stays signed out, explicit Doctor/Patient sign-in, and password recovery returns to login",
+    );
+    await open("?admin");
+    await ready("A clear view of your platform.");
+    assert(
+      await evaluate(
+        `window.__adminCalls.length > 0 && window.__adminCalls[0].fn === 'admin_overview'`,
+      ),
+      "Admin workspace did not load real overview data",
+    );
+    assert(
+      await evaluate(
+        `!document.body.innerText.includes('Demo workspace') && !document.body.innerText.includes('Reset demo') && localStorage.getItem('diatwin.admin-demo.v1') === null`,
+      ),
+      "Admin workspace still uses browser demo state",
+    );
+    for (const [label, text] of [
+      ["User accounts", "Platform Admin"],
+      ["Doctor approvals", "Dr. Applicant"],
+      ["Patient assignments", "Test Patient"],
+      ["Activity history", "Doctor application received"],
+    ])
+      await expectPage(label, text);
+    assert(
+      await evaluate(
+        `window.__adminCalls.some(call => call.fn === 'admin_list_accounts') && window.__adminCalls.some(call => call.fn === 'admin_list_doctor_applications') && window.__adminCalls.some(call => call.fn === 'admin_list_patient_directory') && window.__adminCalls.some(call => call.fn === 'admin_list_activity')`,
+      ),
+      "Admin pages did not call their database RPCs",
+    );
+    await click("Back to sign in");
+    await ready("Welcome back");
+    console.log(
+      "PASS: real admin workspace loads database data, all five modules, and contains no browser demo state",
     );
     await send("Browser.close");
   } catch (error) {

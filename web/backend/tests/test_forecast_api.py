@@ -33,11 +33,22 @@ class ForecastApiTests(unittest.TestCase):
         self.env = patch.dict(os.environ, {'SUPABASE_JWT_SECRET': SECRET})
         self.env.start()
         self.addCleanup(self.env.stop)
+        # Care-team assignment authorization is covered in test_auth_roles; this
+        # suite exercises the forecast route itself, so callers are pre-assigned.
+        assignment = patch.object(dashboard, 'patient_is_assigned', return_value=True)
+        assignment.start()
+        self.addCleanup(assignment.stop)
         saver = patch.object(storage, 'save_forecast', return_value={'saved': True, 'run_id': 'test-run'})
         self.saver = saver.start()
         self.addCleanup(saver.stop)
         self.client = dashboard.app.test_client()
         self.url = '/api/patients/2017_1_20201118/glucose-forecast'
+
+    def test_unassigned_doctor_cannot_forecast(self):
+        with patch.object(dashboard, 'patient_is_assigned', return_value=False):
+            response = self.client.post(self.url, json={}, headers=token())
+        self.assertEqual(403, response.status_code)
+        self.assertIn('not assigned', response.get_json()['error'])
 
     def test_requires_authentication(self):
         self.assertEqual(401, self.client.post(self.url, json={}).status_code)

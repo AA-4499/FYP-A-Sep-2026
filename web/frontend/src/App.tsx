@@ -1,9 +1,8 @@
-﻿/** Clinical workspace. Database facts and research simulations have separate views. */
+/** Clinical workspace. Database facts and research simulations have separate views. */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
-import { AdminWorkspace } from "./components/admin/AdminWorkspace";
 import { SupabaseConfigModal } from "./components/SupabaseConfigModal";
 import { PatientRecommendationsView } from "./components/PatientRecommendationsView";
 import { RiskSimulationView } from "./components/RiskSimulationView";
@@ -12,7 +11,6 @@ import {
   CohortOverview,
   PatientRegistry,
   RecordedMonitoring,
-  OrganEvidence,
   RecordedReport,
 } from "./components/ClinicalWorkspace";
 import { fetchSupabasePatients } from "./lib/supabase";
@@ -24,14 +22,16 @@ const KnowledgeGraphView = React.lazy(async () => ({
 
 export const App: React.FC = () => (
   <AuthGateway
-    renderWorkspace={(role, preview, onExit) => (
-      <Workspace
-        key={`${role}-${preview}`}
-        initialRole={role}
-        isPreview={preview}
-        onExit={onExit}
-      />
-    )}
+    renderWorkspace={(role, preview, onExit) =>
+      role === "doctor" || role === "patient" ? (
+        <Workspace
+          key={`${role}-${preview}`}
+          initialRole={role}
+          isPreview={preview}
+          onExit={onExit}
+        />
+      ) : null
+    }
   />
 );
 
@@ -40,12 +40,12 @@ function Workspace({
   isPreview,
   onExit,
 }: {
-  initialRole: UserRole;
+  initialRole: Exclude<UserRole, "admin">;
   isPreview: boolean;
   onExit: () => void;
 }) {
-  const [mode, setMode] = useState<UserRole>(initialRole);
-  // initialRole is verified by AuthGateway; changing the displayed workspace grants no role.
+  const [mode, setMode] = useState<Exclude<UserRole, "admin">>(initialRole);
+  // AuthGateway routes verified admin accounts to AdminWorkspace.
   const canViewPredictions = !isPreview && initialRole === "doctor";
   const canViewKnowledgeGraph = !isPreview && initialRole === "doctor";
   const [doctorPage, setDoctorPage] =
@@ -101,11 +101,7 @@ function Workspace({
   const navigate = (page: NavigationModule) => {
     if (["doctor_monitoring", "doctor_digital_twin", "doctor_knowledge_graph"].includes(page)) return;
     if (page === "patient_knowledge_graph" && !canViewKnowledgeGraph) return;
-    if (
-      ["doctor_predictions", "patient_insights", "risk"].includes(page) &&
-      !canViewPredictions
-    )
-      return;
+    if (page === "doctor_predictions" && !canViewPredictions) return;
     if (page.startsWith("doctor_")) {
       setMode("doctor");
       setDoctorPage(page);
@@ -118,7 +114,6 @@ function Workspace({
     setMode("doctor");
     setDoctorPage("doctor_overview");
   };
-  if (mode === "admin") return <AdminWorkspace onExit={onExit} />;
   const page = mode === "doctor" ? doctorPage : patientPage;
   const settings = page === "doctor_settings";
   const overview = page === "doctor_overview";
@@ -149,7 +144,6 @@ function Workspace({
             }}
             onOpenAuth={onExit}
             isDemo={isPreview}
-            onOpenAdmin={() => setMode("admin")}
             onOpenSupabaseModal={() => setConnectionOpen(true)}
           />
           <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-slate-500">
@@ -302,10 +296,18 @@ function Workspace({
                   onNavigate={navigate}
                 />
               )}
-              {[
-                "patient_digital_twin",
-                "digital_twin",
-              ].includes(page) && <OrganEvidence patient={patient} />}
+              {(["patient_digital_twin", "digital_twin"].includes(page) ||
+                (page === "doctor_predictions" && canViewPredictions)) && (
+                <RiskSimulationView
+                  key={patient.id}
+                  patient={patient}
+                  onNavigate={navigate}
+                  patients={mode === "doctor" ? patients : undefined}
+                  onSelectPatient={
+                    mode === "doctor" ? setSelectedId : undefined
+                  }
+                />
+              )}
               {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (
                 <React.Suspense
                   fallback={
@@ -329,20 +331,6 @@ function Workspace({
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,
               ) && <RecordedReport patient={patient} />}
-              {["doctor_predictions", "patient_insights", "risk"].includes(
-                page,
-              ) &&
-                canViewPredictions && (
-                  <RiskSimulationView
-                    key={patient.id}
-                    patient={patient}
-                    onNavigate={navigate}
-                    patients={mode === "doctor" ? patients : undefined}
-                    onSelectPatient={
-                      mode === "doctor" ? setSelectedId : undefined
-                    }
-                  />
-                )}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
                   recommendations={[]}

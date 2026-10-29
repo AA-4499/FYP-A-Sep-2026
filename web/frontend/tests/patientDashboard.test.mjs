@@ -106,10 +106,11 @@ test('Patient sidebar retains the original navigation without a care-team switch
 });
 
 
-test('Doctor can retain prediction navigation while viewing a patient record', async () => {
+test('Doctor viewing a patient record gets one prediction entry point', async () => {
   const { Sidebar } = await componentModule('Sidebar');
   const html = renderToStaticMarkup(React.createElement(Sidebar, {mode:'patient',activeModule:'patient_home',canViewPredictions:true,onSelectModule(){}}));
-  assert.match(html, /Risk prediction &amp; what-if/);
+  assert.equal((html.match(/My digital twin/g) || []).length, 1);
+  assert.doesNotMatch(html, /Risk prediction|patient_insights/);
 });
 
 test('Doctor prediction navigation is denied by default, including anonymous previews', async () => {

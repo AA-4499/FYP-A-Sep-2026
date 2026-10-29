@@ -6,6 +6,7 @@ from functools import wraps
 from typing import AbstractSet, Callable
 
 import jwt
+import requests
 from flask import g, jsonify, request
 
 ROLE_CLAIMS = ("role", "user_role")
@@ -29,6 +30,42 @@ def _patient_record_link(user_id: str, token: str) -> str | None:
         return None
     value = rows[0].get('patient_id')
     return value if isinstance(value, str) and value else None
+
+
+def patient_is_assigned(user_id: str, patient_id: str, token: str) -> bool:
+    """Return True only when the caller's own RLS-bound token sees an assignment.
+
+    The query runs with the caller's Bearer token, so database row level security
+    limits ``clinician_patient_assignments`` to rows that belong to this account.
+    The server key is only used for the project ``apikey`` header, never as the
+    row-level identity. Any transport or response problem raises ``RuntimeError``
+    so callers fail closed instead of granting access.
+    """
+    from models.training.supabase_io import supabase_config, supabase_headers
+
+    url, key = supabase_config()
+    try:
+        response = requests.get(
+            f"{url}/rest/v1/clinician_patient_assignments",
+            headers={**supabase_headers(key), "Authorization": f"Bearer {token}"},
+            params={
+                "select": "patient_id",
+                "clinician_id": f"eq.{user_id}",
+                "patient_id": f"eq.{patient_id}",
+                "limit": "1",
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        rows = response.json()
+    except (requests.RequestException, ValueError):
+        raise RuntimeError("Your care-team assignment could not be verified.") from None
+    return isinstance(rows, list) and len(rows) > 0
+
+
+def request_access_token() -> str | None:
+    """Return the Bearer token presented on the current request, if any."""
+    return _token_from_request()
 
 
 def _token_from_request() -> str | None:

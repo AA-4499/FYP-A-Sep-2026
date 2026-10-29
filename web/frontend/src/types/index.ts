@@ -165,68 +165,6 @@ export interface KnowledgeGraphEdge {
   label?: string;
 }
 
-export interface ServiceHealthItem {
-  id: string;
-  name: string;
-  status: "Operational" | "Degraded" | "Down";
-  latencyMs: number;
-  uptimePct: number;
-  endpoint: string;
-  lastChecked: string;
-}
-
-export interface ROCPoint {
-  fpr: number;
-  tpr: number;
-  threshold: number;
-}
-
-export interface DataCoverageItem {
-  indicator: string;
-  category: string;
-  coveragePct: number;
-  totalRecords: number;
-  validRecords: number;
-  missingRecords: number;
-  status: "Excellent" | "Good" | "Needs Attention";
-}
-
-export interface AdminUserRecord {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "doctor" | "patient";
-  status: "Active" | "Inactive";
-  assignedCohort?: string;
-  lastLogin: string;
-  createdAt: string;
-  permissions: string[];
-}
-
-// New interface for admin dashboard key performance indicators
-export interface AdminKPIs {
-  totalUsers: number;
-  totalPatients: number;
-  totalDoctors: number;
-  totalDatasets: number;
-  serviceHealth: ServiceHealthItem[]; // Reuse ServiceHealthItem defined earlier
-  aiModelSummary: {
-    auc: number;
-    rocPoints: ROCPoint[];
-  };
-  dataCoverage: DataCoverageItem[]; // Reuse DataCoverageItem
-}
-
-export interface TwinIndicatorRule {
-  id: string;
-  indicator: string;
-  sourceDataset: string;
-  timeWindow: "Hourly" | "Daily" | "Per-Visit" | "Continuous (CGM)";
-  weight: number;
-  enabled: boolean;
-  algorithm: string;
-}
-
 export interface QuickLogEntry {
   id: string;
   type: "meal" | "activity";

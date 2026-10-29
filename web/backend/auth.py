@@ -96,6 +96,7 @@ def require_auth(roles: AbstractSet[str] | None = None) -> Callable:
             if roles and role not in roles:
                 return jsonify({"error": "Insufficient role for this endpoint."}), 403
             g.current_user = {"id": claims["sub"], "email": claims.get("email"), "role": role or "patient", "claims": claims}
+            g.access_token = token
             return view(*args, **kwargs)
         return wrapped
     return decorator

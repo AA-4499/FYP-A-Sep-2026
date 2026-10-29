@@ -9,11 +9,6 @@ import { PatientRecommendationsView } from "./components/PatientRecommendationsV
 import { RiskSimulationView } from "./components/RiskSimulationView";
 import { PatientHomeView } from "./components/PatientHomeView";
 import {
-  createDemoRecommendations,
-  type ClinicalRecommendation,
-  type RecommendationStatus,
-} from "./data/knowledgeGraphDemoData";
-import {
   CohortOverview,
   PatientRegistry,
   RecordedMonitoring,
@@ -63,10 +58,6 @@ function Workspace({
   const [error, setError] = useState("");
   const [loadedAt, setLoadedAt] = useState("");
   const [connectionOpen, setConnectionOpen] = useState(false);
-  // The branch's review/share prototype is scoped to a selected record and this session.
-  const [recommendationsByPatient, setRecommendationsByPatient] = useState<
-    Record<string, ClinicalRecommendation[]>
-  >({});
   const revision = useRef(0);
   const refresh = useCallback(async () => {
     const request = ++revision.current;
@@ -102,44 +93,6 @@ function Workspace({
     };
   }, [refresh]);
   const patient = patients.find((p) => p.id === selectedId);
-  const recommendations = patient
-    ? (recommendationsByPatient[patient.id] ??
-      createDemoRecommendations(patient.id))
-    : [];
-  const sharedRecommendations = recommendations.filter(
-    (item) => item.status === "published",
-  );
-  const reviewRecommendation = (id: string, status: RecommendationStatus) => {
-    if (!patient || status === "published") return;
-    const recordId = patient.id;
-    setRecommendationsByPatient((previous) => ({
-      ...previous,
-      [recordId]: (
-        previous[recordId] ?? createDemoRecommendations(recordId)
-      ).map((item) =>
-        item.id === id ? { ...item, status, publishedAt: undefined } : item,
-      ),
-    }));
-  };
-  const shareRecommendations = (ids: string[]) => {
-    if (!patient) return;
-    const recordId = patient.id;
-    const selected = new Set(ids);
-    setRecommendationsByPatient((previous) => ({
-      ...previous,
-      [recordId]: (
-        previous[recordId] ?? createDemoRecommendations(recordId)
-      ).map((item) =>
-        item.status === "approved" && selected.has(item.id)
-          ? {
-              ...item,
-              status: "published",
-              publishedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    }));
-  };
   const openPatient = (id: string) => {
     setSelectedId(id);
     setMode("patient");
@@ -247,7 +200,7 @@ function Workspace({
               {error}
             </div>
           )}
-          {!patient && !overview && !settings && (
+          {!patient && !overview && !settings && page !== "doctor_knowledge_graph" && (
             <section
               role="status"
               className="rounded-3xl border border-slate-200 bg-white p-8"
@@ -271,6 +224,22 @@ function Workspace({
               patients={patients}
               onOpen={openPatient}
             />
+          )}
+          {page === "doctor_knowledge_graph" && (
+            <React.Suspense
+              fallback={
+                <section role="status" className="rounded-2xl bg-white p-6 text-sm text-slate-500">
+                  Loading Knowledge Graph…
+                </section>
+              }
+            >
+              <KnowledgeGraphView
+                patients={patients}
+                patientId={selectedId}
+                onSelectPatient={setSelectedId}
+                onPreviewPatientView={openPatient}
+              />
+            </React.Suspense>
           )}
           {settings && (
             <section className="rounded-3xl border border-slate-200 bg-white p-6">
@@ -316,7 +285,7 @@ function Workspace({
                 <PatientHomeView
                   patient={patient}
                   onNavigate={navigate}
-                  sharedRecommendations={sharedRecommendations}
+                  sharedRecommendations={[]}
                   canViewPredictions={canViewPredictions}
                 />
               )}
@@ -350,11 +319,9 @@ function Workspace({
                 >
                   <KnowledgeGraphView
                     key={patient.id}
-                    patient={patient}
+                    patients={patients}
                     patientId={patient.id}
-                    recommendations={recommendations}
-                    onRecommendationStatusChange={reviewRecommendation}
-                    onPublishRecommendations={shareRecommendations}
+                    onSelectPatient={setSelectedId}
                     onPreviewPatientView={() => openPatient(patient.id)}
                   />
                 </React.Suspense>
@@ -378,7 +345,7 @@ function Workspace({
                 )}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
-                  recommendations={sharedRecommendations}
+                  recommendations={[]}
                 />
               )}
             </>

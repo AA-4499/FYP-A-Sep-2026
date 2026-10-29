@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - TrainingModel
+      - KnowledgeGraph
   pull_request:
     branches:
       - main
       - TrainingModel
+      - KnowledgeGraph
 
 permissions:
   contents: read

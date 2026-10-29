@@ -6,7 +6,6 @@ import {
   ChevronDown,
   KeyRound,
   Database,
-  ShieldCheck,
   LogOut,
 } from "lucide-react";
 import type { Patient } from "../types";
@@ -21,7 +20,6 @@ interface TopBarProps {
   onSwitchMode: (mode: "patient" | "doctor") => void;
   onOpenAuth: () => void;
   isDemo: boolean;
-  onOpenAdmin: () => void;
   onOpenSupabaseModal: () => void;
 }
 
@@ -35,7 +33,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSwitchMode,
   onOpenAuth,
   isDemo,
-  onOpenAdmin,
   onOpenSupabaseModal,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -239,19 +236,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                   <LogOut className="w-3.5 h-3.5 text-blue-600" />
                 )}
                 <span>{isDemo ? "Sign in / Register" : "Sign out"}</span>
-              </button>
-              <button
-                onClick={() => {
-                  onOpenAdmin();
-                  setIsProfileMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                <span>
-                  Admin dashboard{" "}
-                  <span className="text-[10px] text-slate-400">(Demo)</span>
-                </span>
               </button>
               <button
                 onClick={() => {

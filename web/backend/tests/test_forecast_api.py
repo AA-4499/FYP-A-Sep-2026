@@ -33,11 +33,22 @@ class ForecastApiTests(unittest.TestCase):
         self.env = patch.dict(os.environ, {'SUPABASE_JWT_SECRET': SECRET})
         self.env.start()
         self.addCleanup(self.env.stop)
+        # Care-team assignment authorization is covered in test_auth_roles; this
+        # suite exercises the forecast route itself, so callers are pre-assigned.
+        assignment = patch.object(dashboard, 'patient_is_assigned', return_value=True)
+        assignment.start()
+        self.addCleanup(assignment.stop)
         saver = patch.object(storage, 'save_forecast', return_value={'saved': True, 'run_id': 'test-run'})
         self.saver = saver.start()
         self.addCleanup(saver.stop)
         self.client = dashboard.app.test_client()
         self.url = '/api/patients/2017_1_20201118/glucose-forecast'
+
+    def test_unassigned_doctor_cannot_forecast(self):
+        with patch.object(dashboard, 'patient_is_assigned', return_value=False):
+            response = self.client.post(self.url, json={}, headers=token())
+        self.assertEqual(403, response.status_code)
+        self.assertIn('not assigned', response.get_json()['error'])
 
     def test_requires_authentication(self):
         self.assertEqual(401, self.client.post(self.url, json={}).status_code)
@@ -48,8 +59,8 @@ class ForecastApiTests(unittest.TestCase):
             self.assertEqual(403, response.status_code)
             forecast.assert_not_called()
 
-    def test_only_doctor_and_legacy_clinician_can_forecast(self):
-        for headers in (token(), token('clinician')):
+    def test_authorized_roles_can_forecast(self):
+        for headers in (token(), token('clinician'), token('admin'), token('patient', '2017_1_20201118')):
             with patch.object(service, 'forecast_patient', return_value={'patient_id': '2017_1_20201118'}) as forecast:
                 response = self.client.post(self.url, json={'horizon_hours': 6}, headers=headers)
                 self.assertEqual(200, response.status_code)

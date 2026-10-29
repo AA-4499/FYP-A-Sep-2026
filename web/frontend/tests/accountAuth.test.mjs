@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/lib/accountAuth.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } });
-const { trustedRole, registerPatient, confirmationUrl, authErrorMessage } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { trustedRole, registerPatient, confirmationUrl, authErrorMessage, accessErrorMessage, accessStateFromRpc, applyAsDoctor, validateDoctorApplication } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 const input = { name: ' Test Patient ', identityNumber: ' 001122-33-4455 ', email: ' test@example.com ', password: 'test-password-123', confirm: 'test-password-123' };
 
 test('signup submits only profile metadata; role and record access are never client-assigned', async () => {
@@ -66,4 +66,46 @@ test('rate limits, unconfirmed accounts, and network failures produce usable err
   assert.match(authErrorMessage({ code: 'over_email_send_rate_limit' }), /wait/);
   assert.match(authErrorMessage({ code: 'email_not_confirmed' }), /confirm your email/);
   assert.match(authErrorMessage(null), /try again/);
+});
+
+test('doctor applications submit professional metadata without granting a role', async () => {
+  let request;
+  const client = { auth: { signUp: async (value) => { request = value; return { data: { user: { id: 'applicant' }, session: null }, error: null }; } } };
+  const input = { name: ' Dr. Applicant ', organisation: ' Borneo Clinic ', registrationNumber: ' MMC-123 ', email: 'doc@example.com', password: 'strong-password', confirm: 'strong-password' };
+  for (const missing of [
+    { ...input, registrationNumber: ' ' },
+    { ...input, organisation: ' ' },
+    { ...input, registrationNumber: 'A'.repeat(121) },
+    { ...input, organisation: 'A\nB' },
+    { ...input, confirm: 'different' },
+  ]) await assert.rejects(applyAsDoctor(client, missing, 'https://example.test'));
+  assert.equal(request, undefined);
+  await applyAsDoctor(client, input, 'https://example.test/auth?code=secret');
+  assert.equal(request.email, 'doc@example.com');
+  assert.equal(request.options.emailRedirectTo, 'https://example.test/');
+  assert.deepEqual(request.options.data, {
+    full_name: 'Dr. Applicant',
+    requested_role: 'doctor',
+    registration_id: 'MMC-123',
+    organisation: 'Borneo Clinic',
+  });
+  assert.equal(request.options.data.role, undefined);
+  assert.equal(request.options.data.patient_id, undefined);
+  assert.equal(validateDoctorApplication(input), undefined);
+});
+
+test('access state payloads grant exactly the database role and fail closed on malformed data', () => {
+  assert.deepEqual(accessStateFromRpc({ role: 'admin', full_name: 'Admin', status: 'active', application: null }), { role: 'admin', full_name: 'Admin', status: 'active', application: null });
+  assert.deepEqual(accessStateFromRpc({ role: 'patient', full_name: '', status: 'active', application: { status: 'pending', review_note: null } }), { role: 'patient', full_name: '', status: 'active', application: { status: 'pending', review_note: null } });
+  for (const invalid of [
+    null, {}, { role: 'superuser', status: 'active' }, { role: 'admin', status: 'unknown' },
+    { role: 'admin', status: 'active', application: { status: 'bogus' } },
+    'admin', 42,
+  ]) assert.equal(accessStateFromRpc(invalid), null, JSON.stringify(invalid));
+});
+
+test('access errors distinguish missing admin migration from expired sessions', () => {
+  assert.match(accessErrorMessage({ code: 'PGRST202', message: 'Could not find the function' }), /migration/);
+  assert.match(accessErrorMessage({ code: 'PGRST301', message: 'JWT expired' }), /session has expired/);
+  assert.match(accessErrorMessage({ code: '42501', message: 'Admin access required.' }), /Admin access required/);
 });

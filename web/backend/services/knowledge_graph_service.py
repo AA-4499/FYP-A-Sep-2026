@@ -1,32 +1,24 @@
-"""Patient-to-condition knowledge graph backed by a dedicated Neo4j container.
+"""Compose an authorised patient's condition graph from Supabase and Aura concepts.
 
-Only the patient anchor and recorded diabetes/other conditions are represented.
-Patient data remains owned by the application's existing patient-data service
-(Supabase in the integrated deployment). A limited frontend payload is accepted
-as a development fallback when that service does not recognise the selected ID.
+The shared Aura database stores reusable MedicalConcept knowledge only.
+Patient-specific nodes and identifiers are not persisted to Aura.
 """
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from neo4j import GraphDatabase
 from .patient_service import get_patient
 
 logger = logging.getLogger(__name__)
 
 class KnowledgeGraphUnavailableError(RuntimeError):
-    """The separate Patient Neo4j instance could not be reached or queried."""
+    """A patient graph source was unavailable."""
 
 class PatientNotFoundError(ValueError):
     """The selected patient is not available from the patient service or payload."""
 
-_DRIVER = None
-_URI = os.getenv("PATIENT_NEO4J_URI", "bolt://127.0.0.1:7688")
-_USER = os.getenv("PATIENT_NEO4J_USER", "neo4j")
-_PASSWORD = os.getenv("PATIENT_NEO4J_PASSWORD", "patientkg2026")
 
 _EMPTY = {"", "/", "-", "--", "none", "null", "n/a", "na", "not available", "unknown"}
 _FIELDS = {
@@ -103,7 +95,11 @@ def _true(value: Any) -> bool:
     return isinstance(value, str) and value.strip().casefold() in {"yes", "y", "true", "1", "present"}
 
 def extract_patient_conditions(patient: Mapping[str, Any]) -> List[Dict[str, str]]:
-    """Extract only the patient's diabetes type, comorbidities, and complications."""
+    """Extract diabetes type, comorbidities and complications from a record."""
+    # Supabase patient_service puts the original summary columns in recorded_fields.
+    recorded = patient.get("recorded_fields")
+    if isinstance(recorded, Mapping):
+        patient = {**recorded, **patient}
     collected: List[Tuple[str, str]] = []
     diabetes_value = _first(patient, _FIELDS["diabetes_type"])
     for name in _names(diabetes_value):
@@ -143,63 +139,163 @@ def extract_patient_conditions(patient: Mapping[str, Any]) -> List[Dict[str, str
         })
     return unique
 
-def _driver():
-    global _DRIVER
-    if _DRIVER is None:
-        try:
-            candidate = GraphDatabase.driver(_URI, auth=(_USER, _PASSWORD))
-            candidate.verify_connectivity()
-            _DRIVER = candidate
-        except Exception as exc:
-            raise KnowledgeGraphUnavailableError(
-                "Could not connect to Patient Neo4j. Check PATIENT_NEO4J_URI, "
-                "PATIENT_NEO4J_USER, PATIENT_NEO4J_PASSWORD, and the patient-neo4j container."
-            ) from exc
-    return _DRIVER
+def _concept_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", _canonical(value).casefold()).strip()
 
-def _write_and_read(tx, patient_id: str, conditions: List[Dict[str, str]]) -> Dict[str, Any]:
-    tx.run(
-        "MERGE (p:Patient {patientId: $patientId}) "
-        "SET p.displayLabel = 'Patient', p.source = 'application patient record'",
-        patientId=patient_id,
-    ).consume()
-    tx.run(
-        "MATCH (p:Patient {patientId: $patientId}) "
-        "OPTIONAL MATCH (p)-[r:HAS_CONDITION]->(:Condition) "
-        "WITH collect(r) AS oldRels "
-        "FOREACH (rel IN oldRels | DELETE rel)",
-        patientId=patient_id,
-    ).consume()
-    if conditions:
-        tx.run(
-            "MATCH (p:Patient {patientId: $patientId}) "
-            "UNWIND $conditions AS item "
-            "MERGE (c:Condition {conditionId: item.id}) "
-            "SET c.name = item.name, c.category = item.category "
-            "MERGE (p)-[r:HAS_CONDITION {category: item.category}]->(c) "
-            "SET r.label = item.edgeLabel, r.source = 'application patient record'",
-            patientId=patient_id, conditions=conditions,
-        ).consume()
-    row = tx.run(
-        "MATCH (p:Patient {patientId: $patientId}) "
-        "OPTIONAL MATCH (p)-[r:HAS_CONDITION]->(c:Condition) "
-        "RETURN p.patientId AS patientId, collect(CASE WHEN c IS NULL THEN null ELSE "
-        "{id:c.conditionId,name:c.name,category:c.category,edgeLabel:r.label} END) AS conditions",
-        patientId=patient_id,
-    ).single()
-    return {"patientId": row["patientId"], "conditions": [x for x in row["conditions"] if x is not None]}
+
+def _concept_node_data(concept: Mapping[str, Any]) -> Dict[str, Any]:
+    refs = concept.get("sourceRefs") or []
+    if not isinstance(refs, list):
+        refs = [str(refs)]
+    return {
+        "id": str(concept.get("id") or ""),
+        "label": str(concept.get("name") or "Unnamed concept"),
+        "kind": "MedicalConcept",
+        "category": str(concept.get("category") or "Clinical concept"),
+        "description": str(concept.get("description") or ""),
+        "sourceRefs": [str(item) for item in refs],
+        "scope": str(concept.get("scope") or ""),
+        "schemaVersion": str(concept.get("schemaVersion") or ""),
+    }
+
+
+def _compose_patient_graph(
+    patient_id: str,
+    conditions: List[Dict[str, str]],
+    clinical_graph: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Compose a selected patient's graph in memory without persisting PHI to Aura."""
+    nodes_by_id: Dict[str, Dict[str, Any]] = {
+        "patient": {
+            "data": {
+                "id": "patient",
+                "label": "Patient",
+                "kind": "Patient",
+                "category": "patient",
+                "description": "Patient anchor composed for this request from the authorised Supabase record.",
+            }
+        }
+    }
+    edges_by_id: Dict[str, Dict[str, Any]] = {}
+
+    for condition in conditions:
+        condition_id = condition["id"]
+        nodes_by_id[condition_id] = {
+            "data": {
+                "id": condition_id,
+                "label": condition["name"],
+                "kind": "Condition",
+                "category": condition["category"],
+                "description": "Recorded in the selected patient's Supabase summary.",
+                "source": "Supabase patient record",
+            }
+        }
+        edge_id = "patient-" + _slug(condition_id)
+        edges_by_id[edge_id] = {
+            "data": {
+                "id": edge_id,
+                "source": "patient",
+                "target": condition_id,
+                "label": condition.get("edgeLabel") or _EDGE_LABELS.get(condition["category"], "has condition"),
+                "status": "recorded",
+                "evidenceStatus": "recorded",
+            }
+        }
+
+    clinical_nodes = [
+        node for node in (clinical_graph.get("nodes") or [])
+        if isinstance(node, Mapping) and node.get("id") and node.get("name")
+    ]
+    clinical_by_id = {str(node["id"]): node for node in clinical_nodes}
+    clinical_by_key = {_concept_key(str(node["name"])): node for node in clinical_nodes}
+    matched_concept_ids = set()
+
+    for condition in conditions:
+        concept = clinical_by_key.get(_concept_key(condition["name"]))
+        if not concept:
+            continue
+        concept_data = _concept_node_data(concept)
+        concept_id = concept_data["id"]
+        if not concept_id:
+            continue
+        nodes_by_id.setdefault(concept_id, {"data": concept_data})
+        matched_concept_ids.add(concept_id)
+        edge_id = "match-" + _slug(condition["id"]) + "-" + _slug(concept_id)
+        edges_by_id[edge_id] = {
+            "data": {
+                "id": edge_id,
+                "source": condition["id"],
+                "target": concept_id,
+                "label": "matches clinical concept",
+                "status": "matched",
+                "evidenceStatus": "matched",
+            }
+        }
+
+    # Surface only one-hop context around matched concepts. Evidence status is
+    # carried through unchanged so downstream analysis can reject candidates.
+    for edge in clinical_graph.get("edges") or []:
+        if not isinstance(edge, Mapping):
+            continue
+        source_id = str(edge.get("source") or "")
+        target_id = str(edge.get("target") or "")
+        if not source_id or not target_id:
+            continue
+        if source_id not in matched_concept_ids and target_id not in matched_concept_ids:
+            continue
+        source_node = clinical_by_id.get(source_id)
+        target_node = clinical_by_id.get(target_id)
+        if not source_node or not target_node:
+            continue
+        nodes_by_id.setdefault(source_id, {"data": _concept_node_data(source_node)})
+        nodes_by_id.setdefault(target_id, {"data": _concept_node_data(target_node)})
+        predicate = str(edge.get("predicate") or "RELATED_TO")
+        edge_id = "clinical-" + str(edge.get("id") or (
+            _slug(source_id) + "-" + _slug(predicate) + "-" + _slug(target_id)
+        ))
+        refs = edge.get("sourceRefs") or []
+        if not isinstance(refs, list):
+            refs = [str(refs)]
+        status = str(edge.get("evidenceStatus") or "candidate_for_review")
+        edges_by_id[edge_id] = {
+            "data": {
+                "id": edge_id,
+                "source": source_id,
+                "target": target_id,
+                "label": str(edge.get("label") or predicate.lower().replace("_", " ")),
+                "predicate": predicate,
+                "status": status,
+                "evidenceStatus": status,
+                "sourceRefs": [str(item) for item in refs],
+                "evidenceNote": str(edge.get("evidenceNote") or ""),
+                "evidenceType": str(edge.get("evidenceType") or ""),
+                "scope": str(edge.get("scope") or ""),
+                "schemaVersion": str(edge.get("schemaVersion") or ""),
+            }
+        }
+
+    return {
+        "patient_id": patient_id,
+        "elements": {
+            "nodes": list(nodes_by_id.values()),
+            "edges": list(edges_by_id.values()),
+        },
+        "stats": {
+            "total_nodes": len(nodes_by_id),
+            "total_edges": len(edges_by_id),
+            "condition_count": len(conditions),
+            "matched_concept_count": len(matched_concept_ids),
+            "graph_scope": "Ephemeral graph composed from Supabase and Aura concepts; not persisted to Aura",
+            "persistence": "Patient-specific graph exists only in the API response.",
+        },
+    }
+
 
 def get_patient_knowledge_graph(
     patient_id: str,
     patient_payload: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Synchronise a selected patient's conditions and return Cytoscape elements.
-
-    The existing patient service is authoritative. The restricted payload is
-    used only as a fallback for the app's currently selected record when that
-    ID is not present in the backend service (for example, a Supabase-backed
-    record while local mock data is still installed).
-    """
+    """Build the selected patient's graph from an authoritative record and reusable concepts."""
     patient_id = str(patient_id).strip()
     if not patient_id:
         raise PatientNotFoundError("A patient identifier is required.")
@@ -214,36 +310,12 @@ def get_patient_knowledge_graph(
 
     conditions = extract_patient_conditions(patient)
     try:
-        with _driver().session() as session:
-            data = session.execute_write(_write_and_read, patient_id, conditions)
-    except KnowledgeGraphUnavailableError:
-        raise
+        from .clinical_knowledge_graph_service import get_clinical_knowledge_graph
+        clinical_graph = get_clinical_knowledge_graph()
     except Exception as exc:
-        logger.exception("Failed to synchronise the Patient KG for %s", patient_id)
-        raise KnowledgeGraphUnavailableError("Patient data was found, but Neo4j could not update the Patient KG.") from exc
+        logger.warning("Could not read Aura concepts while composing patient KG: %s", type(exc).__name__)
+        # Recorded patient conditions remain readable while the shared concept
+        # store is unavailable; the Clinical Concepts/Analysis tabs show errors.
+        clinical_graph = {"nodes": [], "edges": []}
 
-    nodes: List[Dict[str, Any]] = [{
-        "data": {"id": "patient", "label": "Patient", "kind": "Patient", "category": "patient"}
-    }]
-    edges: List[Dict[str, Any]] = []
-    for condition in data["conditions"]:
-        nodes.append({"data": {
-            "id": condition["id"], "label": condition["name"],
-            "kind": "Condition", "category": condition["category"],
-        }})
-        edges.append({"data": {
-            "id": f"edge-{_slug(condition['category'])}-{_slug(condition['name'])}",
-            "source": "patient", "target": condition["id"],
-            "label": condition.get("edgeLabel") or _EDGE_LABELS.get(condition["category"], "has condition"),
-        }})
-
-    return {
-        "patient_id": patient_id,
-        "elements": {"nodes": nodes, "edges": edges},
-        "stats": {
-            "total_nodes": len(nodes),
-            "total_edges": len(edges),
-            "condition_count": len(edges),
-            "graph_scope": "Patient and recorded diabetes/other conditions only",
-        },
-    }
+    return _compose_patient_graph(patient_id, conditions, clinical_graph)

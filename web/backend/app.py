@@ -15,7 +15,7 @@ try:
 except ImportError:
     CORS = None
 
-from auth import APP_ROLES, require_auth
+from auth import APP_ROLES, patient_is_assigned, request_access_token, require_auth
 
 from services import (
     list_patients,
@@ -32,10 +32,27 @@ from services import (
 )
 
 from forecast_routes import forecast_api
+from retraining_routes import retraining_api
+from services.retraining_service import recover_interrupted_training
+from services.clinical_knowledge_graph_service import (
+    ClinicalKnowledgeGraphUnavailableError,
+    get_clinical_knowledge_graph,
+)
 from models.training.supabase_io import SupabaseStorageError
+from services.patient_assignment_service import (
+    PatientAssignmentUnavailableError,
+    get_doctor_assigned_patient_ids,
+)
+from services.knowledge_graph_analysis_service import (
+    KnowledgeGraphAnalysisUnavailableError,
+    analyze_patient_knowledge_graph,
+)
+
 
 app = Flask(__name__)
 app.register_blueprint(forecast_api)
+app.register_blueprint(retraining_api)
+recover_interrupted_training()
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 @app.errorhandler(SupabaseStorageError)
@@ -50,9 +67,17 @@ def authorize_api_request():
     if response is not None:
         return response
     user = getattr(g, "current_user", {})
-    if request.endpoint == "forecast_api.glucose_forecast" and user.get("role") != "doctor":
-        return jsonify({"error": "Glucose prediction is available to Doctor accounts only."}), 403
     patient_id = request.view_args.get("patient_id") if request.view_args else None
+    if request.endpoint == "forecast_api.glucose_forecast":
+        if not patient_id:
+            return jsonify({"error": "A patient record is required for a glucose forecast."}), 403
+        if user.get("role") == "doctor":
+            try:
+                assigned = patient_is_assigned(user.get("id", ""), patient_id, request_access_token() or "")
+            except RuntimeError:
+                return jsonify({"error": "This patient's care-team assignment could not be verified. Please try again later."}), 503
+            if not assigned:
+                return jsonify({"error": "This patient is not assigned to your care team."}), 403
     if user.get("role") == "patient" and not patient_id:
         return jsonify({"error": "Patients cannot browse the patient directory."}), 403
     if patient_id and user.get("role") == "patient" and user.get("claims", {}).get("patient_id") != patient_id:
@@ -185,6 +210,10 @@ def patient_knowledge_graph(patient_id: str):
         payload = {}
     if not isinstance(payload, dict) or (payload.get("patient") is not None and not isinstance(payload["patient"], dict)):
         return jsonify({"error": "Provide a JSON object with an optional patient object."}), 400
+    if getattr(g, "current_user", {}).get("role") == "doctor":
+        denial = _verify_doctor_patient_assignment(patient_id)
+        if denial is not None:
+            return denial
     try:
         graph = get_patient_knowledge_graph(patient_id, patient_payload=payload.get("patient"))
         return jsonify(graph)
@@ -192,6 +221,90 @@ def patient_knowledge_graph(patient_id: str):
         return jsonify({"error": str(exc)}), 404
     except RuntimeError as exc:
         app.logger.warning("Patient KG unavailable: %s", exc)
+        return jsonify({"error": str(exc)}), 503
+
+
+# --------------------------------------------------------------------------
+# Read-only Clinical Knowledge Graph (Doctor workspace)
+# --------------------------------------------------------------------------
+
+@app.route("/api/doctor/knowledge-graph", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_clinical_knowledge_graph():
+    """Return the shared clinical concept graph from Neo4j Aura (read-only)."""
+    try:
+        return jsonify(get_clinical_knowledge_graph())
+    except ClinicalKnowledgeGraphUnavailableError as exc:
+        app.logger.warning("Clinical KG unavailable: %s", exc)
+        return jsonify({"error": str(exc), "source": "neo4j-aura"}), 503
+
+def _verify_doctor_patient_assignment(patient_id: str):
+    """Fail closed unless the current doctor has this patient assigned."""
+    user = getattr(g, "current_user", {}) or {}
+    token = getattr(g, "access_token", None)
+    if not token:
+        return jsonify({"error": "Authentication required."}), 401
+    try:
+        assigned_ids = get_doctor_assigned_patient_ids(str(user.get("id") or ""), token)
+    except PatientAssignmentUnavailableError as exc:
+        app.logger.warning("Doctor patient assignments unavailable: %s", type(exc).__name__)
+        return jsonify({"error": "Assigned patient access could not be verified. Check the Supabase assignment table and policies."}), 503
+    if str(patient_id) not in assigned_ids:
+        return jsonify({"error": "This patient is not assigned to your doctor account."}), 403
+    return None
+
+
+@app.route("/api/doctor/assigned-patients", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_assigned_patients():
+    """List only patient IDs assigned to the authenticated doctor."""
+    user = getattr(g, "current_user", {}) or {}
+    token = getattr(g, "access_token", None)
+    if not token:
+        return jsonify({"error": "Authentication required."}), 401
+    try:
+        patient_ids = get_doctor_assigned_patient_ids(str(user.get("id") or ""), token)
+    except PatientAssignmentUnavailableError as exc:
+        app.logger.warning("Doctor patient assignments unavailable: %s", type(exc).__name__)
+        return jsonify({"error": "Assigned patient access could not be verified. Check the Supabase assignment table and policies."}), 503
+    return jsonify({"patient_ids": patient_ids, "count": len(patient_ids)})
+
+
+@app.route("/api/doctor/patients/<patient_id>/knowledge-graph", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_patient_knowledge_graph(patient_id: str):
+    """Return the selected patient's condition graph after assignment validation."""
+    denial = _verify_doctor_patient_assignment(patient_id)
+    if denial is not None:
+        return denial
+    try:
+        return jsonify(get_patient_knowledge_graph(patient_id))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except RuntimeError as exc:
+        app.logger.warning("Patient KG unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
+
+
+@app.route("/api/doctor/patients/<patient_id>/knowledge-graph/analysis", methods=["POST"])
+@require_auth(frozenset({"doctor"}))
+def doctor_patient_knowledge_graph_analysis(patient_id: str):
+    """Interpret the selected patient's knowledge graph using reviewed graph evidence."""
+    denial = _verify_doctor_patient_assignment(patient_id)
+    if denial is not None:
+        return denial
+    try:
+        graph = get_patient_knowledge_graph(patient_id)
+        analysis = analyze_patient_knowledge_graph(graph)
+        analysis["patientId"] = patient_id
+        return jsonify(analysis)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except KnowledgeGraphAnalysisUnavailableError as exc:
+        app.logger.warning("KG analysis unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
+    except RuntimeError as exc:
+        app.logger.warning("Patient KG analysis unavailable: %s", type(exc).__name__)
         return jsonify({"error": str(exc)}), 503
 
 

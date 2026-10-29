@@ -1,18 +1,14 @@
-﻿/** Clinical workspace. Database facts and research simulations have separate views. */
+/** Clinical workspace. Database facts and research simulations have separate views. */
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { LabResultsView } from "./components/LabResultsView";
+import { FontSizeSettings } from "./components/FontSizeSettings";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
-import { AdminWorkspace } from "./components/admin/AdminWorkspace";
 import { SupabaseConfigModal } from "./components/SupabaseConfigModal";
 import { PatientRecommendationsView } from "./components/PatientRecommendationsView";
 import { RiskSimulationView } from "./components/RiskSimulationView";
 import { PatientHomeView } from "./components/PatientHomeView";
-import {
-  createDemoRecommendations,
-  type ClinicalRecommendation,
-  type RecommendationStatus,
-} from "./data/knowledgeGraphDemoData";
 import {
   CohortOverview,
   PatientRegistry,
@@ -28,14 +24,16 @@ const KnowledgeGraphView = React.lazy(async () => ({
 
 export const App: React.FC = () => (
   <AuthGateway
-    renderWorkspace={(role, preview, onExit) => (
-      <Workspace
-        key={`${role}-${preview}`}
-        initialRole={role}
-        isPreview={preview}
-        onExit={onExit}
-      />
-    )}
+    renderWorkspace={(role, preview, onExit) =>
+      role === "doctor" || role === "patient" ? (
+        <Workspace
+          key={`${role}-${preview}`}
+          initialRole={role}
+          isPreview={preview}
+          onExit={onExit}
+        />
+      ) : null
+    }
   />
 );
 
@@ -44,12 +42,12 @@ function Workspace({
   isPreview,
   onExit,
 }: {
-  initialRole: UserRole;
+  initialRole: Exclude<UserRole, "admin">;
   isPreview: boolean;
   onExit: () => void;
 }) {
-  const [mode, setMode] = useState<UserRole>(initialRole);
-  // initialRole is verified by AuthGateway; changing the displayed workspace grants no role.
+  const [mode, setMode] = useState<Exclude<UserRole, "admin">>(initialRole);
+  // AuthGateway routes verified admin accounts to AdminWorkspace.
   const canViewPredictions = !isPreview && initialRole === "doctor";
   const canViewKnowledgeGraph = !isPreview && initialRole === "doctor";
   const [doctorPage, setDoctorPage] =
@@ -62,10 +60,6 @@ function Workspace({
   const [error, setError] = useState("");
   const [loadedAt, setLoadedAt] = useState("");
   const [connectionOpen, setConnectionOpen] = useState(false);
-  // The branch's review/share prototype is scoped to a selected record and this session.
-  const [recommendationsByPatient, setRecommendationsByPatient] = useState<
-    Record<string, ClinicalRecommendation[]>
-  >({});
   const revision = useRef(0);
   const refresh = useCallback(async () => {
     const request = ++revision.current;
@@ -101,44 +95,6 @@ function Workspace({
     };
   }, [refresh]);
   const patient = patients.find((p) => p.id === selectedId);
-  const recommendations = patient
-    ? (recommendationsByPatient[patient.id] ??
-      createDemoRecommendations(patient.id))
-    : [];
-  const sharedRecommendations = recommendations.filter(
-    (item) => item.status === "published",
-  );
-  const reviewRecommendation = (id: string, status: RecommendationStatus) => {
-    if (!patient || status === "published") return;
-    const recordId = patient.id;
-    setRecommendationsByPatient((previous) => ({
-      ...previous,
-      [recordId]: (
-        previous[recordId] ?? createDemoRecommendations(recordId)
-      ).map((item) =>
-        item.id === id ? { ...item, status, publishedAt: undefined } : item,
-      ),
-    }));
-  };
-  const shareRecommendations = (ids: string[]) => {
-    if (!patient) return;
-    const recordId = patient.id;
-    const selected = new Set(ids);
-    setRecommendationsByPatient((previous) => ({
-      ...previous,
-      [recordId]: (
-        previous[recordId] ?? createDemoRecommendations(recordId)
-      ).map((item) =>
-        item.status === "approved" && selected.has(item.id)
-          ? {
-              ...item,
-              status: "published",
-              publishedAt: new Date().toISOString(),
-            }
-          : item,
-      ),
-    }));
-  };
   const openPatient = (id: string) => {
     setSelectedId(id);
     setMode("patient");
@@ -160,9 +116,8 @@ function Workspace({
     setMode("doctor");
     setDoctorPage("doctor_overview");
   };
-  if (mode === "admin") return <AdminWorkspace onExit={onExit} />;
   const page = mode === "doctor" ? doctorPage : patientPage;
-  const settings = page === "doctor_settings";
+  const settings = page === "doctor_settings" || page === "patient_settings";
   const overview = page === "doctor_overview";
   return (
     <div className="min-h-screen bg-[#f5f8f8] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
@@ -191,7 +146,6 @@ function Workspace({
             }}
             onOpenAuth={onExit}
             isDemo={isPreview}
-            onOpenAdmin={() => setMode("admin")}
             onOpenSupabaseModal={() => setConnectionOpen(true)}
           />
           <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-slate-500">
@@ -242,7 +196,7 @@ function Workspace({
               {error}
             </div>
           )}
-          {!patient && !overview && !settings && (
+          {!patient && !overview && !settings && page !== "doctor_knowledge_graph" && (
             <section
               role="status"
               className="rounded-3xl border border-slate-200 bg-white p-8"
@@ -267,6 +221,23 @@ function Workspace({
               onOpen={openPatient}
             />
           )}
+          {page === "doctor_knowledge_graph" && (
+            <React.Suspense
+              fallback={
+                <section role="status" className="rounded-2xl bg-white p-6 text-sm text-slate-500">
+                  Loading Knowledge Graph…
+                </section>
+              }
+            >
+              <KnowledgeGraphView
+                patients={patients}
+                patientId={selectedId}
+                onSelectPatient={setSelectedId}
+                onPreviewPatientView={openPatient}
+              />
+            </React.Suspense>
+          )}
+          {settings && <FontSizeSettings />}
           {settings && (
             <section className="rounded-3xl border border-slate-200 bg-white p-6">
               <h1 className="text-2xl font-bold">Workspace settings</h1>
@@ -311,7 +282,7 @@ function Workspace({
                 <PatientHomeView
                   patient={patient}
                   onNavigate={navigate}
-                  sharedRecommendations={sharedRecommendations}
+                  sharedRecommendations={[]}
                   canViewPredictions={canViewPredictions}
                 />
               )}
@@ -333,6 +304,7 @@ function Workspace({
                 <RiskSimulationView
                   key={patient.id}
                   patient={patient}
+                  canViewPhysiology={!isPreview && initialRole === "doctor"}
                   onNavigate={navigate}
                   patients={mode === "doctor" ? patients : undefined}
                   onSelectPatient={
@@ -353,11 +325,9 @@ function Workspace({
                 >
                   <KnowledgeGraphView
                     key={patient.id}
-                    patient={patient}
+                    patients={patients}
                     patientId={patient.id}
-                    recommendations={recommendations}
-                    onRecommendationStatusChange={reviewRecommendation}
-                    onPublishRecommendations={shareRecommendations}
+                    onSelectPatient={setSelectedId}
                     onPreviewPatientView={() => openPatient(patient.id)}
                   />
                 </React.Suspense>
@@ -365,9 +335,10 @@ function Workspace({
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,
               ) && <RecordedReport patient={patient} />}
+              {page === "patient_lab_results" && <LabResultsView key={patient.id} patientId={patient.id} />}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
-                  recommendations={sharedRecommendations}
+                  recommendations={[]}
                 />
               )}
             </>

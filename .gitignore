@@ -42,6 +42,12 @@ artifacts_notebook/twin_cache/
 # Local UI verification artifacts
 .ui-check/
 
+# Runtime admin retraining state and evaluation artifacts
+models/weights/retraining.json
+models/weights/retraining.tmp
+models/weights/.retraining-lock/
+models/weights/training-runs/
+
 # Versioned experimental models; not the legacy production checkpoint
 !models/weights/conditional_gru_v2.pt
 !models/weights/conditional_gru_v2_retrospective.pt

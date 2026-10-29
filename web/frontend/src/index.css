@@ -88,3 +88,10 @@ model-viewer {
   .is-collapsed > .desktop-navigation-toggle { display: flex; }
 }
 @media (prefers-reduced-motion: reduce) { .navigation-panel { transition: none; } }
+
+/* Scale explicit text utilities with the user's root font preference. */
+.text-\[8px\] { font-size: 0.5rem; }
+.text-\[9px\] { font-size: 0.5625rem; }
+.text-\[10px\] { font-size: 0.625rem; }
+.text-\[11px\] { font-size: 0.6875rem; }
+.text-\[13px\] { font-size: 0.8125rem; }

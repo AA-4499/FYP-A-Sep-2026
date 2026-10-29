@@ -1,9 +1,11 @@
 # Patient registration and personal dashboard
 
 This milestone connects Patient signup, email confirmation/resend, email/password login,
-explicit sign-in, local sign-out, and password recovery to Supabase. Doctor applications
-and live Admin approvals remain a separate next step. The old `AuthView.tsx` is an unused
-design prototype; the active form is `AccountAuthView.tsx`.
+explicit sign-in, local sign-out, and password recovery to Supabase. Doctor applications are
+submitted from the sign-in page and approved or declined in the Admin workspace; role, suspension
+and application state are read from the database after every sign-in. The old `AuthView.tsx` is an
+unused design prototype; the active form is `AccountAuthView.tsx`. Admin operations are documented
+in the [Admin operations runbook](admin-operations.md).
 
 Opening or reloading the app starts at the login page. Supabase sessions are held in memory (`persistSession: false`), and `AuthGateway` ignores restored/background sign-in events until the user successfully submits this page's login form. Patient data is not loaded before that action. Current-page token refresh continues to work after sign-in. Password-recovery links open the reset form and return to login when complete; they do not open a workspace automatically.
 
@@ -43,6 +45,13 @@ Opening or reloading the app starts at the login page. Supabase sessions are hel
    This script uses existing tables and adds a sequence, trigger, and ownership constraints.
    If your imported schema requires clinical values or has duplicate/broken links, it
    stops with an error instead of inventing measurements or reassigning records.
+8. Run [supabase_admin_workspace.sql](supabase_admin_workspace.sql). This adds the Admin
+   workspace schema and functions, Doctor applications, account status/suspension, the audit
+   log, and enforced clinical RLS (Doctors see only assigned patients; suspended accounts see
+   nothing). It is idempotent. Apply it before deploying the frontend build that uses it.
+9. Bootstrap the first administrator by promoting an existing auth account. The exact SQL and
+   verification steps are in the [Admin operations runbook](admin-operations.md#2-bootstrap-the-first-administrator-required-once).
+   Admin accounts are never created from the Admin UI.
 
 Do not share secret/service-role keys or put them in `VITE_` variables. The app's existing
 publishable key is used for signup and sign-in. The SQL files have not been applied remotely
@@ -91,6 +100,10 @@ claim a new account definitely exists.
   at least one minute and remain subject to Supabase's stricter email limits.
 - Use **Forgot password?**, follow the email link, set a new matching password, and sign in.
 - Expired or invalid email links should display an error instead of granting access.
+- Use **Doctor? Apply to join your care workspace** with a second team email: after confirming
+  the email, signing in shows the "Doctor application under review" screen. Approve the
+  application in the Admin workspace, sign out/in as the Doctor, and confirm the Doctor
+  workspace opens. A declined application shows the administrator's reason.
 - Preview sample dashboards while signed out. Preview mode does not run the cohort sync.
 
 ## Current access boundary and next step
@@ -105,9 +118,10 @@ is protected by owner-only RLS, but is not application-encrypted.
 
 Confirmed Patient accounts now open the existing Patient Home layout: the four metrics,
 CGM waveform, risk factors, what-if controls, and health summary. The original sidebar
-includes Home, My profile, My health, My digital twin, Risk prediction & what-if,
-My recommendations, and Reports. The header identifies the account as Patient and
-provides sign-out; care-team, Admin, cohort search, and database settings controls are absent.
+includes Home, My profile, My health, My digital twin, My recommendations, and Reports.
+`My digital twin` opens the predictive GRU simulation (forecast and Physiology lab). The
+header identifies the account as Patient and provides sign-out; care-team, Admin, cohort
+search, and database settings controls are absent.
 The dashboard calls `get_my_patient_dashboard()` without accepting a patient ID from the
 browser. The database uses `auth.uid()` to find the account's `profiles.patient_id` link.
 It returns only that record's recorded measurements and up to 100 recent observations.
@@ -118,9 +132,9 @@ The shared Home component renders unavailable measurements as dashes and disable
 what-if controls when no risk assessment exists. HbA1c and fasting glucose are converted
 from their declared database units for the existing display. The CGM graph and time-in-range
 summary use valid dated readings from the latest 100 observations, not a claimed 14-day feed.
-Digital twin and risk pages currently show availability messages; Reports displays recorded
-measurements, not a fabricated clinician report. Recommendations remain empty until the
-care-team publishing integration is available. The Doctor/sample workspace is unchanged.
+`My digital twin` opens the browser GRU forecast and physiology what-if views for the linked
+record. Reports displays recorded measurements, not a fabricated clinician report.
+Recommendations remain empty until the care-team publishing integration is available.
 
 New Patients receive a new record automatically. The database's profile trigger assigns
 `profiles.patient_id` to its new `patient_summary."Patient Number"`. A unique ownership
@@ -135,16 +149,21 @@ authorized test records: each dashboard must show only its linked record. With t
 Patient's JWT, direct REST reads of the other record must return no rows; attempts to
 change `profiles.patient_id` or write clinical data must fail or affect zero rows. A newly
 registered account must see its own empty record and no other clinical data. Also test logout and switching
-accounts in the same browser. `npm run test:database` executes all three SQL migrations
-in an isolated PGlite PostgreSQL database with synthetic Auth/clinical schemas, checking
-provisioning, rollback, reruns, unique ownership, and RPC/direct-table RLS. This is a
+accounts in the same browser. `npm run test:database` runs the patient SQL migrations in an
+isolated PGlite PostgreSQL database with synthetic Auth/clinical schemas, and
+`npm run test:admin-sql` runs the admin migration and RPC contract the same way (approval,
+assignment, suspension, RLS scoping, audit, idempotent rerun). This is a
 development-only dependency and is not imported by the app. These local tests do not
-replace checking your deployed Supabase schema; the agent has not applied migrations there.
+replace checking your deployed Supabase schema; apply the SQL migrations yourself and verify
+with the checklist in the [Admin operations runbook](admin-operations.md#7-verification-checklist).
 
-Only trusted `app_metadata` can route a signed-in account to Doctor or Admin. Editable
-`user_metadata` is never used to grant those roles. An account with no assigned role has
-Patient-level access; an unrecognized explicit role is blocked. Backend directory browsing
-is now denied for Patient tokens. The Admin pages still operate on browser-local sample data.
+Only the database's `profiles.role` / `profiles.status` (read through `get_my_access_state()`)
+and trusted `app_metadata` route a signed-in account to Patient, Doctor or Admin. Editable
+`user_metadata` is never used to grant those roles. Suspended accounts are blocked before any
+workspace opens, and pending Doctor applications see a review-status screen instead of a
+workspace. Backend directory browsing is denied for Patient tokens. Admin changes are made
+through guarded database functions and recorded in `admin_audit_logs`; see the
+[Admin operations runbook](admin-operations.md).
 
 ## Files to learn from
 
@@ -154,9 +173,13 @@ is now denied for Patient tokens. The Admin pages still operate on browser-local
 - `src/components/PatientWorkspace.tsx`: authenticated Patient shell and empty/loading/error states.
 - `src/components/DashboardView.tsx`: shared Home layout with safe missing-data display.
 - `src/lib/patientDashboard.ts`: own-account RPC loader; no sample fallback.
+- `src/lib/adminApi.ts`: guarded Admin RPC client and error mapping.
+- `src/components/admin/AdminWorkspace.tsx`: real Admin shell (overview, users, approvals, assignments, activity).
 - `docs/supabase_patient_registration.sql`: database profile creation and client-write restrictions.
 - `docs/supabase_patient_dashboard.sql`: clinical RLS and own-account dashboard function.
 - `docs/supabase_patient_auto_provision.sql`: automatic Patient Number, empty record, and account link.
+- `docs/supabase_admin_workspace.sql`: Admin RPCs, Doctor applications, account status, audit, and enforced RLS.
+- `docs/admin-operations.md`: migration order, first-admin bootstrap, verification and rollback.
 
 Official references: [Password auth](https://supabase.com/docs/guides/auth/passwords),
 [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls),

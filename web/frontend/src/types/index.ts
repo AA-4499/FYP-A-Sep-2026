@@ -86,6 +86,12 @@ export interface AGPProfileBin {
   p75: number;
   p90: number;
   readingsCount: number;
+  tir: number;
+  tar: number;
+  tbr: number;
+  belowCount: number;
+  aboveCount: number;
+  inRangeCount: number;
 }
 
 export interface Patient {

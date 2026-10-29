@@ -246,31 +246,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     };
   }, [filteredAgpReadings]);
 
-  const availableAgpDays = useMemo(() => {
-    const uniqueDays = new Set(
-      filteredAgpReadings.map((reading) => {
-        const date = getReadingDate(reading.timestamp);
-
-        return [
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate(),
-        ].join('-');
-      })
-    );
-
-    return uniqueDays.size;
-  }, [filteredAgpReadings]);
-
-  const requestedAgpDays =
-    selectedAgpRange === 'all'
-      ? null
-      : Number(selectedAgpRange);
-
-  const hasIncompleteAgpRange =
-    requestedAgpDays !== null &&
-    availableAgpDays < requestedAgpDays;
-
   // Linear-interpolated percentile calculation.
   const percentile = (
     values: number[],
@@ -295,7 +270,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     );
   };
 
-  // Build 96 fifteen-minute time-of-day bins.
   // Each bin aggregates readings from all available days.
   const agpBins = useMemo<AGPProfileBin[]>(() => {
     const readings = filteredAgpReadings;
@@ -330,14 +304,38 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     return valuesByBin.flatMap((values, index) => {
       if (values.length === 0) return [];
 
+      const total = values.length;
+
+      const belowCount = values.filter(
+        (value) => value < 70
+      ).length;
+
+      const inRangeCount = values.filter(
+        (value) => value >= 70 && value <= 180
+      ).length;
+
+      const aboveCount = values.filter(
+        (value) => value > 180
+      ).length;
+
       return [{
         minuteOfDay: index * 15,
+
         p10: percentile(values, 0.10),
         p25: percentile(values, 0.25),
         median: percentile(values, 0.50),
         p75: percentile(values, 0.75),
         p90: percentile(values, 0.90),
-        readingsCount: values.length,
+
+        readingsCount: total,
+
+        tbr: (belowCount / total) * 100,
+        tir: (inRangeCount / total) * 100,
+        tar: (aboveCount / total) * 100,
+
+        belowCount,
+        inRangeCount,
+        aboveCount,
       }];
     });
   }, [filteredAgpReadings]);
@@ -387,43 +385,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     return segments;
   }, [agpBins]);
 
-  const makeBandPath = (
-    segment: AGPProfileBin[],
-    lowerKey: 'p10' | 'p25',
-    upperKey: 'p75' | 'p90',
-  ) => {
-    if (segment.length < 2) return '';
-
-    const upper = segment.map(
-      (bin) =>
-        `${xForMinute(bin.minuteOfDay)},${yForGlucose(bin[upperKey])}`,
-    );
-
-    const lower = [...segment].reverse().map(
-      (bin) =>
-        `${xForMinute(bin.minuteOfDay)},${yForGlucose(bin[lowerKey])}`,
-    );
-
-    return `M ${upper.join(' L ')} L ${lower.join(' L ')} Z`;
-  };
-
-  const makeMedianPath = (segment: AGPProfileBin[]) => {
-    if (segment.length === 0) return '';
-
-    return segment
-      .map((bin, index) => {
-        const command = index === 0 ? 'M' : 'L';
-
-        return (
-          `${command} ${xForMinute(bin.minuteOfDay)} ` +
-          `${yForGlucose(bin.median)}`
-        );
-      })
-      .join(' ');
-  };
-
   // Build a line from actual CGM readings for the selected day.
-  // Unlike the AGP, this does not aggregate readings into percentiles.
   const cgmDayPath = useMemo(() => {
     if (selectedAgpView !== 'day' || filteredAgpReadings.length === 0) {
       return '';
@@ -505,9 +467,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     const svgX =
       ((event.clientX - rect.left) / rect.width) * chartWidth;
 
-    const svgY =
-      ((event.clientY - rect.top) / rect.height) * chartHeight;
-
     const clampedX = Math.max(
       plotLeft,
       Math.min(plotRight, svgX)
@@ -518,8 +477,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     );
 
     setHoveredMinute(Math.min(1439, Math.max(0, minute)));
-
-    // Only highlight an actual SVG region under the pointer.
     setHoveredAgpRegion(getAgpRegionFromEvent(event));
   };
 
@@ -546,35 +503,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
       return;
     }
 
-    const minute = Math.max(
-      0,
-      Math.min(
-        1439,
-        Math.round(
-          ((svgX - plotLeft) / (plotRight - plotLeft)) * 1440
-        )
-      )
-    );
-
-    // Convert the clicked Y position back to glucose (mg/dL).
-    const glucose =
-      glucoseMin +
-      ((plotBottom - svgY) / (plotBottom - plotTop)) *
-        (glucoseMax - glucoseMin);
-
-    // Find the nearest populated 15-minute bin.
-    const nearestBin = agpBins.reduce<AGPProfileBin | null>(
-      (nearest, bin) => {
-        if (!nearest) return bin;
-
-        return Math.abs(bin.minuteOfDay - minute) <
-          Math.abs(nearest.minuteOfDay - minute)
-          ? bin
-          : nearest;
-      },
-      null
-    );
-
     const clickedRegion = getAgpRegionFromEvent(event);
 
     // Clicking empty chart space clears the current selection.
@@ -584,79 +512,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
     }
 
     toggleAgpRegion(clickedRegion);
-  };
-
-  const getAgpRegionAtPosition = (
-    svgX: number,
-    svgY: number,
-  ): Exclude<AgpInteractiveRegion, null> | null => {
-    if (
-      svgX < plotLeft ||
-      svgX > plotRight ||
-      svgY < plotTop ||
-      svgY > plotBottom
-    ) {
-      return null;
-    }
-
-    const minute = Math.max(
-      0,
-      Math.min(
-        1439,
-        Math.round(
-          ((svgX - plotLeft) / (plotRight - plotLeft)) * 1440
-        )
-      )
-    );
-
-    const glucose =
-      glucoseMin +
-      ((plotBottom - svgY) / (plotBottom - plotTop)) *
-        (glucoseMax - glucoseMin);
-
-    const nearestBin = agpBins.reduce<AGPProfileBin | null>(
-      (nearest, bin) => {
-        if (!nearest) return bin;
-
-        return Math.abs(bin.minuteOfDay - minute) <
-          Math.abs(nearest.minuteOfDay - minute)
-          ? bin
-          : nearest;
-      },
-      null
-    );
-
-    // Resolve the most specific region first.
-    if (glucose < 70) return 'below';
-    if (glucose > 180) return 'above';
-
-    if (
-      nearestBin &&
-      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
-      Math.abs(glucose - nearestBin.median) <= 5
-    ) {
-      return 'median';
-    }
-
-    if (
-      nearestBin &&
-      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
-      glucose >= nearestBin.p25 &&
-      glucose <= nearestBin.p75
-    ) {
-      return 'p25-p75';
-    }
-
-    if (
-      nearestBin &&
-      Math.abs(nearestBin.minuteOfDay - minute) <= 15 &&
-      glucose >= nearestBin.p10 &&
-      glucose <= nearestBin.p90
-    ) {
-      return 'p10-p90';
-    }
-
-    return 'target';
   };
 
   const formatHoverTime = (minute: number) => {
@@ -1187,7 +1042,9 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   setHoveredAgpRegion(null);
                 }}
                 onClick={handleAgpChartClick}
-                className="w-full min-w-[620px] h-auto cursor-pointer"
+                className={`w-full min-w-[620px] h-auto ${
+                  hoveredAgpRegion !== null ? 'cursor-pointer' : 'cursor-default'
+                }`}
               >
                 <defs>
                   <clipPath id="agp-plot-clip">
@@ -1196,6 +1053,15 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                       y={plotTop}
                       width={plotRight - plotLeft}
                       height={plotBottom - plotTop}
+                    />
+                  </clipPath>
+
+                  <clipPath id="target-range-clip">
+                    <rect
+                      x={plotLeft}
+                      y={yForGlucose(180)}
+                      width={plotRight - plotLeft}
+                      height={yForGlucose(70) - yForGlucose(180)}
                     />
                   </clipPath>
 
@@ -1234,11 +1100,12 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                         width={plotRight - plotLeft}
                         height={yForGlucose(70) - yForGlucose(180)}
                         fill="#34D399"
-                        fillOpacity={active ? 0.42 : 0.12}
+                        fillOpacity={active ? 0.24 : 0.12}
                         stroke={active ? '#047857' : 'none'}
                         strokeWidth={active ? 2 : 0}
-                        opacity={dimmed ? 0.5 : 1}
-                        pointerEvents="none"
+                        opacity={dimmed ? 0.5 : 0.7}
+                        pointerEvents="all"
+                        data-agp-region="target"
                       />
                     );
                   })()}
@@ -1328,8 +1195,19 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                           data-agp-region="p10-p90"
                           d={outerPath}
                           fill="#86EFAC"
+                          clipPath={
+                            isAgpRegionActive('target')
+                              ? 'url(#target-range-clip)'
+                              : undefined
+                          }
                           fillOpacity={isAgpRegionActive("p10-p90") ? 0.9 : 0.65}
-                          opacity={isAgpRegionDimmed("p10-p90") ? 0.2 : 1}
+                          opacity={
+                            isAgpRegionActive('target')
+                              ? 1
+                              : isAgpRegionDimmed('p10-p90')
+                                ? 0.2
+                                : 1
+                          }
                           stroke={isAgpRegionActive("p10-p90") ? "#15803D" : "none"}
                           strokeWidth={isAgpRegionActive("p10-p90") ? 2.5 : 0}
                           style={{
@@ -1388,11 +1266,20 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                           data-agp-region="p25-p75"
                           d={innerPath}
                           fill="#15803D"
+                          clipPath={
+                            isAgpRegionActive('target')
+                              ? 'url(#target-range-clip)'
+                              : undefined
+                          }
                           fillOpacity={
                             isAgpRegionActive('p25-p75') ? 0.85 : 0.45
                           }
                           opacity={
-                            isAgpRegionDimmed('p25-p75') ? 0.2 : 1
+                            isAgpRegionActive('target')
+                              ? 1
+                              : isAgpRegionDimmed('p25-p75')
+                                ? 0.2
+                                : 1
                           }
                           stroke={
                             isAgpRegionActive('p25-p75') ? '#14532D' : 'none'
@@ -1458,12 +1345,18 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                           fill="none"
                           stroke="#1D4ED8"
                           strokeWidth={
-                            isAgpRegionActive('median') ? 4.5 : 2.4
+                            isAgpRegionActive('target') ||
+                            isAgpRegionActive('median')
+                              ? 3.5
+                              : 2.4
                           }
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           opacity={
-                            isAgpRegionDimmed('median') ? 0.2 : 1
+                            isAgpRegionDimmed('median') &&
+                            !isAgpRegionActive('target')
+                              ? 0.2
+                              : 1
                           }
                           style={{
                             transition:
@@ -1481,7 +1374,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                       {(() => {
                         const x = xForMinute(hoveredMinute);
                         const tooltipWidth = 218;
-                        const tooltipHeight = selectedAgpRegion === null ? 116 : 88;
+                        const tooltipHeight = 150;
 
                         // Keep the tooltip inside the chart boundaries.
                         const tooltipX = Math.max(
@@ -1547,201 +1440,140 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                             >
                               {formatHoverTime(hoveredMinute)}
                             </text>
-
+                            
                             {hasNearbyBin ? (
-                              <>
-                                {selectedAgpRegion === null ? (
-                                  <>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 39}
-                                      fontSize="10"
-                                      fill="#374151"
-                                    >
-                                      Median: {hoveredAgpBin!.median.toFixed(1)} mg/dL
-                                    </text>
+                              (() => {
+                                const bin = hoveredAgpBin!;
+                                const region = selectedAgpRegion;
 
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 57}
-                                      fontSize="10"
-                                      fill="#374151"
-                                    >
-                                      P25–P75: {hoveredAgpBin!.p25.toFixed(1)}
-                                      {' – '}
-                                      {hoveredAgpBin!.p75.toFixed(1)} mg/dL
-                                    </text>
+                                let focusLabel = '';
+                                let focusColor = '#1D4ED8';
+                                let focusMessage = '';
+                                const details: string[] = [];
 
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 75}
-                                      fontSize="10"
-                                      fill="#374151"
-                                    >
-                                      P10–P90: {hoveredAgpBin!.p10.toFixed(1)}
-                                      {' – '}
-                                      {hoveredAgpBin!.p90.toFixed(1)} mg/dL
-                                    </text>
+                                switch (region) {
+                                  case 'above':
+                                    focusLabel = `${bin.aboveCount} readings above 180 mg/dL`;
+                                    focusColor = '#B91C1C';
+                                    focusMessage =
+                                      bin.aboveCount === 0
+                                        ? 'No readings above target'
+                                        : `${bin.tar.toFixed(1)}% of readings above target`;
+                                    details.push(
+                                      `Median: ${bin.median.toFixed(1)} mg/dL`,
+                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
 
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 96}
-                                      fontSize="10"
-                                      fontWeight="600"
-                                      fill={
-                                        hoveredAgpBin!.median < 70
-                                          ? '#C2410C'
-                                          : hoveredAgpBin!.median > 180
-                                          ? '#B91C1C'
-                                          : '#047857'
-                                      }
-                                    >
-                                      {hoveredAgpBin!.median < 70
-                                        ? 'Median below target'
-                                        : hoveredAgpBin!.median > 180
-                                        ? 'Median above target'
-                                        : 'Median within target'}
-                                    </text>
-                                  </>
-                                ) : selectedAgpRegion === 'p10-p90' ? (
+                                  case 'below':
+                                    focusLabel = `${bin.belowCount} readings below 70 mg/dL`;
+                                    focusColor = '#C2410C';
+                                    focusMessage =
+                                      bin.belowCount === 0
+                                        ? 'No readings below target'
+                                        : `${bin.tbr.toFixed(1)}% of readings below target`;
+                                    details.push(
+                                      `Median: ${bin.median.toFixed(1)} mg/dL`,
+                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
+
+                                  case 'target':
+                                    focusLabel = `${bin.inRangeCount} readings within target`;
+                                    focusColor = '#047857';
+                                    focusMessage = `${bin.tir.toFixed(1)}% within 70–180 mg/dL`;
+                                    details.push(
+                                      `Median: ${bin.median.toFixed(1)} mg/dL`,
+                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
+
+                                  case 'p10-p90':
+                                    focusLabel =
+                                      `${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`;
+                                    focusColor = '#166534';
+                                    focusMessage = 'P10–P90 · Central 80%';
+                                    details.push(
+                                      `Median: ${bin.median.toFixed(1)} mg/dL`,
+                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
+
+                                  case 'p25-p75':
+                                    focusLabel =
+                                      `${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`;
+                                    focusColor = '#166534';
+                                    focusMessage = 'P25–P75 · Central 50%';
+                                    details.push(
+                                      `Median: ${bin.median.toFixed(1)} mg/dL`,
+                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
+
+                                  case 'median':
+                                    focusLabel = `${bin.median.toFixed(1)} mg/dL`;
+                                    focusColor = '#1D4ED8';
+                                    focusMessage = 'Median glucose';
+                                    details.push(
+                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
+                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
+
+                                  default:
+                                    focusLabel = `Median: ${bin.median.toFixed(1)} mg/dL`;
+                                    focusColor = '#1D4ED8';
+                                    focusMessage = 'Glucose distribution summary';
+                                    details.push(
+                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
+                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `Time in range: ${bin.tir.toFixed(1)}%`,
+                                      `Sample size: ${bin.readingsCount}`
+                                    );
+                                    break;
+                                }
+
+                                return (
                                   <>
                                     <text
                                       x={tooltipX + 12}
-                                      y={tooltipY + 41}
-                                      fontSize="10"
-                                      fill="#166534"
-                                    >
-                                      P10: {hoveredAgpBin!.p10.toFixed(1)} mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 60}
-                                      fontSize="10"
-                                      fill="#166534"
-                                    >
-                                      P90: {hoveredAgpBin!.p90.toFixed(1)} mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 77}
-                                      fontSize="9"
-                                      fill="#6B7280"
-                                    >
-                                      Central 80% of readings
-                                    </text>
-                                  </>
-                                ) : selectedAgpRegion === 'p25-p75' ? (
-                                  <>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 41}
-                                      fontSize="10"
-                                      fill="#166534"
-                                    >
-                                      P25: {hoveredAgpBin!.p25.toFixed(1)} mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 60}
-                                      fontSize="10"
-                                      fill="#166534"
-                                    >
-                                      P75: {hoveredAgpBin!.p75.toFixed(1)} mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 77}
-                                      fontSize="9"
-                                      fill="#6B7280"
-                                    >
-                                      Central 50% of readings
-                                    </text>
-                                  </>
-                                ) : selectedAgpRegion === 'median' ? (
-                                  <>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 45}
-                                      fontSize="14"
-                                      fontWeight="700"
-                                      fill="#1D4ED8"
-                                    >
-                                      {hoveredAgpBin!.median.toFixed(1)} mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 65}
-                                      fontSize="9"
-                                      fill="#6B7280"
-                                    >
-                                      Median glucose
-                                    </text>
-                                  </>
-                                ) : selectedAgpRegion === 'target' ? (
-                                  <>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 42}
-                                      fontSize="10"
-                                      fontWeight="600"
-                                      fill="#047857"
-                                    >
-                                      Target: 70–180 mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 61}
-                                      fontSize="10"
-                                      fill="#374151"
-                                    >
-                                      Median: {hoveredAgpBin!.median.toFixed(1)} mg/dL
-                                    </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 78}
-                                      fontSize="9"
-                                      fill="#6B7280"
-                                    >
-                                      {hoveredAgpBin!.median >= 70 &&
-                                      hoveredAgpBin!.median <= 180
-                                        ? 'Median within target'
-                                        : 'Median outside target'}
-                                    </text>
-                                  </>
-                                ) : (
-                                  <>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 43}
+                                      y={tooltipY + 40}
                                       fontSize="11"
-                                      fontWeight="600"
-                                      fill={selectedAgpRegion === 'above' ? '#B91C1C' : '#C2410C'}
+                                      fontWeight="700"
+                                      fill={focusColor}
                                     >
-                                      {selectedAgpRegion === 'above'
-                                        ? 'Above 180 mg/dL'
-                                        : 'Below 70 mg/dL'}
+                                      {focusLabel}
                                     </text>
+
                                     <text
                                       x={tooltipX + 12}
-                                      y={tooltipY + 62}
-                                      fontSize="10"
+                                      y={tooltipY + 56}
+                                      fontSize="9.5"
                                       fill="#374151"
                                     >
-                                      P10–P90: {hoveredAgpBin!.p10.toFixed(1)}
-                                      {' – '}
-                                      {hoveredAgpBin!.p90.toFixed(1)}
+                                      {focusMessage}
                                     </text>
-                                    <text
-                                      x={tooltipX + 12}
-                                      y={tooltipY + 78}
-                                      fontSize="9"
-                                      fill="#6B7280"
-                                    >
-                                      Threshold: {selectedAgpRegion === 'above' ? '>180' : '<70'} mg/dL
-                                    </text>
+
+                                    {details.map((detail, index) => (
+                                      <text
+                                        key={detail}
+                                        x={tooltipX + 12}
+                                        y={tooltipY + 76 + index * 18}
+                                        fontSize="10"
+                                        fill="#374151"
+                                      >
+                                        {detail}
+                                      </text>
+                                    ))}
                                   </>
-                                )}
-                              </>
+                                );
+                              })()
                             ) : (
                               <text
                                 x={tooltipX + 12}

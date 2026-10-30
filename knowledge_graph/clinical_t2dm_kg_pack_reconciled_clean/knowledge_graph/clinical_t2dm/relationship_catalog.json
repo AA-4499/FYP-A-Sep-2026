@@ -1,0 +1,447 @@
+{
+  "schemaVersion": "t2dm-medical-kg-v1",
+  "policy": "Every seeded medical relationship has sourceRefs and an evidenceNote. Relationship predicates are intentionally conservative; graph paths must not be treated as proof of causation or individual diagnosis.",
+  "relationships": [
+    {
+      "from": "Type 2 Diabetes",
+      "relationship": "IS_A",
+      "to": "Diabetes",
+      "sourceRefs": [
+        "[17]",
+        "[23]"
+      ],
+      "evidenceNote": "Type 2 diabetes is a classified subtype of diabetes."
+    },
+    {
+      "from": "Prediabetes",
+      "relationship": "RISK_FACTOR_FOR",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[13]",
+        "[23]"
+      ],
+      "evidenceNote": "Prediabetes is a high-risk state for future Type 2 diabetes development; it does not imply that progression is inevitable."
+    },
+    {
+      "from": "Obesity",
+      "relationship": "RISK_FACTOR_FOR",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[1]",
+        "[2]",
+        "[3]",
+        "[4]",
+        "[6]",
+        "[17]",
+        "[25]"
+      ],
+      "evidenceNote": "Population evidence and reviews associate obesity with increased Type 2 diabetes risk. This is not a patient-specific diagnosis or proof of causation in an individual."
+    },
+    {
+      "from": "BMI",
+      "relationship": "USED_TO_ASSESS",
+      "to": "Obesity",
+      "sourceRefs": [
+        "[21]",
+        "[25]"
+      ],
+      "evidenceNote": "BMI is commonly used to screen for and classify overweight/obesity; it is a proxy measure and does not directly measure adiposity."
+    },
+    {
+      "from": "Obesity",
+      "relationship": "ASSOCIATED_WITH",
+      "to": "Insulin Resistance",
+      "sourceRefs": [
+        "[2]",
+        "[3]",
+        "[11]"
+      ],
+      "evidenceNote": "Reviews describe mechanisms linking excess adiposity and altered adipose tissue function with insulin resistance."
+    },
+    {
+      "from": "Insulin Resistance",
+      "relationship": "CONTRIBUTES_TO",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[3]",
+        "[11]",
+        "[17]"
+      ],
+      "evidenceNote": "Insulin resistance is one contributor to Type 2 diabetes pathophysiology; it is not the only mechanism."
+    },
+    {
+      "from": "HbA1c",
+      "relationship": "USED_TO_ASSESS",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[9]",
+        "[18]",
+        "[20]"
+      ],
+      "evidenceNote": "HbA1c is one measure used to assess glycaemic status; it must be interpreted with patient context and limitations."
+    },
+    {
+      "from": "HbA1c",
+      "relationship": "USED_FOR_DIAGNOSIS_OF",
+      "to": "Diabetes",
+      "sourceRefs": [
+        "[9]",
+        "[23]"
+      ],
+      "evidenceNote": "A1C is one accepted laboratory criterion for diabetes diagnosis when performed and interpreted under the applicable guideline."
+    },
+    {
+      "from": "Fasting Plasma Glucose",
+      "relationship": "USED_FOR_DIAGNOSIS_OF",
+      "to": "Diabetes",
+      "sourceRefs": [
+        "[23]"
+      ],
+      "evidenceNote": "Fasting plasma glucose is one accepted plasma-glucose criterion for diagnosis, subject to confirmatory testing and clinical context."
+    },
+    {
+      "from": "Postprandial Glucose",
+      "relationship": "USED_TO_ASSESS",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[18]",
+        "[20]"
+      ],
+      "evidenceNote": "Postprandial glucose can provide additional information when assessing glycaemic management."
+    },
+    {
+      "from": "Glycated Albumin",
+      "relationship": "ALTERNATIVE_MARKER_FOR",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[18]",
+        "[20]"
+      ],
+      "evidenceNote": "Glycated albumin may be considered as an alternative validated biomarker in selected monitoring situations; it is not interchangeable with A1C in every context."
+    },
+    {
+      "from": "CGM",
+      "relationship": "MONITORS",
+      "to": "Blood Glucose",
+      "sourceRefs": [
+        "[19]",
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "CGM provides repeated glucose measurements over time and supports interpretation of glucose patterns."
+    },
+    {
+      "from": "CBG",
+      "relationship": "MEASURES",
+      "to": "Blood Glucose",
+      "sourceRefs": [
+        "[20]",
+        "[23]"
+      ],
+      "evidenceNote": "Capillary blood glucose is a method for measuring blood glucose; interpretation depends on timing and clinical context."
+    },
+    {
+      "from": "CGM",
+      "relationship": "SUPPORTS_CALCULATION_OF",
+      "to": "Mean Glucose",
+      "sourceRefs": [
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "Mean glucose is a standard CGM-derived metric for a defined monitoring period."
+    },
+    {
+      "from": "CGM",
+      "relationship": "SUPPORTS_CALCULATION_OF",
+      "to": "Time in Range",
+      "sourceRefs": [
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "Time in range is derived from CGM values and must specify the glucose range and analysis window."
+    },
+    {
+      "from": "CGM",
+      "relationship": "SUPPORTS_CALCULATION_OF",
+      "to": "Time Below Range",
+      "sourceRefs": [
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "Time below range is derived from CGM values using a specified glucose threshold and analysis window."
+    },
+    {
+      "from": "CGM",
+      "relationship": "SUPPORTS_CALCULATION_OF",
+      "to": "Time Above Range",
+      "sourceRefs": [
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "Time above range is derived from CGM values using a specified glucose threshold and analysis window."
+    },
+    {
+      "from": "CGM",
+      "relationship": "SUPPORTS_CALCULATION_OF",
+      "to": "Glucose Management Indicator",
+      "sourceRefs": [
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "GMI is calculated from mean CGM glucose and approximates, but is not always equivalent to, laboratory HbA1c."
+    },
+    {
+      "from": "CGM",
+      "relationship": "SUPPORTS_CALCULATION_OF",
+      "to": "Glycaemic Variability",
+      "sourceRefs": [
+        "[20]",
+        "[22]",
+        "[24]"
+      ],
+      "evidenceNote": "CGM time-series values can be used to calculate glucose variability metrics."
+    },
+    {
+      "from": "Mean Glucose",
+      "relationship": "ASSESSES",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[20]",
+        "[22]"
+      ],
+      "evidenceNote": "Mean CGM glucose is one metric used in glycaemic-status assessment."
+    },
+    {
+      "from": "Time in Range",
+      "relationship": "ASSESSES",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[20]",
+        "[22]"
+      ],
+      "evidenceNote": "Time in range is one metric used in glycaemic-status assessment; goals depend on individual clinical context."
+    },
+    {
+      "from": "Time Below Range",
+      "relationship": "ASSESSES",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[20]",
+        "[22]"
+      ],
+      "evidenceNote": "Time below range supports assessment of low-glucose exposure and hypoglycaemia risk."
+    },
+    {
+      "from": "Time Above Range",
+      "relationship": "ASSESSES",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[20]",
+        "[22]"
+      ],
+      "evidenceNote": "Time above range supports assessment of elevated-glucose exposure."
+    },
+    {
+      "from": "Glucose Management Indicator",
+      "relationship": "ASSESSES",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[20]",
+        "[22]"
+      ],
+      "evidenceNote": "GMI is a CGM-derived estimate related to average glucose; it should not be treated as an exact replacement for laboratory HbA1c."
+    },
+    {
+      "from": "Glycaemic Variability",
+      "relationship": "ASSESSES",
+      "to": "Glycaemic Control",
+      "sourceRefs": [
+        "[20]",
+        "[22]"
+      ],
+      "evidenceNote": "Glucose variability is one aspect of CGM interpretation and should be considered alongside other metrics."
+    },
+    {
+      "from": "Blood Glucose",
+      "relationship": "SUPPORTS_ASSESSMENT_OF",
+      "to": "Hypoglycemia",
+      "sourceRefs": [
+        "[10]",
+        "[20]"
+      ],
+      "evidenceNote": "Measured glucose supports assessment and classification of hypoglycaemia when interpreted with the relevant guideline thresholds; v1 intentionally stores no numeric threshold."
+    },
+    {
+      "from": "Blood Glucose",
+      "relationship": "SUPPORTS_ASSESSMENT_OF",
+      "to": "Hyperglycemia",
+      "sourceRefs": [
+        "[18]",
+        "[20]"
+      ],
+      "evidenceNote": "Glucose measurements support assessment of hyperglycaemia; applicable thresholds depend on measurement setting and clinical context."
+    },
+    {
+      "from": "Blood Ketone",
+      "relationship": "SUPPORTS_ASSESSMENT_OF",
+      "to": "Diabetic Ketoacidosis",
+      "sourceRefs": [
+        "[29]"
+      ],
+      "evidenceNote": "Ketone measurements support assessment of suspected ketoacidosis but do not diagnose DKA on their own."
+    },
+    {
+      "from": "Diabetic Ketoacidosis",
+      "relationship": "IS_A",
+      "to": "Hyperglycemic Crisis",
+      "sourceRefs": [
+        "[23]",
+        "[29]"
+      ],
+      "evidenceNote": "Diabetic ketoacidosis is a type of acute hyperglycaemic crisis."
+    },
+    {
+      "from": "Type 2 Diabetes",
+      "relationship": "ASSOCIATED_WITH",
+      "to": "Microvascular Complication",
+      "sourceRefs": [
+        "[12]",
+        "[17]",
+        "[28]"
+      ],
+      "evidenceNote": "Type 2 diabetes is associated with microvascular complications; this general association does not imply an individual patient has a complication."
+    },
+    {
+      "from": "Type 2 Diabetes",
+      "relationship": "ASSOCIATED_WITH",
+      "to": "Macrovascular Complication",
+      "sourceRefs": [
+        "[4]",
+        "[12]",
+        "[17]"
+      ],
+      "evidenceNote": "Type 2 diabetes is associated with macrovascular complications at a population/clinical level."
+    },
+    {
+      "from": "Type 2 Diabetes",
+      "relationship": "ASSOCIATED_WITH",
+      "to": "Chronic Kidney Disease",
+      "sourceRefs": [
+        "[12]",
+        "[17]",
+        "[27]"
+      ],
+      "evidenceNote": "Chronic kidney disease is an important diabetes-associated condition and a focus of guideline-directed risk management."
+    },
+    {
+      "from": "eGFR",
+      "relationship": "USED_TO_ASSESS",
+      "to": "Chronic Kidney Disease",
+      "sourceRefs": [
+        "[27]"
+      ],
+      "evidenceNote": "eGFR is one measure used in kidney assessment; it should be interpreted with repeat testing, albuminuria and clinical context as appropriate."
+    },
+    {
+      "from": "Diabetic Retinopathy",
+      "relationship": "IS_A",
+      "to": "Microvascular Complication",
+      "sourceRefs": [
+        "[12]",
+        "[28]"
+      ],
+      "evidenceNote": "Diabetic retinopathy is classified as a diabetes-related microvascular complication."
+    },
+    {
+      "from": "Diabetic Neuropathy",
+      "relationship": "IS_A",
+      "to": "Microvascular Complication",
+      "sourceRefs": [
+        "[12]",
+        "[28]"
+      ],
+      "evidenceNote": "Diabetic neuropathy is classified among diabetes-related microvascular complications."
+    },
+    {
+      "from": "Diabetic Nephropathy",
+      "relationship": "IS_A",
+      "to": "Microvascular Complication",
+      "sourceRefs": [
+        "[12]",
+        "[27]",
+        "[28]"
+      ],
+      "evidenceNote": "Diabetic nephropathy is classified as a diabetes-related microvascular complication."
+    },
+    {
+      "from": "Cardiovascular Disease",
+      "relationship": "IS_A",
+      "to": "Macrovascular Complication",
+      "sourceRefs": [
+        "[4]",
+        "[12]",
+        "[17]"
+      ],
+      "evidenceNote": "Cardiovascular disease is represented as a macrovascular complication category in this simplified clinical ontology."
+    },
+    {
+      "from": "Insulin",
+      "relationship": "REGULATES",
+      "to": "Blood Glucose",
+      "sourceRefs": [
+        "[7]",
+        "[11]",
+        "[17]",
+        "[26]"
+      ],
+      "evidenceNote": "Insulin participates in physiological glucose regulation; treatment effects depend on formulation, dose, delivery and the individual."
+    },
+    {
+      "from": "Insulin",
+      "relationship": "USED_IN_TREATMENT_OF",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[7]",
+        "[17]",
+        "[26]"
+      ],
+      "evidenceNote": "Insulin is a treatment option for some people with Type 2 diabetes; this relationship does not recommend insulin for an individual patient."
+    },
+    {
+      "from": "Medication",
+      "relationship": "USED_IN_TREATMENT_OF",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[7]",
+        "[15]",
+        "[17]",
+        "[26]"
+      ],
+      "evidenceNote": "Glucose-lowering medications are used in Type 2 diabetes management; choice must be individualized by a qualified clinician."
+    },
+    {
+      "from": "Dietary Intake",
+      "relationship": "INFORMS_MANAGEMENT_OF",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[25]"
+      ],
+      "evidenceNote": "Dietary patterns and individualized nutrition are relevant to diabetes prevention and management; this edge does not prescribe a specific diet."
+    },
+    {
+      "from": "Physical Activity",
+      "relationship": "INFORMS_MANAGEMENT_OF",
+      "to": "Type 2 Diabetes",
+      "sourceRefs": [
+        "[25]"
+      ],
+      "evidenceNote": "Physical activity is one element considered in Type 2 diabetes and weight-management care; individual goals should be personalized."
+    }
+  ]
+}

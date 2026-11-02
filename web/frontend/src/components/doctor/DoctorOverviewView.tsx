@@ -77,7 +77,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
               Clinical Population Health & Triage
             </h1>
             <p className="text-teal-100/80 text-xs sm:text-sm mt-1 max-w-2xl">
-              Real-time glycemic surveillance, priority risk stratification, and patient digital twin diagnostic workflows for your assigned cohort.
+              Review glucose records, patient profiles, and clinical reports for your assigned cohort.
             </p>
           </div>
 

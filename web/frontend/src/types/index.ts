@@ -18,11 +18,9 @@ export type DoctorModule =
   | "doctor_overview"
   | "doctor_patients"
   | "doctor_monitoring"
-  | "doctor_digital_twin"
   | "doctor_knowledge_graph"
   | "doctor_reports"
-  | "doctor_settings"
-  | "doctor_predictions";
+  | "doctor_settings";
 
 export type PatientModule =
   | "patient_dashboard"

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, Users, Activity, FileText, Settings, Sparkles, Share2, ArrowLeft, Menu, X, PanelLeftClose, User, Heart, Lightbulb } from "lucide-react";
+import { LayoutDashboard, Users, Activity, FileText, Settings, Share2, ArrowLeft, Menu, X, PanelLeftClose, User, Heart, Lightbulb } from "lucide-react";
 import type { NavigationModule } from "../types";
 
 interface SidebarProps {
@@ -13,7 +13,7 @@ interface SidebarProps {
   canViewKnowledgeGraph?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectModule, onReturnToCareTeam, currentPatientName, selfService = false, canViewPredictions = false, canViewKnowledgeGraph = false }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectModule, onReturnToCareTeam, currentPatientName, selfService = false, canViewKnowledgeGraph = false }) => {
   const [desktopOpen, setDesktopOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const panel = useRef<HTMLElement>(null);
@@ -49,7 +49,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectMo
   const items: { id: NavigationModule; label: string; icon: typeof Menu }[] = doctor ? [
     { id: "doctor_overview", label: "Overview", icon: LayoutDashboard },
     { id: "doctor_patients", label: "Patient management", icon: Users },
-    ...(canViewPredictions ? [{ id: "doctor_predictions" as const, label: "Digital twin", icon: Sparkles }] : []),
     { id: "doctor_reports", label: "Reports", icon: FileText },
     { id: "doctor_settings", label: "Settings", icon: Settings },
   ] : [

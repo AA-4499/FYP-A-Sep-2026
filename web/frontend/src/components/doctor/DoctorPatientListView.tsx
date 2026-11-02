@@ -4,7 +4,6 @@ import {
   Search,
   Filter,
   ArrowRight,
-  Sparkles,
   Calendar,
   AlertTriangle,
   FileText,
@@ -23,14 +22,14 @@ interface DoctorPatientListViewProps {
   patients: Patient[];
   currentPatient: Patient;
   onSelectPatient: (patientId: string) => void;
-  onOpenDigitalTwin: (patientId: string) => void;
+  onOpenRecord: (patientId: string) => void;
 }
 
 export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
   patients,
   currentPatient,
   onSelectPatient,
-  onOpenDigitalTwin,
+  onOpenRecord,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRisk, setFilterRisk] = useState<'All' | 'High' | 'Moderate' | 'Stable'>('All');
@@ -73,16 +72,16 @@ export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
             Patient List & Clinical Profiles
           </h1>
           <p className="text-slate-500 text-xs mt-0.5">
-            Select a patient to inspect multi-visit history, clinical notes, and directly launch their physiological digital twin.
+            Select a patient to inspect multi-visit history, clinical notes, and open their patient record.
           </p>
         </div>
 
         <button
-          onClick={() => onOpenDigitalTwin(currentPatient.id)}
+          onClick={() => onOpenRecord(currentPatient.id)}
           className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs flex items-center gap-2 shadow-xs transition"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Launch Twin for {currentPatient.name.split(' ')[0]}</span>
+          <FileText className="w-3.5 h-3.5" />
+          <span>Open record for {currentPatient.name.split(' ')[0]}</span>
         </button>
       </div>
 
@@ -198,10 +197,10 @@ export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
             </div>
 
             <button
-              onClick={() => onOpenDigitalTwin(currentPatient.id)}
+              onClick={() => onOpenRecord(currentPatient.id)}
               className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs self-start sm:self-center"
             >
-              <span>Open Digital Twin</span>
+              <span>Open patient record</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

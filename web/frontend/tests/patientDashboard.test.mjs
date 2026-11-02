@@ -113,10 +113,11 @@ test('Doctor viewing a patient record gets one prediction entry point', async ()
   assert.doesNotMatch(html, /Risk prediction|patient_insights/);
 });
 
-test('Doctor prediction navigation is denied by default, including anonymous previews', async () => {
+test('Doctor sidebar has no Digital twin entry, including authorized accounts and previews', async () => {
   const { Sidebar } = await componentModule('Sidebar');
   const hidden = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',onSelectModule(){}}));
   const doctor = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',canViewPredictions:true,onSelectModule(){}}));
   assert.doesNotMatch(hidden, /Digital twin/);
-  assert.match(doctor, /Digital twin/);
+  assert.doesNotMatch(doctor, /Digital twin/);
+  for (const label of ['Overview', 'Patient management', 'Reports', 'Settings']) assert.ok(doctor.includes(label), label);
 });

@@ -281,6 +281,15 @@
       assert(!exceptions.length, exceptions.join("\n"));
       console.log("PASS: " + label);
     };
+    const openPatientTwin = async (text, id = "test-a") => {
+      if (await evaluate(`!![...document.querySelectorAll('aside button')].find(b=>b.textContent.trim()==='Doctor dashboard')`)) {
+        await click("Doctor dashboard", "document.querySelector('aside')");
+      }
+      assert(await evaluate(`![...document.querySelectorAll('aside button')].some(b=>b.textContent.trim()==='Digital twin')`), "Doctor Digital twin entry must be removed");
+      await expectPage("Patient management", "Patient list");
+      await evaluate(`Array.from(document.querySelectorAll('tbody tr')).find(row=>row.textContent.includes(${JSON.stringify('Patient ' + id)})).querySelector('td:last-child button').click()`);
+      await expectPage("My digital twin", text);
+    };
     const open = async (query) => {
       await send("Page.navigate", {
         url: "http://127.0.0.1:3000/.ui-check/navigation-fixture.html" + query,
@@ -321,6 +330,17 @@
     };
     await open("?logincheck");
     await ready("2 accessible records");
+    if (process.argv.includes("--doctor-navigation-only")) {
+      await openPatientTwin("CGM forecast");
+      await screenshot("patient-twin-after-doctor-removal.png");
+      await click("Doctor dashboard", "document.querySelector('aside')");
+      await ready("Care overview");
+      assert(await evaluate(`![...document.querySelectorAll('aside button')].some(b=>b.textContent.trim()==='Digital twin')`), "Doctor Digital twin returned after patient review");
+      await screenshot("doctor-without-digital-twin.png");
+      console.log("PASS: Doctor Digital twin removed; patient record and My digital twin remain accessible");
+      await send("Browser.close");
+      return;
+    }
     await screenshot("clean-doctor-overview.png");
     assert(await evaluate(`document.querySelector('[data-testid="care-overview-summary"] dl').children.length===4 && document.querySelectorAll('[data-testid="care-overview-summary"] button').length===0`), 'Summary must group four metrics without duplicate filter controls');
     assert(await evaluate(`document.querySelectorAll('input').length===1 && document.querySelector('[aria-label="Search dashboard patients"]')!==null`), 'Dashboard must have one patient search');
@@ -434,22 +454,15 @@
     // A newly opened workspace starts a new prototype recommendation session.
     await open("");
     await ready("2 accessible records");
-    await expectPage("Digital twin", "CGM forecast");
+    await openPatientTwin("CGM forecast");
     assert(
       await evaluate(
         `document.querySelector('[aria-label="Data source"]').value==='browser'`,
       ),
       "Temporary default did not use the actual browser GRU",
     );
-    assert(
-      await evaluate(
-        `document.querySelector('[aria-label="Prediction patient"]').options.length===2`,
-      ),
-      "Doctor prediction patient list is missing",
-    );
-    await evaluate(
-      `(() => {const select=document.querySelector('[aria-label="Prediction patient"]');select.value='test-b';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
-    );
+    assert(await evaluate(`!document.querySelector('[aria-label="Prediction patient"]')`), "Patient twin must use the selected record");
+    await openPatientTwin("CGM forecast", "test-b");
     await ready("Patient record test-b");
     assert(
       await evaluate(
@@ -457,9 +470,7 @@
       ),
       "Switching patients retained another patient's scenario",
     );
-    await evaluate(
-      `(() => {const select=document.querySelector('[aria-label="Prediction patient"]');select.value='test-a';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
-    );
+    await openPatientTwin("CGM forecast", "test-a");
     await ready("Patient record test-a");
     await click("Physiology lab");
     await ready("Glucose response and recovery");
@@ -480,10 +491,6 @@
       ),
       "Physiology traces missing",
     );
-    await evaluate(
-      `document.querySelector('[aria-label="Doctor workspace menu"]').click()`,
-    );
-    await click("Switch to Patient workspace");
     for (const [label, text] of [
       ["Home", "Glucose trend"],
       ["My profile", "Complete recorded summary"],
@@ -628,7 +635,7 @@
     await delay(300);
     assert(await evaluate(`getComputedStyle(document.querySelector('aside')).visibility==='visible'`), 'Desktop sidebar failed to reopen');
     await ready("2 accessible records");
-    await expectPage("Digital twin", "Repository GRU");
+    await openPatientTwin("Repository GRU");
     await ready("Browser GRU computed successfully");
     await assertSidebarPinned();
     await send("Emulation.setDeviceMetricsOverride", {
@@ -1019,7 +1026,7 @@
     );
     await open("?edge");
     await ready("2 accessible records");
-    await expectPage("Digital twin", "Repository GRU");
+    await openPatientTwin("Repository GRU");
     await ready("Browser GRU computed successfully");
     assert(
       await evaluate(`document.body.innerText.includes('217.8 mg/dL')`),

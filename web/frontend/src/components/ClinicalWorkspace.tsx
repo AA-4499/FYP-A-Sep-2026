@@ -91,12 +91,12 @@ export function PatientRegistry({
   patients,
   onSelectPatient,
   currentPatient,
-  onOpenDigitalTwin,
+  onOpenRecord,
 }: {
   patients: Patient[];
   currentPatient: Patient;
   onSelectPatient: (id: string) => void;
-  onOpenDigitalTwin: (id: string) => void;
+  onOpenRecord: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -192,7 +192,7 @@ export function PatientRegistry({
                   <td className="px-3">
                     <button
                       className="whitespace-nowrap font-semibold text-teal-700"
-                      onClick={() => onOpenDigitalTwin(p.id)}
+                      onClick={() => onOpenRecord(p.id)}
                     >
                       Open record <ArrowRight size={12} className="inline" />
                     </button>

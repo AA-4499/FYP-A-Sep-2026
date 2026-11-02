@@ -101,9 +101,8 @@ function Workspace({
     setPatientPage("patient_home");
   };
   const navigate = (page: NavigationModule) => {
-    if (["doctor_monitoring", "doctor_digital_twin", "doctor_knowledge_graph"].includes(page)) return;
+    if (["doctor_monitoring", "doctor_knowledge_graph"].includes(page)) return;
     if (page === "patient_knowledge_graph" && !canViewKnowledgeGraph) return;
-    if (page === "doctor_predictions" && !canViewPredictions) return;
     if (page.startsWith("doctor_")) {
       setMode("doctor");
       setDoctorPage(page);
@@ -275,7 +274,7 @@ function Workspace({
                   patients={patients}
                   currentPatient={patient}
                   onSelectPatient={setSelectedId}
-                  onOpenDigitalTwin={openPatient}
+                  onOpenRecord={openPatient}
                 />
               )}
               {["patient_dashboard", "patient_home"].includes(page) && (
@@ -299,17 +298,12 @@ function Workspace({
                   onNavigate={navigate}
                 />
               )}
-              {(["patient_digital_twin", "digital_twin"].includes(page) ||
-                (page === "doctor_predictions" && canViewPredictions)) && (
+              {["patient_digital_twin", "digital_twin"].includes(page) && (
                 <RiskSimulationView
                   key={patient.id}
                   patient={patient}
                   canViewPhysiology={!isPreview && initialRole === "doctor"}
                   onNavigate={navigate}
-                  patients={mode === "doctor" ? patients : undefined}
-                  onSelectPatient={
-                    mode === "doctor" ? setSelectedId : undefined
-                  }
                 />
               )}
               {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (

@@ -16,6 +16,7 @@ import {
   RecordedReport,
 } from "./components/ClinicalWorkspace";
 import { fetchSupabasePatients } from "./lib/supabase";
+import { fetchDoctorAssignedPatientIds } from "./lib/doctorAssignments";
 import type { NavigationModule, Patient, UserRole } from "./types";
 
 const KnowledgeGraphView = React.lazy(async () => ({
@@ -66,7 +67,11 @@ function Workspace({
     setLoading(true);
     setError("");
     try {
-      const records = await fetchSupabasePatients();
+      const assignedIds =
+        initialRole === "doctor" && !isPreview
+          ? new Set(await fetchDoctorAssignedPatientIds())
+          : undefined;
+      const records = await fetchSupabasePatients(assignedIds);
       if (request !== revision.current) return;
       setPatients(records);
       setSelectedId((previous) =>

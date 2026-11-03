@@ -3,6 +3,7 @@ import type { DashboardPatient } from '../components/DashboardView';
 
 export interface PatientDashboardData {
   profile: { id: string; full_name: string | null; patient_id: string | null };
+  assigned_doctor: { id: string; full_name: string | null } | null;
   summary: Record<string, unknown> | null;
   readings: Record<string, unknown>[];
 }

@@ -1,0 +1,7 @@
+# Isolated training environment; leave the legacy backend requirements separate.
+# Install the CPU torch wheel first with the PyTorch CPU index when desired.
+torch==2.9.1
+numpy==2.2.6
+pandas==2.3.3
+openpyxl==3.1.5
+xlrd==2.0.2

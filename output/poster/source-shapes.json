@@ -1,0 +1,200 @@
+﻿[
+    {
+        "Slide":  1,
+        "Id":  2,
+        "Name":  "Group 2",
+        "Type":  6,
+        "Left":  40.37551,
+        "Top":  40.3155136,
+        "Width":  1602.79272,
+        "Height":  2299.58,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  4,
+        "Name":  "Group 4",
+        "Type":  6,
+        "Left":  1442.82373,
+        "Top":  50.3710251,
+        "Width":  186.63,
+        "Height":  273.754974,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  6,
+        "Name":  "Group 6",
+        "Type":  6,
+        "Left":  45.34874,
+        "Top":  45.305275,
+        "Width":  141.714722,
+        "Height":  283.028961,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  8,
+        "Name":  "Group 8",
+        "Type":  6,
+        "Left":  190.77449,
+        "Top":  171.236221,
+        "Width":  1262.307,
+        "Height":  56.66252,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  11,
+        "Name":  "Group 11",
+        "Type":  6,
+        "Left":  190.77449,
+        "Top":  210.9255,
+        "Width":  1262.307,
+        "Height":  128.676926,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  14,
+        "Name":  "Group 14",
+        "Type":  6,
+        "Left":  180.516769,
+        "Top":  45.305275,
+        "Width":  1262.307,
+        "Height":  142.905045,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  17,
+        "Name":  "Group 17",
+        "Type":  6,
+        "Left":  54.34126,
+        "Top":  338.5425,
+        "Width":  777.36676,
+        "Height":  392.255981,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  20,
+        "Name":  "Group 20",
+        "Type":  6,
+        "Left":  846.529541,
+        "Top":  338.5425,
+        "Width":  782.924255,
+        "Height":  1425.485,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  23,
+        "Name":  "Group 23",
+        "Type":  6,
+        "Left":  54.34126,
+        "Top":  2082.30737,
+        "Width":  777.36676,
+        "Height":  242.408264,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  26,
+        "Name":  "Group 26",
+        "Type":  6,
+        "Left":  54.34126,
+        "Top":  1142.84546,
+        "Width":  777.36676,
+        "Height":  929.566956,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  29,
+        "Name":  "Group 29",
+        "Type":  6,
+        "Left":  846.529541,
+        "Top":  2082.30737,
+        "Width":  782.924255,
+        "Height":  242.408264,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  32,
+        "Name":  "Group 32",
+        "Type":  6,
+        "Left":  846.529541,
+        "Top":  1773.9231,
+        "Width":  782.924255,
+        "Height":  298.488739,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  35,
+        "Name":  "Group 35",
+        "Type":  6,
+        "Left":  54.34126,
+        "Top":  740.694031,
+        "Width":  777.36676,
+        "Height":  392.255981,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  38,
+        "Name":  "Freeform 38",
+        "Type":  5,
+        "Left":  403.454254,
+        "Top":  1294.91492,
+        "Width":  374.98645,
+        "Height":  288.7396,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  39,
+        "Name":  "Group 39",
+        "Type":  6,
+        "Left":  443.024658,
+        "Top":  1705.22522,
+        "Width":  315.564026,
+        "Height":  315.564026,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  41,
+        "Name":  "Group 41",
+        "Type":  6,
+        "Left":  84.34205,
+        "Top":  1720.56421,
+        "Width":  295.7726,
+        "Height":  295.7726,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  43,
+        "Name":  "Group 43",
+        "Type":  6,
+        "Left":  865.198242,
+        "Top":  490.9826,
+        "Width":  745.5867,
+        "Height":  745.5867,
+        "Text":  ""
+    },
+    {
+        "Slide":  1,
+        "Id":  45,
+        "Name":  "Group 45",
+        "Type":  6,
+        "Left":  896.2964,
+        "Top":  1292.3136,
+        "Width":  683.3905,
+        "Height":  401.022675,
+        "Text":  ""
+    }
+]

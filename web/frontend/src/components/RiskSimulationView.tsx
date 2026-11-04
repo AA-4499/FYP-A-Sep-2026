@@ -1,4 +1,5 @@
 import { PhysiologyLab } from "./PhysiologyLab";
+import { ConditionalForecastPanel } from './ConditionalForecastPanel';
 import { savePrediction } from "../lib/predictionResults";
 import { ScenarioBuilder } from "./ScenarioBuilder";
 import { PredictionChart } from "./PredictionChart";
@@ -1800,7 +1801,7 @@ function ForecastPanel({
 }
 
 export const RiskSimulationView: React.FC<Props> = (props) => {
-  const [tab, setTab] = useState<"forecast" | "physiology">("forecast");
+  const [tab, setTab] = useState<"conditional" | "forecast" | "physiology">("conditional");
   return (
     <div className="space-y-5">
       <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
@@ -1830,7 +1831,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
                     )
                   )
                     return;
-                  setTab("forecast");
+                  setTab("conditional");
                   props.onSelectPatient?.(event.target.value);
                 }}
               >
@@ -1850,7 +1851,8 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
         >
           {(
             [
-              ["forecast", "CGM forecast"],
+              ["conditional", "Glucose forecast · v3"],
+              ["forecast", "Previous GRU · comparison"],
               ["physiology", "Physiology lab"],
             ] as const
           ).filter(([id]) => id !== 'physiology' || props.canViewPhysiology).map(([id, label]) => (
@@ -1861,7 +1863,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
               onClick={() => setTab(id)}
               className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${tab === id ? "bg-white text-teal-800 shadow-sm ring-1 ring-slate-200/70" : "text-slate-500 hover:bg-white/70"}`}
             >
-              {id === "forecast" ? (
+              {id !== "physiology" ? (
                 <Activity size={14} />
               ) : (
                 <FlaskConical size={14} />
@@ -1871,7 +1873,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
           ))}
         </div>
       </section>
-      {tab === "forecast" || !props.canViewPhysiology ? (
+      {tab === "conditional" ? <ConditionalForecastPanel key={props.patient.id} patient={props.patient} allowInsulin={props.canViewPhysiology} /> : tab === "forecast" || !props.canViewPhysiology ? (
         <ForecastPanel
           key={props.patient.id}
           {...props}

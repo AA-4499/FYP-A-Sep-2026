@@ -13,6 +13,13 @@ export interface ForecastEvent {
   minutes_ahead: number;
 }
 export interface GlucoseForecast {
+  model_family?: 'conditional-v3';
+  model_version?: string;
+  model_evaluation?: { scope: string; mae_mg_dl: Record<string, number> };
+  horizons_minutes?: number[];
+  exposure?: { iob_units: number; described_meals: number; converted_meals: number; excluded_insulin: number; warmup_incomplete: boolean };
+  uncertainty?: string;
+  plans?: unknown;
   patient_id: string;
   record_id: string;
   source: string;

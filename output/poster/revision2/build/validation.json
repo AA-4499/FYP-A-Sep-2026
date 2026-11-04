@@ -1,0 +1,34 @@
+{
+  "package": {
+    "chart_count": 0,
+    "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
+    "finding_count": 0,
+    "findings": [],
+    "notes_parts_skipped": 1,
+    "relationship_part_count": 20,
+    "slide_count": 1,
+    "status": "pass"
+  },
+  "layout": {
+    "finding_count": 0,
+    "findings": [],
+    "slide_count": 1,
+    "slide_size_in": [
+      23.375,
+      33.1111
+    ],
+    "warning_count": 0,
+    "warnings": []
+  },
+  "content": {
+    "all_reported_numeric_values_verified": true,
+    "native_tables": 2,
+    "original_section_headings": 7,
+    "unrelated_project_excluded": true
+  },
+  "powerpoint": {
+    "reopened_and_rendered": true,
+    "text_overflow_count": 0
+  },
+  "sha256": "f1f139e611d3ddd8dc974a91a0836272d99e3250982e444becc06af2450711a4"
+}

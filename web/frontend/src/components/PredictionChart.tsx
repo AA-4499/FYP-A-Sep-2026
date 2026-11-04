@@ -55,9 +55,11 @@ function ReadoutProbe({
 export function PredictionChart({
   series,
   loading,
+  clockLabel = 'UTC',
 }: {
   series: PredictionChartSeries[];
   loading: boolean;
+  clockLabel?: string;
 }) {
   const id = useId().replace(/:/g, "");
   const [focused, setFocused] = useState(true),
@@ -177,7 +179,7 @@ export function PredictionChart({
           {first
             ? new Date(first.timestamp).toISOString().slice(0, 10)
             : "Forecast"}{" "}
-          · UTC
+          · {clockLabel}
         </span>
       </div>
       <div
@@ -377,7 +379,7 @@ export function PredictionChart({
               </p>
               <p className="mt-0.5 text-xs font-semibold text-black">
                 {clock(selected.timestamp)}{" "}
-                <span className="font-normal text-black">UTC</span>
+                <span className="font-normal text-black">{clockLabel}</span>
               </p>
             </div>
           </div>

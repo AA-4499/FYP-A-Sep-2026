@@ -1,0 +1,66 @@
+[
+  {
+    "cohort": "ShanghaiT1DM",
+    "partition": "train",
+    "described_meals": 264,
+    "complete_reference_meals": 12,
+    "modeled_bolus_events": 273,
+    "excluded_insulin_annotations": 301
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "partition": "validation",
+    "described_meals": 61,
+    "complete_reference_meals": 1,
+    "modeled_bolus_events": 99,
+    "excluded_insulin_annotations": 101
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "partition": "test",
+    "described_meals": 82,
+    "complete_reference_meals": 6,
+    "modeled_bolus_events": 117,
+    "excluded_insulin_annotations": 117
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "partition": "purged",
+    "described_meals": 0,
+    "complete_reference_meals": 0,
+    "modeled_bolus_events": 0,
+    "excluded_insulin_annotations": 0
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "partition": "train",
+    "described_meals": 1906,
+    "complete_reference_meals": 61,
+    "modeled_bolus_events": 226,
+    "excluded_insulin_annotations": 825
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "partition": "validation",
+    "described_meals": 259,
+    "complete_reference_meals": 1,
+    "modeled_bolus_events": 88,
+    "excluded_insulin_annotations": 172
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "partition": "test",
+    "described_meals": 770,
+    "complete_reference_meals": 14,
+    "modeled_bolus_events": 382,
+    "excluded_insulin_annotations": 666
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "partition": "purged",
+    "described_meals": 128,
+    "complete_reference_meals": 1,
+    "modeled_bolus_events": 33,
+    "excluded_insulin_annotations": 90
+  }
+]

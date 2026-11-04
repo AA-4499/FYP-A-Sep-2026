@@ -1,0 +1,738 @@
+{
+  "version": "shanghai-v3-20261104",
+  "run": "models/evaluation/shanghai_v3_20261104",
+  "history_model_validation_selection": {
+    "ShanghaiT1DM": {
+      "variant": "lstm_carb_iob",
+      "criterion": "Mean validation MAE across identical 15/30/60/240-minute horizons; test errors not used."
+    },
+    "ShanghaiT2DM": {
+      "variant": "gru_context",
+      "criterion": "Mean validation MAE across identical 15/30/60/240-minute horizons; test errors not used."
+    }
+  },
+  "models": [
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_glucose_2h",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/gru_glucose_2h/checkpoint.pt",
+      "checkpoint_sha256": "35a98033ba46010a05d9562941dea5fd20c34b6de495a7b8818eaa761ac7cbc9",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        120
+      ],
+      "validation_mae_mg_dl": 18.117128372192383,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.470748521790364,
+          "rmse_mg_dl": 11.776260458853342,
+          "persistence_mae_mg_dl": 8.308487876957843,
+          "persistence_rmse_mg_dl": 11.856713166751447,
+          "mae_improvement_pct": -1.9529503711803364
+        },
+        "30": {
+          "mae_mg_dl": 15.385099056838666,
+          "rmse_mg_dl": 22.02395923177091,
+          "persistence_mae_mg_dl": 15.782084062785012,
+          "persistence_rmse_mg_dl": 22.40723269181701,
+          "mae_improvement_pct": 2.515415609035172
+        },
+        "60": {
+          "mae_mg_dl": 26.88885076029178,
+          "rmse_mg_dl": 38.29578753580372,
+          "persistence_mae_mg_dl": 27.87720038991088,
+          "persistence_rmse_mg_dl": 39.08171372797537,
+          "mae_improvement_pct": 3.545369032023726
+        },
+        "120": {
+          "mae_mg_dl": 40.73829850629964,
+          "rmse_mg_dl": 55.893866978735495,
+          "persistence_mae_mg_dl": 44.13972326095872,
+          "persistence_rmse_mg_dl": 60.35383193802965,
+          "mae_improvement_pct": 7.706040055007803
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_glucose_4h",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/gru_glucose_4h/checkpoint.pt",
+      "checkpoint_sha256": "9ff57cbec29bf54e580404bbc3ce3dab675c08bb135c7eb52087255633962e4a",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 20.591411590576172,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.498727505603275,
+          "rmse_mg_dl": 11.774226368036171,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": -2.3381291735507688
+        },
+        "30": {
+          "mae_mg_dl": 15.337349236372555,
+          "rmse_mg_dl": 21.965123647537656,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": 2.802120456348251
+        },
+        "60": {
+          "mae_mg_dl": 26.88646525397312,
+          "rmse_mg_dl": 38.36441485311098,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 3.630285156339929
+        },
+        "240": {
+          "mae_mg_dl": 52.13460844580927,
+          "rmse_mg_dl": 68.06849622987363,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": 13.287344183814719
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_context",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/gru_context/checkpoint.pt",
+      "checkpoint_sha256": "c6e06e6bb9eb9ab1dff567ff2ef4140c0e80f4d5fab7df5ba73487c4d18f19e4",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 21.237993240356445,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.390477395227215,
+          "rmse_mg_dl": 11.861629053651727,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": -1.0346265290181023
+        },
+        "30": {
+          "mae_mg_dl": 15.756723886670205,
+          "rmse_mg_dl": 22.21073703809078,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": 0.14440391647680412
+        },
+        "60": {
+          "mae_mg_dl": 27.216273551179384,
+          "rmse_mg_dl": 38.465006804904164,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 2.4481464387878376
+        },
+        "240": {
+          "mae_mg_dl": 57.35640618196437,
+          "rmse_mg_dl": 74.52630384823433,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": 4.602212304333817
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_context_insulin",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/gru_context_insulin/checkpoint.pt",
+      "checkpoint_sha256": "9f9c9eeff584f81329cccec2723fbdfc9699066a06c17ce77765800aac772cbd",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 21.410024642944336,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.370767444191651,
+          "rmse_mg_dl": 11.865286089692816,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": -0.7972875257670843
+        },
+        "30": {
+          "mae_mg_dl": 16.111244305140225,
+          "rmse_mg_dl": 22.450475084948554,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": -2.102309801725252
+        },
+        "60": {
+          "mae_mg_dl": 27.62687671652335,
+          "rmse_mg_dl": 38.70941080680653,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 0.976413000259518
+        },
+        "240": {
+          "mae_mg_dl": 58.295598308130224,
+          "rmse_mg_dl": 75.94883887508239,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": 3.040105174170119
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "lstm_context_insulin",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/lstm_context_insulin/checkpoint.pt",
+      "checkpoint_sha256": "fe42815055cb9a69c65257089463e450571542fc4e6a766e428d1dfe58c51612",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 21.258956909179688,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.107756285407463,
+          "rmse_mg_dl": 11.774906730123504,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": 2.369783064976712
+        },
+        "30": {
+          "mae_mg_dl": 15.293176058753403,
+          "rmse_mg_dl": 22.080210651129818,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": 3.082060564062858
+        },
+        "60": {
+          "mae_mg_dl": 27.860983172686186,
+          "rmse_mg_dl": 39.18662014662801,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 0.13730037573411316
+        },
+        "240": {
+          "mae_mg_dl": 56.134386009877375,
+          "rmse_mg_dl": 73.74287866403094,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": 6.634731925014552
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_carb_iob",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/gru_carb_iob/checkpoint.pt",
+      "checkpoint_sha256": "2de6a2dcb19572c34f29b20ae9b7609d9076c516e555e45e01a0994b205b9dfc",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 21.214412689208984,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.158350032538152,
+          "rmse_mg_dl": 11.717457923997944,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": 1.7605542803356307
+        },
+        "30": {
+          "mae_mg_dl": 15.32830341671654,
+          "rmse_mg_dl": 22.09882134126582,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": 2.8594468219247613
+        },
+        "60": {
+          "mae_mg_dl": 26.506763597899813,
+          "rmse_mg_dl": 37.851709547497535,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 4.991257674512169
+        },
+        "240": {
+          "mae_mg_dl": 54.0399488680671,
+          "rmse_mg_dl": 72.00111041640824,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": 10.1182951936484
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "lstm_carb_iob",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/lstm_carb_iob/checkpoint.pt",
+      "checkpoint_sha256": "74f6d9d43da9de06b28b429da8e6bb7113a19cf052a05bb73ff40d6d11480851",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 20.417261123657227,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.185905604228115,
+          "rmse_mg_dl": 11.681906434948335,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": 1.4287415880003158
+        },
+        "30": {
+          "mae_mg_dl": 15.544294635088532,
+          "rmse_mg_dl": 22.030350393510318,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": 1.4906386855083098
+        },
+        "60": {
+          "mae_mg_dl": 26.775163075344356,
+          "rmse_mg_dl": 38.17051283038696,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 4.02922786281367
+        },
+        "240": {
+          "mae_mg_dl": 56.339430661587016,
+          "rmse_mg_dl": 73.68819256590145,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": 6.293692319257678
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_future_event_decoder",
+      "conditional": true,
+      "evaluation": "oracle conditional",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT1DM/gru_future_event_decoder/checkpoint.pt",
+      "checkpoint_sha256": "ecf7cd90cbbc30b8ccdb9647c486e0826f7db5b284b15a10e8cb170dce97844c",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 21.3614444732666,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 8.281213762887628,
+          "rmse_mg_dl": 11.849950237186622,
+          "persistence_mae_mg_dl": 8.304556253115253,
+          "persistence_rmse_mg_dl": 11.857665306191652,
+          "mae_improvement_pct": 0.2810805239457408
+        },
+        "30": {
+          "mae_mg_dl": 15.764734268690807,
+          "rmse_mg_dl": 22.393416986724258,
+          "persistence_mae_mg_dl": 15.779510117280411,
+          "persistence_rmse_mg_dl": 22.414978232646867,
+          "mae_improvement_pct": 0.0936394633279701
+        },
+        "60": {
+          "mae_mg_dl": 27.89660304855415,
+          "rmse_mg_dl": 39.09817681820429,
+          "persistence_mae_mg_dl": 27.899289001312134,
+          "persistence_rmse_mg_dl": 39.121477435411755,
+          "mae_improvement_pct": 0.00962731615797095
+        },
+        "240": {
+          "mae_mg_dl": 60.29812259086346,
+          "rmse_mg_dl": 77.68815508843458,
+          "persistence_mae_mg_dl": 60.12341330696289,
+          "persistence_rmse_mg_dl": 77.60203813167999,
+          "mae_improvement_pct": -0.2905844400559603
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_glucose_2h",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/gru_glucose_2h/checkpoint.pt",
+      "checkpoint_sha256": "193f86e7fcc314202c82cecf914008b7557f3a696a0510224729cf1569da07bc",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        120
+      ],
+      "validation_mae_mg_dl": 13.541887283325195,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.25008442869947,
+          "rmse_mg_dl": 5.985243372580296,
+          "persistence_mae_mg_dl": 6.6674080099796225,
+          "persistence_rmse_mg_dl": 9.85939466062,
+          "mae_improvement_pct": 36.25582201752103
+        },
+        "30": {
+          "mae_mg_dl": 9.4155240740269,
+          "rmse_mg_dl": 13.694534845530379,
+          "persistence_mae_mg_dl": 12.2792369843992,
+          "persistence_rmse_mg_dl": 18.168339628400513,
+          "mae_improvement_pct": 23.321586789233354
+        },
+        "60": {
+          "mae_mg_dl": 17.018409002168536,
+          "rmse_mg_dl": 25.165180364467428,
+          "persistence_mae_mg_dl": 20.76763806923279,
+          "persistence_rmse_mg_dl": 30.495729793840976,
+          "mae_improvement_pct": 18.053228078058286
+        },
+        "120": {
+          "mae_mg_dl": 26.512102576486903,
+          "rmse_mg_dl": 37.71239423444886,
+          "persistence_mae_mg_dl": 32.11334360121218,
+          "persistence_rmse_mg_dl": 45.68134500435023,
+          "mae_improvement_pct": 17.442098506721194
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_glucose_4h",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/gru_glucose_4h/checkpoint.pt",
+      "checkpoint_sha256": "b7f6e1553d86353d3c4937aa70dc8a7ded35c29d367aed907ccbd7b38b4cd558",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 15.127385139465332,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.239260001268806,
+          "rmse_mg_dl": 5.925624301410759,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 36.4722273418467
+        },
+        "30": {
+          "mae_mg_dl": 9.44333911151541,
+          "rmse_mg_dl": 13.639384591166948,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 23.162052332748303
+        },
+        "60": {
+          "mae_mg_dl": 17.096965168920907,
+          "rmse_mg_dl": 25.0958522872533,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 17.719106188359635
+        },
+        "240": {
+          "mae_mg_dl": 32.34794122168568,
+          "rmse_mg_dl": 44.55046961514457,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 18.10671906472395
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_context",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/gru_context/checkpoint.pt",
+      "checkpoint_sha256": "aca52b7a0f170c67343a921f4a89944758ac655976396c594637d222cbe0d62b",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 14.047351837158203,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.252601237568128,
+          "rmse_mg_dl": 5.938552801325672,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 36.272301169272154
+        },
+        "30": {
+          "mae_mg_dl": 9.308260526583176,
+          "rmse_mg_dl": 13.376143161046269,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 24.261150979680597
+        },
+        "60": {
+          "mae_mg_dl": 16.59948137712109,
+          "rmse_mg_dl": 24.168285155367606,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 20.113297826563482
+        },
+        "240": {
+          "mae_mg_dl": 29.700925860663716,
+          "rmse_mg_dl": 40.76946730641936,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 24.808004043405713
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_context_insulin",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/gru_context_insulin/checkpoint.pt",
+      "checkpoint_sha256": "993c404bd9b8ab2920a4ad2a5adfb19688296378557beed86185cc534fc7378b",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 14.27631950378418,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.34642609798323,
+          "rmse_mg_dl": 6.144310587321165,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 34.86628115626291
+        },
+        "30": {
+          "mae_mg_dl": 9.356416136596247,
+          "rmse_mg_dl": 13.49345637767975,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 23.869321543252035
+        },
+        "60": {
+          "mae_mg_dl": 16.56176489687089,
+          "rmse_mg_dl": 24.24196633203826,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 20.294812245979674
+        },
+        "240": {
+          "mae_mg_dl": 29.545980156053254,
+          "rmse_mg_dl": 41.06385462321706,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 25.200270494937175
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "lstm_context_insulin",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/lstm_context_insulin/checkpoint.pt",
+      "checkpoint_sha256": "d4028106805fce86c0caf6588b62e4ca28fd439c41e6c60d8fa049570d64fba5",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 14.159558296203613,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.41705567473281,
+          "rmse_mg_dl": 6.250106073770672,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 33.807855937393114
+        },
+        "30": {
+          "mae_mg_dl": 9.43410156949854,
+          "rmse_mg_dl": 13.617550777209617,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 23.237215763996968
+        },
+        "60": {
+          "mae_mg_dl": 16.633793924021166,
+          "rmse_mg_dl": 24.266890017938874,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 19.948165184600555
+        },
+        "240": {
+          "mae_mg_dl": 29.695960709722158,
+          "rmse_mg_dl": 40.79652267959821,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 24.82057400877558
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_carb_iob",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/gru_carb_iob/checkpoint.pt",
+      "checkpoint_sha256": "99045e53895372bc9814e750b893645705b0b02b72c9791458c8d5d5f51d8b96",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 14.07396411895752,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.394939672792913,
+          "rmse_mg_dl": 6.282256481136458,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 34.139277068185876
+        },
+        "30": {
+          "mae_mg_dl": 9.284887714595449,
+          "rmse_mg_dl": 13.512507178518451,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 24.45132935653879
+        },
+        "60": {
+          "mae_mg_dl": 16.369667671262757,
+          "rmse_mg_dl": 24.225188843583506,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 21.21929979482874
+        },
+        "240": {
+          "mae_mg_dl": 29.65554078894376,
+          "rmse_mg_dl": 40.830332649704204,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 24.9229026208193
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "lstm_carb_iob",
+      "conditional": false,
+      "evaluation": "history only",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/lstm_carb_iob/checkpoint.pt",
+      "checkpoint_sha256": "99816c0d7156a103df8180383788b5b93215b211faa76fd8fe24dc7b31bdf26d",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 14.080554962158203,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.4007945420514085,
+          "rmse_mg_dl": 6.2065404829410245,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 34.05153845269978
+        },
+        "30": {
+          "mae_mg_dl": 9.334196340822126,
+          "rmse_mg_dl": 13.362189405138563,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 24.050118132753614
+        },
+        "60": {
+          "mae_mg_dl": 16.57349155700792,
+          "rmse_mg_dl": 23.865368150545166,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 20.238376494490044
+        },
+        "240": {
+          "mae_mg_dl": 30.147091453019964,
+          "rmse_mg_dl": 40.961484021180844,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 23.678474224240915
+        }
+      }
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_future_event_decoder",
+      "conditional": true,
+      "evaluation": "oracle conditional",
+      "checkpoint": "models/evaluation/shanghai_v3_20261104/ShanghaiT2DM/gru_future_event_decoder/checkpoint.pt",
+      "checkpoint_sha256": "b62b1f0e58e1141d1c367633e2933f22ed0badecabdf658bb3507df9883d29e1",
+      "horizons_minutes": [
+        15,
+        30,
+        60,
+        240
+      ],
+      "validation_mae_mg_dl": 13.787980079650879,
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 4.369844573043114,
+          "rmse_mg_dl": 6.120963582101742,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 34.51534170948217
+        },
+        "30": {
+          "mae_mg_dl": 9.351729553183228,
+          "rmse_mg_dl": 13.393278644564742,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 23.907455030440758
+        },
+        "60": {
+          "mae_mg_dl": 16.3751278784848,
+          "rmse_mg_dl": 23.77191714919822,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 21.19302198902007
+        },
+        "240": {
+          "mae_mg_dl": 29.42306598310939,
+          "rmse_mg_dl": 41.16192915028376,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 25.51144470002294
+        }
+      }
+    }
+  ],
+  "website_decoder_selection": "Architecture chosen for experimental future-plan interface, not test-error selection.",
+  "causal_treatment_effect_validated": false
+}

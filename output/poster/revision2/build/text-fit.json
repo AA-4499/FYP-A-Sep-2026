@@ -1,0 +1,443 @@
+﻿[
+    {
+        "Name":  "Project title",
+        "Width":  1235,
+        "Height":  75,
+        "BoundWidth":  802.045044,
+        "BoundHeight":  72
+    },
+    {
+        "Name":  "Project subtitle",
+        "Width":  1235,
+        "Height":  61,
+        "BoundWidth":  884.125061,
+        "BoundHeight":  51.6
+    },
+    {
+        "Name":  "Authors",
+        "Width":  1210,
+        "Height":  56,
+        "BoundWidth":  508.87,
+        "BoundHeight":  55.4
+    },
+    {
+        "Name":  "Institution",
+        "Width":  1210,
+        "Height":  32,
+        "BoundWidth":  557.285034,
+        "BoundHeight":  27.6
+    },
+    {
+        "Name":  "Supervisor",
+        "Width":  1210,
+        "Height":  29,
+        "BoundWidth":  319.31,
+        "BoundHeight":  25.2
+    },
+    {
+        "Name":  "Introduction heading",
+        "Width":  729,
+        "Height":  44,
+        "BoundWidth":  201.375046,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "Problem heading",
+        "Width":  729,
+        "Height":  44,
+        "BoundWidth":  141.125046,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "Results heading",
+        "Width":  729,
+        "Height":  44,
+        "BoundWidth":  128.375046,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "References heading",
+        "Width":  729,
+        "Height":  44,
+        "BoundWidth":  187.25,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "Methodology heading",
+        "Width":  726,
+        "Height":  44,
+        "BoundWidth":  214.25,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "Conclusions heading",
+        "Width":  726,
+        "Height":  44,
+        "BoundWidth":  207,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "Recommendations heading",
+        "Width":  726,
+        "Height":  44,
+        "BoundWidth":  304.375031,
+        "BoundHeight":  39.6
+    },
+    {
+        "Name":  "Introduction text",
+        "Width":  729,
+        "Height":  229,
+        "BoundWidth":  727.5,
+        "BoundHeight":  189
+    },
+    {
+        "Name":  "Problem statement",
+        "Width":  729,
+        "Height":  87,
+        "BoundWidth":  722.5,
+        "BoundHeight":  79.2
+    },
+    {
+        "Name":  "Aim label",
+        "Width":  729,
+        "Height":  31,
+        "BoundWidth":  130.25,
+        "BoundHeight":  27.6
+    },
+    {
+        "Name":  "Project aim text",
+        "Width":  729,
+        "Height":  123,
+        "BoundWidth":  716.67,
+        "BoundHeight":  110.4
+    },
+    {
+        "Name":  "Objectives label",
+        "Width":  729,
+        "Height":  31,
+        "BoundWidth":  406.75,
+        "BoundHeight":  26.4
+    },
+    {
+        "Name":  "Objectives",
+        "Width":  729,
+        "Height":  91,
+        "BoundWidth":  560.5,
+        "BoundHeight":  85.6
+    },
+    {
+        "Name":  "Initial forecast heading",
+        "Width":  729,
+        "Height":  35,
+        "BoundWidth":  447.75,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Initial forecast scope",
+        "Width":  729,
+        "Height":  72,
+        "BoundWidth":  729.155,
+        "BoundHeight":  48
+    },
+    {
+        "Name":  "Trajectory forecast heading",
+        "Width":  729,
+        "Height":  35,
+        "BoundWidth":  453,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Trajectory forecast scope",
+        "Width":  729,
+        "Height":  61,
+        "BoundWidth":  707.125061,
+        "BoundHeight":  48
+    },
+    {
+        "Name":  "Knowledge graph results heading",
+        "Width":  729,
+        "Height":  35,
+        "BoundWidth":  326.375031,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Graph count 37",
+        "Width":  224,
+        "Height":  48,
+        "BoundWidth":  54.37504,
+        "BoundHeight":  46.8
+    },
+    {
+        "Name":  "Graph label 37",
+        "Width":  224,
+        "Height":  31,
+        "BoundWidth":  160,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Graph count 42",
+        "Width":  224,
+        "Height":  48,
+        "BoundWidth":  54.37504,
+        "BoundHeight":  46.8
+    },
+    {
+        "Name":  "Graph label 42",
+        "Width":  224,
+        "Height":  31,
+        "BoundWidth":  170,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Graph count 15",
+        "Width":  224,
+        "Height":  48,
+        "BoundWidth":  54.37504,
+        "BoundHeight":  46.8
+    },
+    {
+        "Name":  "Graph label 15",
+        "Width":  224,
+        "Height":  31,
+        "BoundWidth":  124.375038,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Knowledge graph status",
+        "Width":  729,
+        "Height":  53,
+        "BoundWidth":  721,
+        "BoundHeight":  48
+    },
+    {
+        "Name":  "Method introduction",
+        "Width":  724,
+        "Height":  112,
+        "BoundWidth":  714.335,
+        "BoundHeight":  110.4
+    },
+    {
+        "Name":  "Target workflow label",
+        "Width":  724,
+        "Height":  35,
+        "BoundWidth":  333.14505,
+        "BoundHeight":  30
+    },
+    {
+        "Name":  "Workflow number 1",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 1",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  142.375046,
+        "BoundHeight":  25.2
+    },
+    {
+        "Name":  "Workflow number 2",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 2",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  196.995041,
+        "BoundHeight":  25.2
+    },
+    {
+        "Name":  "Workflow number 3",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 3",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  157.25,
+        "BoundHeight":  55.4
+    },
+    {
+        "Name":  "Workflow number 4",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 4",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  197.125046,
+        "BoundHeight":  25.2
+    },
+    {
+        "Name":  "Workflow number 5",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 5",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  136.5,
+        "BoundHeight":  50.4
+    },
+    {
+        "Name":  "Workflow number 6",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 6",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  169.245041,
+        "BoundHeight":  50.4
+    },
+    {
+        "Name":  "Workflow number 7",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 7",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  144.625046,
+        "BoundHeight":  50.4
+    },
+    {
+        "Name":  "Workflow number 8",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 8",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  105,
+        "BoundHeight":  55.4
+    },
+    {
+        "Name":  "Workflow number 9",
+        "Width":  50,
+        "Height":  28,
+        "BoundWidth":  27.75,
+        "BoundHeight":  24
+    },
+    {
+        "Name":  "Workflow title 9",
+        "Width":  198,
+        "Height":  55,
+        "BoundWidth":  164.5,
+        "BoundHeight":  50.4
+    },
+    {
+        "Name":  "Method Data preparation and patient state",
+        "Width":  724,
+        "Height":  34,
+        "BoundWidth":  394.625031,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Method detail Data preparation and patient state",
+        "Width":  724,
+        "Height":  91,
+        "BoundWidth":  719.605042,
+        "BoundHeight":  79.2
+    },
+    {
+        "Name":  "Method Predictive modelling and evaluation",
+        "Width":  724,
+        "Height":  34,
+        "BoundWidth":  415.625031,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Method detail Predictive modelling and evaluation",
+        "Width":  724,
+        "Height":  91,
+        "BoundWidth":  713.75,
+        "BoundHeight":  79.2
+    },
+    {
+        "Name":  "Method Clinical context and explainability",
+        "Width":  724,
+        "Height":  34,
+        "BoundWidth":  391.625031,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Method detail Clinical context and explainability",
+        "Width":  724,
+        "Height":  91,
+        "BoundWidth":  716.25,
+        "BoundHeight":  79.2
+    },
+    {
+        "Name":  "Method Application integration and verification",
+        "Width":  724,
+        "Height":  34,
+        "BoundWidth":  451.5,
+        "BoundHeight":  28.8
+    },
+    {
+        "Name":  "Method detail Application integration and verification",
+        "Width":  724,
+        "Height":  91,
+        "BoundWidth":  715.59,
+        "BoundHeight":  75.6
+    },
+    {
+        "Name":  "Method scope note",
+        "Width":  724,
+        "Height":  102,
+        "BoundWidth":  642.875061,
+        "BoundHeight":  79.2
+    },
+    {
+        "Name":  "Conclusions text",
+        "Width":  724,
+        "Height":  180,
+        "BoundWidth":  724.625061,
+        "BoundHeight":  165.6
+    },
+    {
+        "Name":  "References text",
+        "Width":  729,
+        "Height":  149,
+        "BoundWidth":  717.8,
+        "BoundHeight":  106
+    },
+    {
+        "Name":  "Recommendations text",
+        "Width":  724,
+        "Height":  149,
+        "BoundWidth":  577.75,
+        "BoundHeight":  120.6
+    },
+    {
+        "Name":  "Poster status footer",
+        "Width":  1563,
+        "Height":  27,
+        "BoundWidth":  953.625061,
+        "BoundHeight":  20.4
+    }
+]

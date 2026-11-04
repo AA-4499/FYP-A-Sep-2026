@@ -1,0 +1,250 @@
+
+Team and Project Plan
+Portfolio task 1
+Unit code: COS40005
+Unit Name: Computing Technology Project A
+Submission date:27/9/2026
+
+Student Name
+Student Id
+Statement of contribution to the report
+Andy Wei Jian CHU
+104401283
+Acted as team leader, coordinated project planning, and drafted the research, development, and AI model training strategies.
+Fa Zhen NG
+104400141
+Research on the interrelationships between hypertension, hyperglycemia, and hyperlipidemia in diabetes.
+Development, training, and evaluation of the machine learning model.
+Jit Heng BOON
+104383242
+Researched technical requirements, drafted the security architecture plan, and documented these sections.
+Elijah Benjamin Sing Cheng TAN
+102789453
+Research on the relationship between BMI and obesity in diabetes and clinical knowledge references for knowledge graph.
+Jody LAW
+104385183
+Conducted research on diabetes and managed the data processing for the dataset.
+
+Acknowledgment of Country 
+PART 1 Team Code of Conduct
+Team profile
+
+Student name
+Technical skills
+Soft skills
+Communication 
+Teamwork
+Other
+Andy Wei Jian CHU
+Java, C lang, python, SQL, HTML, CSS, PHP, AWS, Codex, Antigravity, OBS
+Decision-making, Active listening, Keep Learning
+Broken English,Face-to-face chats, Meeting, 
+Idea Creator
+Open to brainstorming and conceptualizing new ideas.
+Fa Zhen NG
+C++, C#, Python, JavaScript,  SQL, HTML, CSS, PHP, AWS, React
+Active listening, Problem-solving, Self-learning
+English and Chinese speaker, prefers face-to-face or online meetings, quiet/reserved in group discussions.
+Researcher, editor, writer, training model creator
+Adaptable and fast learner
+Jit Heng BOON
+Python, C, PHP, HTML, CSS, AWS, SQL
+Responsible, Problem-solving
+Active Listening, able to communicate effectively with different people
+Collaborative
+Time management
+Elijah Benjamin Sing Cheng TAN
+React, C#, Python, SQL, HTML, CSS, PHP, AWS, Arduino
+Time management, self-learning, researching
+Prefers English, face-to-face/online, unable to read/write Chinese
+Researcher, writer, proofreader, responder
+Has experience in all majors
+Jody LAW
+Python, C, C#, C++, PHP, HTML, CSS, React, SQL, AWS, ScriptCase
+Problem-solving, time management
+Good listener, shares ideas, prefers clear communication
+Responder, editor, writer
+Willingness to learn
+Table 1: Team Profile
+1.2Team role
+Student name
+Team role
+Justification
+Andy Wei Jian CHU
+Leader, Researcher and Developer
+AI model Trainer
+Fa Zhen NG
+Researcher and Developer
+AI model Trainer
+Jit Heng BOON
+Researcher and Developer
+Security Architect
+Elijah Benjamin Sing Cheng TAN
+Researcher and Developer
+Knowledge Graph developer
+Jody LAW
+Researcher and Developer
+Data Analysis
+Table 2: Team Role
+1.3Teamwork roadmap
+The team conducts a face-to-face meeting every Wednesday at B004 from 10am to 12pm and online meetings from 10am to 11am during Friday when necessary. WhatsApp is used for general communications and updates while Microsoft Teams is used for online meetings and formal discussions. Jira is used to assign, monitor, and track project tasks and progress. 
+1.4Document management
+OneDrive is used as the team’s shared storage for general purposes, which allows members to access and edit project documents. For source code management and version control, the team has used GitHub to track changes through commits and shaped repository. This is the link to our GitHub repository (https://github.com/AA-4499/FYP-A-Sep-2026).
+1.5Risk mitigation
+Risk 1: Machine Learning & Digital Twin Skill Gap
+The team currently lacks advanced, practical experience in training predictive health models, implementing SHAP frameworks for explainability, and building the core data-driven representation of diabetes progression. This specialized skill gap risks slowing down the development of the core twin engine, leaving the team stuck in the research phase with a poorly performing model, inaccurate "What-If" simulations, and a compromised final academic grade. To mitigate this risk, the team will immediately utilize standard, well-documented open-source machine learning frameworks including Python, Pandas, NumPy, and Scikit-learn, alongside the SHAP library for explainability. The first two weeks of the project plan will be dedicated to intensive online crash courses on predictive health analytics. To ensure project safety, a basic data-driven twin model will be built and validated using the ShanghaiT2DM dataset first, leaving the 3D human representation as a secondary enhancement phase once the core engine functions properly.
+Risk 2: Sudden Unavailability or Illness of a Team Member
+The project faces a high human capital risk regarding the sudden unavailability, temporary illness, or personal emergency of a core team member mid-semester. The impact of losing a member would cause an extreme workload imbalance, placing the remaining students in a position where critical, deeply dependent components—such as the Neo4j Knowledge Graph, FastAPI backend, or React frontend—risk being completely unintegrated, resulting in a fragmented system that fails the end-to-end Final Demonstration sequence. To mitigate this operational risk, the team will enforce a strict "Two-Person Cross-Functional Rule" where no single member owns a component or codebase exclusively. All source codes will be pushed daily to a shared GitHub repository accompanied by clear internal documentation and code comments. If a member becomes unavailable, the team will immediately scale down the project scope to a Minimum Viable Product (MVP), prioritizing the core data pipeline from patient selection to risk reporting over secondary aesthetic features and the 3D human enhancement.
+Risk 3: Lack of Access to Real Clinical Diabetes Data
+The team may encounter significant engineering bottlenecks due to a lack of experience when designing meaningful clinical relationships within the Knowledge Graph or writing complex Cypher queries to link the AI risk assessment with personalized insights. If unresolved, the Knowledge Graph will become an isolated data prototype rather than an integrated component, causing the platform to fail in delivering the seamless, contextualized insights required for the final system flow. The team will mitigate this risk by designing a simplified, high-level graph schema focused strictly on key diabetes risk factors and lifestyle relationships before writing any database queries. We will utilize the official Neo4j Python driver within FastAPI or Flask to handle basic data retrieval, and the graph database structural design will be finalized during the initial database design phase to ensure smooth downstream API integration.
+Risk 4: Integration and Interoperability Hurdles (API/IoT Skill Gap)
+Integrating distinct modules—including the Frontend UI, Relational Database, Neo4j, AI Services, and Digital Twin Simulation—into a unified web application could trigger severe data pipeline integration issues and system latency during live "What-If" simulations, resulting in a buggy presentation and incomplete performance testing data. The team will mitigate these factors by strictly adhering to a modular architecture with a clear, predefined separation of concerns among the front end, backend, AI services, and database layers. A basic, functional end-to-end data pipeline will be built in the very first sprint to catch integration hurdles early. Performance testing and test case generation will be automated early using standard web testing tools to resolve pipeline bottlenecks and reduce user interface latency long before the final evaluation.
+Risk 5: Misrepresentation of Clinical Outcomes vs. Simulated Results
+The platform faces an ethical and usability risk if it fails to clearly distinguish between a patient's actual longitudinal clinical history from the ShanghaiT2DM dataset and the synthetic predictive results generated during "What-If" simulations. A failure to separate these screens causes the platform to lose its commercial presentability and ethical integrity, risking severe academic grading penalties for presenting unverified algorithmic simulations as real-world patient data. To mitigate this risk, the frontend UI will utilize strict visual anchors, explicit warning labels, and distinct color-coded visualization dashboards built with Plotly, D3.js, or Chart.js to separate historical monitoring from simulation screens. The system architecture documentation and user manual will explicitly map these distinct data flows, ensuring that the final deliverable stands as a cohesive, commercially ready, and ethically sound health management system.
+PART 2 Project overview and plan
+2.1 problem statement
+Diabetes is a chronic condition that requires continuous monitoring of a patient's health status, lifestyle, and diabetes-related risk factors. Patient information is often recorded at different points in time, making it difficult to obtain a clear and holistic view of how a patient's health condition changes over time. This project aims to develop a Smart Diabetes Digital Twin and Personalised Health Management Platform that provides an integrated, patient-centric view of diabetes-related health information. Unlike traditional systems based on single patient records, the proposed platform will utilize the ShanghaiT2DM longitudinal dataset, which contains repeated health records from more than 100 patients with Type 2 diabetes over time, to represent changing health conditions and create a robust digital representation of the patient's health state. The Machine Learning models, data processing, and analytical processes will operate primarily in the backend, while the end-user interface focuses on presenting actionable health information in a clear, intuitive, and commercially presentable manner. The primary objective is to deliver a complete user workflow that seamlessly guides users through patient selection, health history visualization, current risk assessment, key factor analysis, personalized insight exploration, digital twin state viewing, what-if scenario simulation, outcome comparison, and final report generation. Ultimately, the system aims to provide healthcare-related users with a consolidated view of patient data, trends, risk factors, and simulated scenarios, helping them understand complex patient conditions more effectively.
+
+2.2 Scope
+The matrix below defines the project boundaries across functional domains, distinguishing core in-scope deliverables, secondary/enhanced features, and out-of-scope elements.
+Table 3: Granular Scope Matrix
+Domain
+In Scope (Core & Enhanced)
+Out of Scope
+Platform & UI
+Web-based UI, longitudinal health trend dashboards, interactive scenario sliders, PDF report exporter.
+Native mobile applications, direct hardware/sensor integrations, raw code/terminal views on UI.
+Analytics & AI
+ML risk prediction (ShanghaiT2DM dataset), SHAP explainability contribution plots, Neo4j knowledge graph.
+Automated clinical prescription generation, real-time autonomous diagnostic decision-making.
+Digital Twin
+Core data-driven patient state tracking over time (Core); 3D human body representation visualizer (Enhanced Extension).
+In-vivo physiological modeling, clinical execution of simulated What-If health outcomes.
+
+2.3 stakeholder
+The primary client and key stakeholder for this project is Ts. Dr. Vong Wan Tze from Swinburne University of Technology Sarawak Campus. Internal stakeholders include the academic project supervisors, course convenors, and the student development team responsible for architecture design, module integration, and delivery. External stakeholders encompass healthcare professionals, clinicians, and medical researchers who represent the target end-users seeking a consolidated view of patient trends, AI risk assessments, and health scenarios to aid clinical understanding and decision-making.
+2.4 SYSTEM requirements
+Functional Requirements
+The system shall allow authorized users to select and view patient records
+The system shall display longitudinal health information using interactive visualizations
+The system shall calculate and display diabetes risk predictions using the selected ML model
+The system shall display SHAP-based feature contributions for model predictions
+The system shall retrieve and display relevant relationships from the Neo4j Knowledge Graph
+The system shall generate a Digital Twin representation of the patient's health state
+The system allows users to modify supported parameters for simulations
+The system shall distinguish historical patient data from simulated results
+The system shall generate a consolidated patient health report
+
+Non-functional Requirements
+Performance 
+Standard prediction requests should be returned within the team’s defined accepted response time under normal test conditions.
+Usability 
+The system shall be usable through a modern web browser without specialized hardware.
+Security 
+Patient data shall only be accessible through the system’s defined access control mechanisms.
+Maintainability
+Backend, frontend, database and ML components shall maintain clear separation of responsibilities.
+Reliability
+Core workflows shall pass predefined functional and integration test cases before release.
+2.5 Solution approach
+
+The platform will be built using a highly modular software architecture that establishes a strict separation between the web frontend, backend services, database storage, AI inference engines, Knowledge Graph components, and the Digital Twin simulation engine. The technical stack incorporates Python for backend logic and analytical processing, leveraging Pandas and NumPy for longitudinal data manipulation, Scikit-learn for machine learning risk assessment models, and SHAP for explainable AI processing. The database layer utilizes Neo4j driven by Cypher queries to handle graph-based health relationships alongside standard data persistence stores. Backend services and API endpoints will be built using FastAPI or Flask to ensure rapid communication with the web client. The frontend presentation layer will be developed using modern web frameworks such as React, integrated with visualization libraries including Plotly, D3.js, or Chart.js to render interactive timelines, risk gauges, XAI contribution plots, and graph nodes.
+To justify the architectural choices made for the platform, key technical alternatives were evaluated against the selected stack, as detailed in the trade-off matrix below.
+Table 4: Architectural Trade-Off Analysis
+Architecture Dimension
+Selected Approach
+Alternative Considered & Trade-Off
+System Pattern
+Decoupled Modular REST API (FastAPI backend + React frontend)
+Monolithic Web Framework (e.g., Django). Monolith offers simpler initial setup but restricts independent scaling of AI/graph microservices and limits UI framework flexibility.
+Health Relationships
+Graph Database (Neo4j) alongside Relational Persistence
+Pure Relational DB (PostgreSQL). SQL requires complex multi-table JOINs for multi-hop clinical entity relationships, whereas Graph DB provides sub-second Cypher queries.
+Explainable AI (XAI)
+SHAP (Shapley Additive exPlanations)
+LIME (Local Interpretable Model-agnostic Explanations). LIME is computationally faster but produces sampling variance; SHAP guarantees mathematically consistent additive feature attributions.
+
+2.6 Product backlog
+The product backlog maps all primary system deliverables across sprint iterations, detailing module ownership, priorities, and target milestones.
+Table 5: Product Backlog Table
+Item ID
+Feature / Deliverable Description
+Module / Owner
+Priority
+Sprint / Schedule
+Release
+PB-01
+ShanghaiT2DM Data Pipeline & DB Ingestion
+Data / Jody LAW
+High
+Sprint 1 (Weeks 4-6, Sep 22 - Oct 12)
+Alpha
+PB-02
+FastAPI REST Backend Architecture & Auth
+Backend / Jit Heng BOON
+High
+Sprint 1 (Weeks 4-6, Sep 22 - Oct 12)
+Alpha
+PB-03
+ML Diabetes Risk Assessment & Model Training
+AI / Andy CHU, Fa Zhen NG
+High
+Sprint 1 (Weeks 4-6, Sep 22 - Oct 12)
+Alpha
+PB-04
+SHAP Explainable AI (XAI) Feature Importance
+AI / Fa Zhen NG
+Medium
+Sprint 2 (Weeks 7-9, Oct 13 - Nov 02)
+Alpha
+PB-05
+Neo4j Personal Health Knowledge Graph Service
+KG / Elijah TAN
+Medium
+Sprint 2 (Weeks 7-9, Oct 13 - Nov 02)
+Alpha
+PB-06
+Digital Twin Engine & What-If Simulation UI
+Full Team
+High
+Sprint 3 (Weeks 10-12, Nov 03 - Nov 23)
+Beta
+PB-07
+Consolidated Patient Health Report Exporter
+Frontend / Elijah TAN
+Medium
+Sprint 3 (Weeks 10-12, Nov 03 - Nov 23)
+Beta
+
+2.7 QUality plan
+Quality expectations are governed by rigorous testing protocols across four primary QA pillars: Functional Workflow Testing, API Integration Testing, UX Usability Verification, and Model Explainability Verification. A feature is formally declared "Done" only when it meets all criteria defined in the Definition of Done (DoD) list below.
+Code executes without fatal errors and passes all peer code reviews on GitHub.
+Automated unit and integration test cases pass with minimum 80% code coverage.
+Backend API endpoint latency remains under 2.0 seconds for standard prediction requests.
+UI displays explicit visual markers distinguishing actual clinical data from simulated What-If outcomes.
+Feature branch is merged into dev/main following approved pull request protocol.
+2.8 Research and investigations
+Research undertaken during system design covers three core domains: the diabetes health application domain, graph architecture design, and explainable machine learning patterns. Domain research focused on understanding longitudinal Type 2 diabetes progression, key clinical indicators, and the structure of the ShanghaiT2DM dataset. Architectural research involved investigating existing digital twin concepts in healthcare, graph schema design for modelling relationships between patient demographics, risk factors, and health concepts using Neo4j, and modular API patterns suitable for healthcare platforms. Technical research evaluated machine learning algorithms for risk assessment alongside XAI frameworks like SHAP to ensure complex model outputs are interpreted into user-friendly feature importance visual formats.
+2.9 Kost analysis
+Knowledge, Skill, and Technology (KOST) mapping aligns team capabilities with technical project demands, identifying current proficiencies and mitigation spikes for skill gaps.
+Table 6: Structured KOST Analysis Matrix
+KOST Domain
+Required Capability
+Current Team Proficiency
+Action Plan / Skill Gap Mitigation
+Knowledge (K)
+Type 2 Diabetes progression, ShanghaiT2DM dataset schema.
+Moderate (Research phase complete)
+Review clinical literature and consult academic supervisors for domain validation.
+Skills (S)
+SHAP model explainability, Neo4j Cypher query construction.
+Developing (Skill gap identified)
+Execute 2-week technical spike during Sprints 1-2 leveraging open-source tutorials.
+Technology (T)
+FastAPI, React, Plotly/D3.js, Scikit-learn, GitFlow.
+High (Proficient across team)
+Establish shared baseline boilerplate repositories and reusable API response templates.
+
+2.10 Ethical considerations
+The platform strictly adheres to the Australian Privacy Principles (APPs) and international health data governance standards. To guarantee patient data privacy and algorithmic transparency, the system implements anonymized data processing on the ShanghaiT2DM dataset and provides SHAP-based feature importance plots for all predictive outputs. Furthermore, to prevent misleading clinical interpretations, a strict Simulation Safety Protocol is embedded into the user interface: all What-If simulation dashboards feature prominent visual disclaimers, distinct color-coded badges, and clear notices explicitly stating that generated scenario projections are non-clinical algorithmic estimates and must not replace professional clinical judgment.
+

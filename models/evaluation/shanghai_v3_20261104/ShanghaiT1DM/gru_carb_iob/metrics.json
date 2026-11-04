@@ -1,0 +1,276 @@
+{
+  "architecture": "chronological-history-and-event-gru-v1",
+  "family": "carbohydrate_estimated_bolus_iob",
+  "recurrent_kind": "GRU",
+  "input_dim": 14,
+  "hidden_dim": 32,
+  "num_layers": 2,
+  "sequence_length": 24,
+  "static_context": true,
+  "conditional": false,
+  "dynamic_features": [
+    "glucose_mg_dl",
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "recorded_complete_meal_carb_0_1h_g",
+    "recorded_complete_meal_carb_1_3h_g",
+    "recorded_complete_meal_carb_3_6h_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete"
+  ],
+  "static_features": [
+    "age_years",
+    "bmi_kg_m2",
+    "age_missing",
+    "bmi_missing"
+  ],
+  "future_features": [],
+  "horizons_minutes": [
+    15,
+    30,
+    60,
+    240
+  ],
+  "future_steps": 0,
+  "cohort": "ShanghaiT1DM",
+  "variant": "gru_carb_iob",
+  "scalers": {
+    "history_mean": [
+      170.099609375,
+      -0.0002781381772365421,
+      0.011489249765872955,
+      0.01786348968744278,
+      0.07145395874977112,
+      0.14290791749954224,
+      0.21436187624931335,
+      0.0,
+      0.0,
+      0.0,
+      2.665755033493042,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "history_scale": [
+      75.99272918701172,
+      0.7079015374183655,
+      0.7062176465988159,
+      0.9161695241928101,
+      1.8312932252883911,
+      2.5878682136535645,
+      3.167060613632202,
+      1.0,
+      1.0,
+      1.0,
+      2.995246171951294,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "static_median": [
+      58.0,
+      20.52389907836914
+    ],
+    "static_mean": [
+      61.77777862548828,
+      21.65715217590332
+    ],
+    "static_scale": [
+      6.908574104309082,
+      2.885111093521118
+    ],
+    "future_mean": [
+      -0.0002781381772365421,
+      0.011489249765872955,
+      0.01786348968744278,
+      0.0,
+      0.0,
+      0.0,
+      2.665755033493042,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "future_scale": [
+      0.7079015374183655,
+      0.7062176465988159,
+      0.9161695241928101,
+      1.0,
+      1.0,
+      1.0,
+      2.995246171951294,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "target_mean": [
+      0.14330430328845978,
+      0.45973315834999084,
+      0.0579843744635582,
+      -0.11762520670890808
+    ],
+    "target_scale": [
+      10.865194320678711,
+      20.24159812927246,
+      36.044761657714844,
+      85.43238830566406
+    ]
+  },
+  "patient_split": {
+    "train": [
+      "1002",
+      "1004",
+      "1005",
+      "1006",
+      "1008",
+      "1011"
+    ],
+    "validation": [
+      "1001",
+      "1007",
+      "1009"
+    ],
+    "test": [
+      "1002",
+      "1003",
+      "1010",
+      "1012"
+    ]
+  },
+  "seed": 20261029,
+  "best_epoch": 3,
+  "split_policy": "cohort-global calendar chronology; whole sessions crossing cutoffs purged",
+  "split_manifest": "../../ShanghaiT1DM_split_manifest.json",
+  "future_action_inputs_supported": false,
+  "causal_treatment_effect_validated": false,
+  "status": "research_candidate_not_activated",
+  "patients": {
+    "train": 6,
+    "validation": 3,
+    "test": 4
+  },
+  "sessions": {
+    "train": 9,
+    "validation": 3,
+    "test": 4
+  },
+  "windows": {
+    "train": 2173,
+    "validation": 2559,
+    "test": 3797
+  },
+  "test_metrics": {
+    "15": {
+      "mae_mg_dl": 8.158350032538152,
+      "rmse_mg_dl": 11.717457923997944,
+      "persistence_mae_mg_dl": 8.304556253115253,
+      "persistence_rmse_mg_dl": 11.857665306191652,
+      "mae_improvement_pct": 1.7605542803356307
+    },
+    "30": {
+      "mae_mg_dl": 15.32830341671654,
+      "rmse_mg_dl": 22.09882134126582,
+      "persistence_mae_mg_dl": 15.779510117280411,
+      "persistence_rmse_mg_dl": 22.414978232646867,
+      "mae_improvement_pct": 2.8594468219247613
+    },
+    "60": {
+      "mae_mg_dl": 26.506763597899813,
+      "rmse_mg_dl": 37.851709547497535,
+      "persistence_mae_mg_dl": 27.899289001312134,
+      "persistence_rmse_mg_dl": 39.121477435411755,
+      "mae_improvement_pct": 4.991257674512169
+    },
+    "240": {
+      "mae_mg_dl": 54.0399488680671,
+      "rmse_mg_dl": 72.00111041640824,
+      "persistence_mae_mg_dl": 60.12341330696289,
+      "persistence_rmse_mg_dl": 77.60203813167999,
+      "mae_improvement_pct": 10.1182951936484
+    }
+  },
+  "test_metrics_by_patient_overlap": {
+    "seen_in_development": {
+      "15": {
+        "mae_mg_dl": 4.828143941531391,
+        "rmse_mg_dl": 6.714854769419496,
+        "persistence_mae_mg_dl": 4.952830092712018,
+        "persistence_rmse_mg_dl": 6.950145965449479,
+        "mae_improvement_pct": 2.517472815473717
+      },
+      "30": {
+        "mae_mg_dl": 9.027014030600494,
+        "rmse_mg_dl": 12.364083061040994,
+        "persistence_mae_mg_dl": 9.186792337669516,
+        "persistence_rmse_mg_dl": 12.674577232330657,
+        "mae_improvement_pct": 1.739217576671099
+      },
+      "60": {
+        "mae_mg_dl": 14.75664592239092,
+        "rmse_mg_dl": 19.770212961767385,
+        "persistence_mae_mg_dl": 15.345283052456454,
+        "persistence_rmse_mg_dl": 20.70873489404013,
+        "mae_improvement_pct": 3.835948337044884
+      },
+      "240": {
+        "mae_mg_dl": 24.799655578421348,
+        "rmse_mg_dl": 31.84373781658911,
+        "persistence_mae_mg_dl": 34.41509474748336,
+        "persistence_rmse_mg_dl": 42.59457884393352,
+        "mae_improvement_pct": 27.939598131616794
+      }
+    },
+    "unseen_in_development": {
+      "15": {
+        "mae_mg_dl": 8.46274943953446,
+        "rmse_mg_dl": 12.071755748870105,
+        "persistence_mae_mg_dl": 8.610922714457082,
+        "persistence_rmse_mg_dl": 12.208232204704686,
+        "mae_improvement_pct": 1.720759549657223
+      },
+      "30": {
+        "mae_mg_dl": 15.904276404582278,
+        "rmse_mg_dl": 22.782083304187726,
+        "persistence_mae_mg_dl": 16.38212128540811,
+        "persistence_rmse_mg_dl": 23.101351186881086,
+        "mae_improvement_pct": 2.916868166831722
+      },
+      "60": {
+        "mae_mg_dl": 27.58078987579916,
+        "rmse_mg_dl": 39.08946822318984,
+        "persistence_mae_mg_dl": 29.046795150129643,
+        "persistence_rmse_mg_dl": 40.38794226064714,
+        "mae_improvement_pct": 5.047046556266781
+      },
+      "240": {
+        "mae_mg_dl": 56.71267472782777,
+        "rmse_mg_dl": 74.60116359436633,
+        "persistence_mae_mg_dl": 62.473296980982575,
+        "persistence_rmse_mg_dl": 80.04180602228878,
+        "mae_improvement_pct": 9.220935233990277
+      }
+    }
+  },
+  "completed_epochs": 9,
+  "checkpoint_sha256": "2de6a2dcb19572c34f29b20ae9b7609d9076c516e555e45e01a0994b205b9dfc",
+  "runtime_seconds": 6.220463399999971,
+  "verification": {
+    "safe_checkpoint_full_test_max_abs_difference": 0.0,
+    "decoder_later_event_early_output_max_difference": null
+  },
+  "limitations": [
+    "Retrospective chronological evaluation; some subjects may repeat across partitions; report overlap groups.",
+    "Whole sessions crossing date boundaries are excluded, so effective proportions differ from requested 56/14/30.",
+    "No randomized/causal or clinical treatment-effect validation; no exercise.",
+    "Only 96 completely mapped meals in source cohort; reference preparation and insulin-action assumptions remain.",
+    "Future-event decoder test is oracle-conditional on recorded future event annotations, not a forecast with unknown future intake."
+  ],
+  "best_validation_mae_mg_dl": 21.214412689208984,
+  "evaluation_protocol": "calendar_whole_session_20261102"
+}

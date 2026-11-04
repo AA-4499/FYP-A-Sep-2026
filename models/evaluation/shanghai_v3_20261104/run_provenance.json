@@ -1,0 +1,28 @@
+{
+  "arguments": {
+    "archive": ".model-data/diabetes_datasets.zip",
+    "nutrients": ".model-data/usda-sr-legacy.zip",
+    "output": "models/evaluation/shanghai_v3_20261104",
+    "epochs": 30,
+    "patience": 6,
+    "batch_size": 256,
+    "training_stride": 4,
+    "seed": 20261029,
+    "threads": 2,
+    "variants": [
+      "gru_glucose_2h",
+      "gru_glucose_4h",
+      "gru_context",
+      "gru_context_insulin",
+      "lstm_context_insulin",
+      "gru_carb_iob",
+      "lstm_carb_iob",
+      "gru_future_event_decoder"
+    ]
+  },
+  "torch": "2.9.1+cpu",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3",
+  "nutrient_archive_sha256": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+  "exercise_included": false
+}

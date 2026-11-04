@@ -329,7 +329,7 @@ function Workspace({
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,
               ) && <RecordedReport patient={patient} />}
-              {page === "patient_lab_results" && <LabResultsView key={patient.id} patientId={patient.id} />}
+              {page === "patient_lab_results" && <LabResultsView key={patient.id} patient={patient} />}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
                   recommendations={[]}

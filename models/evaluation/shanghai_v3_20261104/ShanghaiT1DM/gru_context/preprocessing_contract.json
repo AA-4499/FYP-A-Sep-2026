@@ -1,0 +1,12 @@
+{
+  "history_features": [
+    "glucose_mg_dl",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "future_features": [],
+  "normalization": "Apply saved per-feature training means/scales. Static imputation and scaling use training sessions only. Predict glucose delta, undo horizon-specific target scaling, add last observed glucose.",
+  "future_schedule": "No future schedule input.",
+  "exposure_assumptions": "USDA reference complete meals only; modeled rapid/regular bolus IOB only; source-row timing; excluded exposure and missing meal flags retained.",
+  "scenario_consistency": "Recompute future IOB from past doses plus supplied scenario doses; never read future measured glucose. Future clocks are known at forecast origin."
+}

@@ -1,5 +1,12 @@
 # T2DM model training
 
+## Retrained v3 conditional model
+
+The default Digital twin forecast now uses the teacher-derived v3 conditional
+GRU decoders (T1DM and T2DM). The legacy training commands below remain for the
+previous GRU comparison tab. See the [models overview](../README.md)
+for data checksums, reproducible training/export and the research boundaries.
+
 Run from the repository root:
 
 ```powershell

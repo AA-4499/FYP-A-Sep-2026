@@ -1,0 +1,134 @@
+{
+  "verified_models": 16,
+  "models": [
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_glucose_2h",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_glucose_4h",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_context",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_context_insulin",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "lstm_context_insulin",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_carb_iob",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "lstm_carb_iob",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT1DM",
+      "variant": "gru_future_event_decoder",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_glucose_2h",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_glucose_4h",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_context",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_context_insulin",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "lstm_context_insulin",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_carb_iob",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "lstm_carb_iob",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    },
+    {
+      "cohort": "ShanghaiT2DM",
+      "variant": "gru_future_event_decoder",
+      "chronology_verified": true,
+      "metrics_recomputed": true,
+      "portable_prediction_max_abs_difference": 0.0,
+      "inference_example_replayed": true
+    }
+  ],
+  "no_live_models_activated": true
+}

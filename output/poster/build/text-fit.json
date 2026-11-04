@@ -1,0 +1,312 @@
+﻿[
+    {
+        "Name":  "FYP label",
+        "Left":  235,
+        "Top":  62.99992,
+        "Width":  1090,
+        "Height":  32,
+        "BoundWidth":  476.465027,
+        "BoundHeight":  27.6,
+        "Text":  "FINAL YEAR PROJECT  |  WEB PLATFORM"
+    },
+    {
+        "Name":  "Project title",
+        "Left":  230,
+        "Top":  111.999924,
+        "Width":  1240,
+        "Height":  90,
+        "BoundWidth":  883.35,
+        "BoundHeight":  79.2,
+        "Text":  "Smart Diabetes Digital Twin"
+    },
+    {
+        "Name":  "Project subtitle",
+        "Left":  234,
+        "Top":  203.999924,
+        "Width":  1220,
+        "Height":  72,
+        "BoundWidth":  946.375061,
+        "BoundHeight":  55.2,
+        "Text":  "Personalised Health Management Platform"
+    },
+    {
+        "Name":  "Institution",
+        "Left":  235,
+        "Top":  286.9999,
+        "Width":  1200,
+        "Height":  47,
+        "BoundWidth":  727.01,
+        "BoundHeight":  36,
+        "Text":  "Swinburne University of Technology Sarawak Campus"
+    },
+    {
+        "Name":  "Supervisor",
+        "Left":  235,
+        "Top":  332.9999,
+        "Width":  1100,
+        "Height":  36,
+        "BoundWidth":  380.39,
+        "BoundHeight":  30,
+        "Text":  "Supervisor: Ts. Dr. Vong Wan Tze"
+    },
+    {
+        "Name":  "Overview heading",
+        "Left":  70,
+        "Top":  428.9999,
+        "Width":  1510,
+        "Height":  55,
+        "BoundWidth":  833.875061,
+        "BoundHeight":  46.8,
+        "Text":  "One platform. Three connected workspaces."
+    },
+    {
+        "Name":  "Overview body",
+        "Left":  70,
+        "Top":  496.9999,
+        "Width":  1505,
+        "Height":  111,
+        "BoundWidth":  1463.625,
+        "BoundHeight":  72,
+        "Text":  "Bring diabetes records, glucose monitoring and model forecasts into one website. Patients review their health, doctors follow assigned records, and administrators manage access and model operations."
+    },
+    {
+        "Name":  "Patient heading",
+        "Left":  70,
+        "Top":  645.999939,
+        "Width":  740,
+        "Height":  55,
+        "BoundWidth":  386,
+        "BoundHeight":  43.2,
+        "Text":  "01  Patient workspace"
+    },
+    {
+        "Name":  "Patient lead",
+        "Left":  70,
+        "Top":  704.999939,
+        "Width":  735,
+        "Height":  77,
+        "BoundWidth":  614.75,
+        "BoundHeight":  67.2,
+        "Text":  "Understand recorded health and explore glucose forecasts."
+    },
+    {
+        "Name":  "Doctor heading",
+        "Left":  870,
+        "Top":  645.999939,
+        "Width":  741,
+        "Height":  55,
+        "BoundWidth":  382,
+        "BoundHeight":  43.2,
+        "Text":  "02  Doctor workspace"
+    },
+    {
+        "Name":  "Doctor lead",
+        "Left":  870,
+        "Top":  704.999939,
+        "Width":  735,
+        "Height":  77,
+        "BoundWidth":  706.375061,
+        "BoundHeight":  33.6,
+        "Text":  "Review the cohort and open records that need attention."
+    },
+    {
+        "Name":  "Patient screen caption",
+        "Left":  70,
+        "Top":  1393,
+        "Width":  741,
+        "Height":  32,
+        "BoundWidth":  522.875061,
+        "BoundHeight":  26.4,
+        "Text":  "Health overview: recorded trends and glucose range."
+    },
+    {
+        "Name":  "Doctor screen caption",
+        "Left":  870,
+        "Top":  1393,
+        "Width":  741,
+        "Height":  32,
+        "BoundWidth":  503.125031,
+        "BoundHeight":  26.4,
+        "Text":  "Care overview: review filters and patient drill-down."
+    },
+    {
+        "Name":  "Patient feature list",
+        "Left":  70,
+        "Top":  1448,
+        "Width":  741,
+        "Height":  166,
+        "BoundWidth":  721.5,
+        "BoundHeight":  145.6,
+        "Text":  "Health dashboard, profile and glucose monitoring.\rMy digital twin: 6 h / 12 h GRU forecasts and what-if comparisons.\rSave predictions to Lab results; review reports and settings."
+    },
+    {
+        "Name":  "Doctor feature list",
+        "Left":  870,
+        "Top":  1448,
+        "Width":  741,
+        "Height":  166,
+        "BoundWidth":  639,
+        "BoundHeight":  113.2,
+        "Text":  "Search and filter assigned patient records.\rReview glucose records, missing results and reports.\rOpen the patient\u0027s workspace for detailed review."
+    },
+    {
+        "Name":  "Administrator heading",
+        "Left":  70,
+        "Top":  1684,
+        "Width":  1510,
+        "Height":  55,
+        "BoundWidth":  500.665039,
+        "BoundHeight":  43.2,
+        "Text":  "03  Administrator workspace"
+    },
+    {
+        "Name":  "Account administration title",
+        "Left":  820,
+        "Top":  1760,
+        "Width":  785,
+        "Height":  37,
+        "BoundWidth":  418.5,
+        "BoundHeight":  32.4,
+        "Text":  "Accounts and care-team access"
+    },
+    {
+        "Name":  "Account administration body",
+        "Left":  820,
+        "Top":  1803,
+        "Width":  785,
+        "Height":  83,
+        "BoundWidth":  768.625061,
+        "BoundHeight":  62.4,
+        "Text":  "Review Doctor applications, manage users, and assign patients to approved doctors."
+    },
+    {
+        "Name":  "Audit and retraining title",
+        "Left":  820,
+        "Top":  1904,
+        "Width":  785,
+        "Height":  37,
+        "BoundWidth":  477,
+        "BoundHeight":  32.4,
+        "Text":  "Activity history and model retraining"
+    },
+    {
+        "Name":  "Audit and retraining body",
+        "Left":  820,
+        "Top":  1947,
+        "Width":  785,
+        "Height":  83,
+        "BoundWidth":  701.035034,
+        "BoundHeight":  62.4,
+        "Text":  "Track platform changes and retrain the GRU using the latest Supabase CGM records."
+    },
+    {
+        "Name":  "Workflow heading",
+        "Left":  820,
+        "Top":  2055,
+        "Width":  790,
+        "Height":  42,
+        "BoundWidth":  336.25,
+        "BoundHeight":  34.8,
+        "Text":  "Patient review workflow"
+    },
+    {
+        "Name":  "Workflow title 1  Sign in",
+        "Left":  834,
+        "Top":  2118,
+        "Width":  348,
+        "Height":  28,
+        "BoundWidth":  113,
+        "BoundHeight":  28.8,
+        "Text":  "1  Sign in"
+    },
+    {
+        "Name":  "Workflow detail 1  Sign in",
+        "Left":  834,
+        "Top":  2150,
+        "Width":  348,
+        "Height":  26,
+        "BoundWidth":  181.75,
+        "BoundHeight":  25.2,
+        "Text":  "Authorized records"
+    },
+    {
+        "Name":  "Workflow title 2  Review",
+        "Left":  1236,
+        "Top":  2118,
+        "Width":  348,
+        "Height":  28,
+        "BoundWidth":  116,
+        "BoundHeight":  28.8,
+        "Text":  "2  Review"
+    },
+    {
+        "Name":  "Workflow detail 2  Review",
+        "Left":  1236,
+        "Top":  2150,
+        "Width":  348,
+        "Height":  26,
+        "BoundWidth":  150.375046,
+        "BoundHeight":  25.2,
+        "Text":  "Glucose history"
+    },
+    {
+        "Name":  "Workflow title 3  Explore",
+        "Left":  834,
+        "Top":  2205,
+        "Width":  348,
+        "Height":  28,
+        "BoundWidth":  121.25,
+        "BoundHeight":  28.8,
+        "Text":  "3  Explore"
+    },
+    {
+        "Name":  "Workflow detail 3  Explore",
+        "Left":  834,
+        "Top":  2237,
+        "Width":  348,
+        "Height":  26,
+        "BoundWidth":  174.75,
+        "BoundHeight":  25.2,
+        "Text":  "Patient digital twin"
+    },
+    {
+        "Name":  "Workflow title 4  Save",
+        "Left":  1236,
+        "Top":  2205,
+        "Width":  348,
+        "Height":  28,
+        "BoundWidth":  89.37504,
+        "BoundHeight":  28.8,
+        "Text":  "4  Save"
+    },
+    {
+        "Name":  "Workflow detail 4  Save",
+        "Left":  1236,
+        "Top":  2237,
+        "Width":  348,
+        "Height":  26,
+        "BoundWidth":  187.625046,
+        "BoundHeight":  25.2,
+        "Text":  "Results and reports"
+    },
+    {
+        "Name":  "Screenshot data disclosure",
+        "Left":  70,
+        "Top":  2272,
+        "Width":  726,
+        "Height":  30,
+        "BoundWidth":  428.015045,
+        "BoundHeight":  24,
+        "Text":  "Website screenshots use synthetic test records."
+    },
+    {
+        "Name":  "Architecture footer",
+        "Left":  70,
+        "Top":  2336,
+        "Width":  1543,
+        "Height":  30,
+        "BoundWidth":  1024.555,
+        "BoundHeight":  24,
+        "Text":  "React + TypeScript  |  Flask API  |  Supabase  |  GRU forecasting  |  Neo4j  |  github.com/AA-4499/FYP-A-Sep-2026"
+    }
+]

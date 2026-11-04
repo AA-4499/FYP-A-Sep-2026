@@ -6,6 +6,17 @@ from flask import Blueprint, jsonify, request, g
 forecast_api = Blueprint('forecast_api', __name__)
 
 
+@forecast_api.get('/api/patients/<patient_id>/conditional-input')
+def conditional_input(patient_id):
+    try:
+        from services.conditional_input_service import local_conditional_input
+        return jsonify(local_conditional_input(patient_id))
+    except LookupError as exc:
+        return jsonify(error=str(exc)), 404
+    except (OSError, ValueError):
+        return jsonify(error='The local workbook or exact-visit summary could not be loaded.'), 503
+
+
 @forecast_api.post('/api/patients/<patient_id>/glucose-forecast')
 def glucose_forecast(patient_id):
     run_id = None

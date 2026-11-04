@@ -1,5 +1,12 @@
 # Model retraining, saved predictions, and text size
 
+**2026-11-04 update:** the default Digital twin now uses the retrained v3
+conditional browser decoders. The Admin queue described below remains a legacy
+GRU comparison service, and is explicitly labelled in the UI. Lab results now
+also displays recorded laboratory measurements and text-first prediction
+highlights. See the [models overview](../models/README.md) for the current model
+training, export and deployment workflow.
+
 This integration combines `AndyTesting`, `AndyTest` (including the live Admin
 workspace), and `KnowledgeGraph` into `TrainingModel`.
 

@@ -1,0 +1,1984 @@
+
+=== PDF PAGE 1 ===
+ 
+ 
+ 
+Sprint Report 1 
+PORTFOLIO TASK 2 
+Unit code: COS40005 
+Unit Name: Computing Technology Project A  
+Swinburne University of Technology Sarawak Campus  
+Smart Diabetes Digital Twin and Personalised Health Management Platform  
+Original submission date: 25 October 2026  
+Post-sprint updates through: 30 October 2026 
+Client and Supervisor: Ts. Dr. Vong Wan Tze  
+ 
+Name Student ID Primary contribution  
+Andy Wei Jian CHU 104401283  Team coordination, shared UI and integration  
+Fa Zhen NG 104400141  AI model training, forecasting and prediction screens  
+Jit Heng BOON 104383242  Authentication, access control and shared components 
+Elijah Benjamin Sing Cheng TAN 102789453  Knowledge graph research, Neo4j and graph interface 
+Jody LAW 104385183  Data management, Supabase and longitudinal views  
+ 
+ 
+Demo User Role Password 
+elena.patient@example.com  patient  123456 
+andy.clinician@example.com  doctor 123456 
+admin@example.com  admin 123456 
+ 
+
+
+=== PDF PAGE 2 ===
+ 
+1 
+ 
+Contents 
+CONTRIBUTION SUMMARY........................................................................................................3 
+Contribution evidence....................................................................................................................3 
+CONTRIBUTION DETAILS............................................................................................................4 
+Andy Wei Jian CHU — Frontend Development, Data Integration and Deployment 
+Configuration .................................................................................................................................4 
+Fa Zhen NG — AI Model Training and Glucose forecasting .......................................................6 
+Jit Heng BOON — Authentication, Access Control and Shared UI .............................................9 
+Elijah Benjamin Sing Cheng TAN — Knowledge Graph Development and Visualisation .......12 
+Jody LAW — Data Management and Supabase integration .......................................................15 
+1. SPRINT PLAN ............................................................................................................................19 
+1.1 Sprint Objective and Intended Increment ..............................................................................19 
+1.2 Factors Considered When Selecting Backlog Items..............................................................19 
+1.3 Prioritisation criteria ..............................................................................................................19 
+1.4 Selected Sprint Backlog and Estimates Effort.......................................................................20 
+1.5 Jira Backlog References ........................................................................................................20 
+1.6 Development Task Breakdown .............................................................................................23 
+1.6.1 Interface Design and Integration ....................................................................................23 
+1.6.2 Backend and Data Foundation........................................................................................23 
+1.6.3 Authentication and Access Control ................................................................................24 
+1.6.4 Glucose Forecasting .......................................................................................................24 
+1.6.5 Knowledge Graph ...........................................................................................................24 
+1.7 Acceptance and Completion Criteria.....................................................................................25 
+2. SPRINT PROGRESS ..................................................................................................................25 
+2.1 Product overview and dataset preparation .............................................................................25 
+2.2 Architecture and Access Foundation .....................................................................................27 
+2.3 AI Training and Initial Forecasting Results ..........................................................................28 
+2.3.1 Forecasting Performance ................................................................................................29 
+2.3.2 Forecasting Pipeline Corrections ....................................................................................30 
+2.4 Conditional GRU Development and Longer-horizon Evaluation .........................................30 
+2.4.1 Comparison with the Initial Forecasting Model .............................................................30 
+2.4.2 Effect of Baseline Patient Information ...........................................................................31 
+2.4.3 Scenario Sensitivity and Current Limitations.................................................................32 
+2.5 Knowledge-Graph Design and Relationship Documentation ...............................................32 
+2.6 Knowledge-Graph Integration, Deployment and Testing .....................................................33 
+2.6.1 Doctor Knowledge Graph Workspace............................................................................33 
+
+=== PDF PAGE 3 ===
+ 
+2 
+ 
+2.6.2 Access Control and Graph Analysis ...............................................................................34 
+2.6.3 Integration Testing and Deployment Progress ...............................................................34 
+3. SPRINT REVIEW .......................................................................................................................36 
+3.1 Review Purpose, Participants and Demonstration Scope ......................................................36 
+3.1.1 Client/Supervisor Feedback and Development Response ..............................................36 
+3.1.2 Review Outcomes ...........................................................................................................36 
+3.2 Progress Against the Original Sprint Plan .............................................................................37 
+3.3 Critical Review of the Forecasting Increment .......................................................................38 
+3.3.1 Forecasting Performance and Interpretation...................................................................38 
+3.3.2 Limitations of Scenario Simulation ................................................................................38 
+3.3.3 Review Outcomes and Follow-up Actions .....................................................................38 
+3.4 Critical Review of the Knowledge-Graph Increment ............................................................39 
+3.4.1 Knowledge Representation and Traceability ..................................................................39 
+3.4.2 Relationship Review and Analysis Limitations..............................................................39 
+3.4.3 Integration and Reproducibility ......................................................................................39 
+3.4.4 Review Outcomes and Follow-up Actions .....................................................................40 
+3.5 Feedback, Progress Tracking and Deliverability Assessment ...............................................40 
+3.5.1 Improvements to Backlog and Progress Reporting ........................................................40 
+3.5.2 Jira Progress Tracking ....................................................................................................40 
+3.5.3 Deliverability Assessment ..............................................................................................41 
+4. RETROSPECT ............................................................................................................................42 
+4.1 What worked well..................................................................................................................42 
+4.2 Challenges, Causes and Process Improvements ....................................................................42 
+4.3 Team conduct ........................................................................................................................43 
+4.4 Risk Registry Review ............................................................................................................44 
+4.5 Ethical and Cybersecurity Protocol Review ..........................................................................44 
+5. LESSONS LEARNED AND FUTURE PLAN...........................................................................45 
+5.1 Reflection on Sprint 1 ............................................................................................................45 
+5.2 Prioritised Future Work .........................................................................................................45 
+5.3 Sprint 1 Deliverables .............................................................................................................46 
+5.3.1 Source Code and Application Access.............................................................................46 
+ 
+ 
+ 
+
+=== PDF PAGE 4 ===
+ 
+3 
+ 
+CONTRIBUTION SUMMARY  
+The following table summarises the team’s self -assessment of contributions, communication and 
+participation during the reporting period. Ts. Dr. Vong Wan Tze served as both client and supervisor; the 
+corresponding columns refer to the same person . 
+Table 1: Contribution Summary  
+Contribution  Initiatives  Communication  Respect  
+Team 
+Member 
+Finished tasks 
+in time or on 
+time wi th an 
+acceptable 
+quality  
+Self-
+assigned 
+tasks and 
+proactively 
+found 
+solutions to 
+problems 
+Attended 
+all team 
+meetings  
+Attended 
+all 
+supervisor 
+meetings  
+Attended 
+all client 
+meetings  
+Replied 
+every time 
+within an 
+acceptable 
+timeframe  
+Kept the 
+team 
+updated 
+about the 
+status  
+The student 
+respected 
+others and 
+listened to 
+different 
+opinions 
+Andy Wei 
+Jian CHU 
+Yes Yes Yes Yes Yes Yes Yes Yes 
+Fa Zhen NG  Yes Yes Yes Yes Yes Yes Yes Yes 
+Jit Heng 
+BOON 
+Yes Yes Yes Yes Yes Yes Yes Yes 
+Elijah 
+Benjamin 
+Sing Cheng 
+TAN 
+Yes Yes Yes Yes Yes Yes Yes Yes 
+Jody LAW Yes Yes Yes Yes Yes Yes Yes Yes 
+ 
+Contribution evidence  
+The team used Microsoft Teams to coordinate meetings during Sprint 1. Figure 1 shows the recorded 
+meeting date and time. Each member’s development contributions are described in the following 
+individual contribution statements, supported by relevant implementation screenshots and technical results.
+ 
+Figure 1: Meeting record showing in MS Teams for Sprint 1 discussion 
+ 
+
+
+=== PDF PAGE 5 ===
+ 
+4 
+ 
+CONTRIBUTION DETAILS  
+Andy Wei Jian CHU — Frontend Development, Data Integration and Deployment Configuration  
+Andy contributed to the development and integration of the Smart Diabetes Digital Twin  web platform 
+through the AndyTest branch. He refined the frontend according to the Figma design, updating the 
+application layout, sidebar navigation, top bar and principal screens. He also redesigned the role -based 
+workspaces, including doctor overview and patient -management screens, together with administrative 
+interface components for  data quality and digital -twin configuration.  
+For data integration, Andy connected the frontend to the Supabase patient schema and updated the data -
+access functions and TypeScript interfaces used to display patient information. His changes linked the 
+clinical dashboard to patient summary and detail records and improved the presentation of continuous 
+glucose monitoring data, including the 14 -day CGM waveform. These changes helped connect the 
+interface prototype to the project’s patient dataset.  
+Andy also con tributed to backend deployment preparation by updating the Render configuration and 
+adding a Dockerfile for the Flask backend. This work defined the backend dependencies and application 
+startup configuration, supporting the deployment of the integrated platform . 
+ 
+Figure 2: AndyTest branch commit history showing frontend, data -integration and deployment changes 
+ 
+
+
+=== PDF PAGE 6 ===
+ 
+5 
+ 
+Figure 3: Smart Diabetes Digital Twin role-based interfaces (Admin) 
+ 
+Figure 4: Smart Diabetes Digital Twin role-based interfaces (Doctor) 
+ 
+Figure 5: Smart Diabetes Digital Twin role-based interface (Patient) 
+ 
+
+
+=== PDF PAGE 7 ===
+ 
+6 
+ 
+Fa Zhen NG — AI Model Training and  Glucose forecasting 
+Fa Zhen developed the glucose forecasting component of the Smart Diabetes Digital Twin  web platform 
+through the TrainingModel branch. His work included preparing longitudinal continuous glucose 
+monitoring data, defining model inputs and training a PyTorch GRU model to predict the next 15 -minute 
+glucose reading. He evaluated the model using chronological training, validation and test splits and 
+compared its performance with a persistence baseline.  
+He also integrated the forecasting workflow into the Prediction Lab, including the patient selector, glucose -
+history display and forecast charts. Browser -compatible model assets supported forecasting within the web 
+interface. He refined the chart presentation, glucose thresholds, forecast -source labels and error handling to 
+make the displayed results  easier to interpret.  
+To investigate longer -horizon forecasting, Fa Zhen developed a separate conditional GRU model that 
+directly predicts 48 future readings at 15 -minute intervals, covering 12 hours. This model incorporates 
+glucose history, separately represented meal and insulin inputs, time features and baseline patient 
+information. He compared forecasting performance across 3, 6 and 12 -hour horizons and investigated 
+timestamp alignment, insulin -unit consistency and the interpretation of recorded food qu antities. The 
+conditional model remained experimental because its meal and insulin responses required further 
+validation.  
+ 
+Figure 6: TrainingModel branch showing the glucose forecasting implementation  
+
+
+=== PDF PAGE 8 ===
+ 
+7 
+ 
+ 
+Figure 7: Digital Twin Forecasting Workspace 
+ 
+Figure 8: Digital Twin Glucose Prediction Without Apply What -if Simulator 
+ 
+Figure 9: Digital Twin Glucose Prediction When Apply What -if Simulator 
+
+
+=== PDF PAGE 9 ===
+ 
+8 
+ 
+ 
+Figure 10: Digital Twin Prediction Forecast Values  
+ 
+Figure 11: Training, validation and testing visualisation for the selected patient record, with record-specific 
+evaluation metrics 
+ 
+
+
+=== PDF PAGE 10 ===
+ 
+9 
+ 
+Jit Heng BOON — Authentication, Access Control and Shared UI 
+Jit Heng developed the authentication and user registration features through the Boon branch. His work 
+included the login page, patient registration form and the association between a registered account and its 
+patient number. He also contributed to shared interface components and navigation for the patient, doctor 
+and administrator workspaces.  
+He implemented registration validation for required fields, email format, minimum password length and 
+password confirmation. These checks provide feedback when users submit incomplete or invalid 
+information and guide them through the registration process.  
+For role handling, Jit Heng contributed to identifying user roles and displaying the corresponding 
+workspace. The implementation uses platform -assigned roles to determine access and recognises legacy 
+clinician accounts as doctor accounts, supporting consistent role handling across the application . 
+ 
+Figure 12: Boon branch commit history showing authentication and shared interface development  
+
+
+=== PDF PAGE 11 ===
+ 
+10 
+ 
+ 
+Figure 13: Login page 
+ 
+Figure 14: Patient registration page 
+
+
+=== PDF PAGE 12 ===
+ 
+11 
+ 
+ 
+Figure 15: Showing required-field validation  
+Figure 16: Showing invalid email validation 
+ 
+Figure 17: Showing minimum password length 
+validation 
+ 
+Figure 18: Showing password mismatch validation 
+ 
+
+
+=== PDF PAGE 13 ===
+ 
+12 
+ 
+Elijah Benjamin Sing Cheng TAN — Knowledge Graph Development and Visualisation 
+Elijah researched, designed and implemented the knowledge -graph component through the 
+KnowledgeGraph branch. He developed a Neo4j/Cypher prototype representing Type 2 Diabetes concepts 
+and literature -linked relationships, including clinical measurements, risk factors, treatments and assessment 
+concepts.  
+He documented source references, explanatory notes and review statuses for the proposed relationships. 
+The resulting evidence matrix contains 42 relationships involving 37 distinct concepts across 15 
+relationship types.  
+Elijah also contributed to the Doctor Knowledge Graph workspace, including the Patient Graph, Clinical 
+Concepts and Graph Analysis tabs. His work connected graph visualisation with backend retrieval and 
+patient assignment checks. The technical design, integration progress and remaining review requirements 
+are discussed in Sections 2.5 and 2.6 . 
+ 
+Figure 19: KnowledgeGraph branch commit history showing graph development and integration  
+
+
+=== PDF PAGE 14 ===
+ 
+13 
+ 
+ 
+Figure 20: Neo4j medical-concept graph showing diabetes-related concepts and relationships
+ 
+Figure 21: Doctor Knowledge Graph workspace display  1 
+
+
+=== PDF PAGE 15 ===
+ 
+14 
+ 
+ 
+Figure 22: Doctor Knowledge Graph workspace display  2 
+ 
+Figure 23: Doctor Knowledge Graph workspace display  3 
+ 
+
+
+=== PDF PAGE 16 ===
+ 
+15 
+ 
+Jody LAW — Data Management and Supabase integration  
+Jody prepared and processed the patient dataset through the JodyTesting branch to support its integration 
+into Supabase and the Smart Diabetes Digital Twin  web application. She developed KNIME workflows to 
+combine patient workbooks, standardise categorical values and data types, address duplicate records and 
+assign patient numbers. The processed outputs were organised for the patient_summary and patient_detail 
+tables. 
+Her work included mapping patient identifiers between summary records and longitudinal measurements, 
+preparing CGM timestamps and handling inconsistent values. These tasks supported accurate retrieval of 
+patient information and glucose histories across the application.  
+Jody al so contributed to Supabase data integration and the Longitudinal Monitoring interface. By 
+connecting patient records with their corresponding time -series data, her work enabled the application to 
+display patient -specific glucose measurements over time . 
+ 
+Figure 24: JodyTesting branch commit history  
+ 
+Figure 25: Data Preprocessing (Categorical columns) for patient_summary in KNIME  
+
+
+=== PDF PAGE 17 ===
+ 
+16 
+ 
+ 
+Figure 26: Preprocessing Output for 
+patient_summary 1 (e.g. fixed duplicate data) 
+ 
+Figure 27: Preprocessing Output for 
+patient_summary 2 (e.g. fixed duplicate data) 
+  
+ 
+Figure 28: Data Preprocessing for patient_detail in KNIME  
+
+
+=== PDF PAGE 18 ===
+ 
+17 
+ 
+ 
+Figure 29: Preprocessing Output for patient_detail 
+1(e.g. fixed column name)   
+ 
+Figure 30: Preprocessing Output for patient_detail 2 
+(e.g. fixed column name)  
+ 
+Figure 31: patient_summary Table in Supabase 
+ 
+Figure 32: patient_detail Table in Supabase 
+
+
+=== PDF PAGE 19 ===
+ 
+18 
+ 
+ 
+Figure 33: Table Relationship between patient_summary and patient_detail  
+ 
+Figure 34: Longitudinal Monitoring interface 
+ 
+
+
+=== PDF PAGE 20 ===
+ 
+19 
+ 
+1. SPRINT PLAN 
+1.1 Sprint Objective and Intended Increment 
+The objective of Sprint 1 was to establish the initial Smart Diabetes Digital Twin prototype, focusing on 
+the user interface, backend structure and patient data integration. Following the client/supervisor’s 
+direction, the s print prioritised finalising the principal screens and establishing the technical foundations 
+required for further development.  
+The intended increment was a demonstrable application that allowed users to sign in, access the 
+appropriate role -based workspace and view patient information and longitudinal glucose data. Initial 
+glucose forecasting and knowledge -graph prototypes were also included to explore their integration into 
+the platform . 
+1.2 Factors Considered When Selecting Backlog Items 
+Table 2: Factors Considered 
+Factor Application to Sprint 1  
+User value Prioritise features that support the main user journey, including login, role -based 
+navigation, patient information and glucose monitoring.  
+Client/supervisor 
+requirements  
+Focus on UI finalisation and backend foundations to produce a prototype suitable for 
+demonstration and feedback.  
+Technical 
+dependencies 
+Establish patient identifiers, database structures and role handling before integrating 
+features that depend on them.  
+Risk and uncertainty  Address data inconsistencies, access -control requirements and integration difficulties 
+early. Investigate the feasibility of forecasting and knowledge -graph features.  
+Backlog readiness  Consider whether the requirements, expected outputs, development data and acceptance 
+criteria are sufficiently clear for implementation.  
+Effort and feasibility  Select work that can reasonably be completed within the sprint, dividing larger features 
+into manageable tasks.  
+Demonstrability  Prioritise outputs that can be demonstrated through working screens, proc essed data, 
+model results or graph visualisations.  
+ 
+1.3 Prioritisation criteria 
+Backlog items were organised into three priority levels according to their importance to the sprint 
+objective, technical dependencies and feasibility.  
+Table 3: Prioritisation criteria 
+Priority Criteria Application to Sprint 1  
+Mush Have  Essential to the main application flow or 
+required as a foundation for other 
+features.  
+Login and registration, role handling, shared 
+navigation, backend setup, patient data 
+preparation and Supabase integration.  
+Should Have  Adds substantial value to the prototype 
+and supports evaluation of the platform’s 
+principal capabilities.  
+Longitudinal glucose visualisation, initial 
+GRU forecasting and the medical knowledge -
+graph prototype.  
+Could Have Improves presentation or adds 
+functionality that can be deferred without 
+preventing the main demonstration.  
+Additional interface refinements, 
+supplementary visualisations and extended 
+experimental features.  
+ 
+
+=== PDF PAGE 21 ===
+ 
+20 
+ 
+Within each priority level, prerequisite tasks were addressed before dependent featur es. Items involving 
+greater technical uncertainty were investigated early, while larger items were divided into smaller tasks to 
+support development and progress tracking . 
+1.4 Selected Sprint Backlog and Estimates Effort 
+The following backlog items were selected to establish the initial Smart Diabetes Digital Twin prototype. 
+The planned effort totalled 282 hours, covering interface development, backend foundations, data 
+integration, authentication, forecasting and knowledge -graph development.  
+Table 4: Sprint Backlog 
+Backlog item Lead and 
+support 
+Hours Priority Planned Deliverable 
+UI planning in Figma  All members; 
+Andy coordinates  
+24 Must 
+Have 
+Connected interface designs covering the 
+principal screens and user navigation 
+flows. 
+Shared screens and 
+navigation  
+All members; 
+Andy integrates  
+11 Must 
+Have 
+Shared layout, navigation and role -based 
+workspaces with consistent patient 
+selection.  
+Basic backend and 
+API 
+Andy with 
+module leads  
+7 Must 
+Have 
+Initial backend structure, API routes, data 
+formats and error handling for core 
+integration.  
+Supabase tables and  
+data preparation 
+Jody 48 Must 
+Have 
+Prepared patient data, initial table 
+structures and consistent identifiers 
+linking patient summary and detail 
+records. 
+Login and access 
+control 
+Jit Heng  48 Must 
+Have 
+Login and patient registration, form 
+validation and initial role -based access 
+handling.  
+Glucose forecasting 
+prototype 
+Fa Zhen  72 Should 
+Have 
+Initial GRU training pipeline, baseline 
+comparison, evaluation results and 
+Prediction Lab integration.  
+Knowledge-graph 
+prototype 
+Elijah 72 Should 
+Have 
+Initial Neo4j c oncept model, documented 
+relationships and graph visualisation 
+within the application.  
+Total planned estimate   282  Initial web prototype and supporting 
+technical outputs.  
+These estimates represent planned development effort rather than actual hours worked. The task 
+breakdown in the following section defines the activities required to produce each deliverable.  
+1.5 Jira Backlog References 
+Table 5: Jira Backlog 
+Workstream Related issue keys supplied by the team  
+AI and forecasting  SCRUM-18, SCRUM-24 
+Knowledge graph  SCRUM-47, SCRUM-50 
+Backend and data  SCRUM-9, SCRUM-25, SCRUM-40, SCRUM-51 
+Authentication and access control  SCRUM-37, SCRUM-41 
+UI design and integration  SCRUM-30, SCRUM-31, SCRUM-32, SCRUM-34, SCRUM-
+45, SCRUM-46 
+Monitoring and reporting  SCRUM-23, SCRUM-48 
+ 
+
+=== PDF PAGE 22 ===
+ 
+21 
+ 
+The descriptions of these 18 issues were updated to include objectives, scope, deliverables, acceptance 
+criteria and supporting evidence. These details clarify the expected outputs and provide a basis for 
+reviewing implementation progress.  
+ 
+ 
+Figure 35: Jira Sprint_1 backlog 1 
+ 
+Figure 36: Jira Sprint_1 backlog 2 
+
+
+=== PDF PAGE 23 ===
+ 
+22 
+ 
+ 
+Figure 37: Jira Sprint_1 backlog 3 
+ 
+Figure 38: Example Jira issue showing its objective, scope, deliverables and acceptance criteria  1 
+ 
+Figure 39: Example Jira issue showing its objective, scope, deliverables and acceptance criteria  2 
+
+
+=== PDF PAGE 24 ===
+ 
+23 
+ 
+1.6 Development Task Breakdown  
+The selected backlog items were divided into development tasks covering design, implementation, 
+integration, testing and documentation. The following tables identify the responsibilities and expected 
+outputs for each task.  
+1.6.1 Interface Design and Integration  
+Table 6: Interface Design and Integration 
+Task Development Activity Responsible 
+Members 
+Expected Output 
+1 Define user roles, principal user 
+journeys and required screens.  
+Andy and team  Screen inventory and user -flow 
+diagram. 
+2 Develop wireframes and agree on 
+shared interface styles and components.  
+All members  Wireframes and common design 
+guidelines.  
+3 Connect the Figma screens into an 
+interactive prototype.  
+All members  Navigable Figma prototype.  
+4 Review layout, usability, loading states 
+and error messages.  
+Andy and Jody  Revised designs addressing identified 
+usability issues.  
+5 Document design decisions and agreed 
+changes.  
+All members Updated design notes and review 
+actions.  
+6 Define application routes and interfaces 
+between components.  
+Andy and 
+module leads  
+Agreed navigation structure and 
+component inputs.  
+7 Integrate the shared layout and role -
+based workspaces. 
+Andy and Jit 
+Heng 
+Application shell with patient, doctor 
+and administrator workspaces.  
+8 Connect relevant screens to the selected 
+patient.  
+Andy and 
+module leads  
+Consistent patient selection across 
+connected views.  
+9 Test navigation, missing -data handling 
+and responsive layouts.  
+All members  Recorded test outcomes and 
+identified defects.  
+10 Resolve integration defects and prepare 
+the demonstration flow.  
+Andy and team  Updated application build and 
+demonstration sequence.  
+1.6.2 Backend and Data Foundation  
+Table 7: Backend and Data Foundation 
+Task Development Activity Responsible 
+Members 
+Expected Output 
+11 Define patient identifiers and API 
+request and response formats.  
+Andy and Jody  Documented data fields and API 
+formats.  
+12 Establish backend routes, services and 
+configuration.  
+Andy and 
+module leads  
+Initial backend structure supporting 
+module integration.  
+13 Connect patient -data retrieval and 
+forecasting services to the application.  
+Andy and Fa 
+Zhen 
+Data connections for the relevant 
+application views.  
+14 Test unauthorised re quests, service 
+failures and unavailable features.  
+Jit Heng and 
+Andy 
+Test results covering access 
+restrictions and error responses.  
+15 Document backend setup and 
+configuration requirements.  
+Andy Backend setup and deployment 
+instructions.  
+16 Define patient identifiers, field types, 
+timestamps and measurement units.  
+Jody Consistent data -mapping 
+specification.  
+17 Preprocess patient workbooks using 
+KNIME. 
+Jody Prepared patient_summary and 
+patient_detail datasets.  
+18 Prepare Supabase table structures and 
+access-policy scripts.  
+Jody and Jit 
+Heng 
+Database schema and access -control 
+configuration.  
+19 Connect patient summary and 
+longitudinal data to the frontend.  
+Jody and Andy  Patient -specific data retrieval and 
+missing-data handling.  
+20 Test authorised and unauthorised access Jody and Jit Recorded access-control test results.  
+
+=== PDF PAGE 25 ===
+ 
+24 
+ 
+to patient records.  Heng 
+1.6.3 Authentication and Access Control  
+Table 8: Authentication and Access Control 
+Task Development Activity Responsible 
+Members 
+Expected Output 
+21 Define user roles and account states.  Jit Heng  Role definitions and account -
+handling rules.  
+22 Implement login and patient registration 
+with form validation.  
+Jit Heng  Login and registration forms with 
+validation feedback.  
+23 Associate patient accounts with their 
+patient numbers.  
+Jit Heng and Jody  Account -to-patient mapping.  
+24 Implement role -based workspace 
+routing and sign -out.  
+Jit Heng and 
+Andy 
+Workspace navigation based on the 
+authenticated role.  
+25 Test invalid credentials, registration 
+errors and restricted access.  
+Jit Heng  Authentication test results an d 
+defect records. 
+1.6.4 Glucose Forecasting 
+Table 9: Glucose Forecasting Task 
+Task Development Activity Responsible 
+Members 
+Expected Output 
+26 Prepare CGM sequences and define 
+model features and chronological data 
+splits. 
+Fa Zhen and 
+Jody 
+Training-ready sequences and 
+documented preprocessing settings.  
+27 Train the GRU forecasting model and 
+implement a persistence baseline.  
+Fa Zhen  Trained model checkpoint and 
+baseline predictions.  
+28 Evaluate forecasting accuracy and 
+export model assets.  
+Fa Zhen  MAE and RMSE results, evaluation 
+plots an d inference assets.  
+29 Integrate patient selection, glucose 
+history and forecast charts into the 
+Prediction Lab.  
+Fa Zhen and 
+Andy 
+Forecasting interface showing units, 
+prediction horizon and forecast 
+source. 
+30 Verify inference behaviour and 
+document forecasting limitations.  
+Fa Zhen  Inference checks and model 
+documentation.  
+1.6.5 Knowledge Graph  
+Table 10: Knowledge Graph Task 
+Task Development Activity Responsible 
+Members 
+Expected Output 
+31 Research diabetes -related concepts and 
+define relationships and source references.  
+Elijah Concept and relationship 
+specification with supporting 
+references. 
+32 Implement the Neo4j graph structure and 
+Cypher queries.  
+Elijah Initial graph prototype and query 
+scripts. 
+33 Develop graph visualisation and connect it 
+to the relevant patient context.  
+Elijah and Andy  Knowledge Graph workspace 
+displaying graph information.  
+34 Define graph API formats, access 
+requirements and data -storage 
+responsibilities.  
+Elijah and Jody  Documented graph integration 
+requirements.  
+35 Test graph retrieval and display, and 
+document relationships requiring review.  
+Elijah Graph test results and relationship 
+review records. 
+
+=== PDF PAGE 26 ===
+ 
+25 
+ 
+1.7 Acceptance and Completion Criteria 
+Table 11: Acceptance and Completion Criteria 
+Development Area Acceptance Criteria 
+UI design and 
+navigation 
+The Figma prototype covers the principal user journeys. Implemented navigation 
+opens the appropriate screens, maintains the selected patient context and 
+provides clear loading, empty and error states.  
+Backend and API Required routes return the agreed response formats. Invalid requests, unavailable 
+services and  access failures produce appropriate error responses.  
+Patient data and 
+Supabase 
+Patient summary and detail records are linked using consistent identifiers. The 
+interface retrieves the selected patient’s data and displays timestamps and 
+measurement units correctly.  
+Authentication and 
+Access Control 
+Login, registration validation and sign -out operate as intended. User roles 
+determine workspace access, and unauthorised requests for protected patient data 
+are rejected. 
+Glucose forecasting The training and ev aluation procedure identifies the prediction target, 
+chronological data split, units and persistence baseline. The Prediction Lab 
+displays the forecast horizon and source clearly.  
+Knowledge graph Nodes and relationships can be retrieved and displayed. Relationship sources and 
+review status are recorded, and patient -specific views apply the required access 
+checks. 
+ 
+A backlog item is considered complete when its agreed scope has been implemented, integrated into the 
+shared application where applicable, test ed against its acceptance criteria and documented in Jira with 
+supporting evidence.  
+Items with outstanding integration, testing or acceptance requirements remain open. Unfinished work is 
+carried forward with its remaining tasks and an updated estimate . 
+2. SPRINT PROGRESS 
+2.1 Product overview and dataset preparation  
+Smart Diabetes Digital Twin provides role -based workspaces for patients, doctors and administrators. The 
+prototype includes patient information, longitudinal glucose monitoring, glucose forecasting, knowledge -
+graph exploration and digital -twin interface components. A shared patient identifier links summary 
+information with longitudinal measurements, supporting consistent patient selection across the application.  
+Dataset preparation covered 109 source workbooks containing 112,379 rows. Of these, 112,287 rows 
+contained parseable continuous glucose monitoring (CGM) values, 2,999 contained parseable dietary 
+entries and 2,366 contained parseable insulin entries. These counts describe the source records; the number 
+of workbooks does not necessarily represent the number of unique patients. Missing dietary or insulin 
+entries were treated as unrecorded information rather than evidence of fasting or no medication.  
+KNIME workflows were developed to prepare the patient_summary and patient_detail datasets. For 
+patient_summary, categorical fields were separated, grouped and recombined to consolidate repeated 
+information. The output columns were then organised and renamed for subsequent database integration.  
+For patient_detail, records from individual patient workbooks were combined into a common structure. 
+Patient numbers were added, inconsistent column names were standardised and numeric conversion was 
+applied where required. The resulting dataset retained timestamps, glucose measurements, dietary entries 
+and medication fields, providing the foundation for patient -specific monitoring and forecasting.  
+Figures 40-42 show the preprocessing workflows and a sample output. The output distinguishes recorded 
+measurements from missing entries and preserves separate fields for different glucose measurements and 
+medication types.  
+
+=== PDF PAGE 27 ===
+ 
+26 
+ 
+ 
+Figure 40: KNIME preprocessing workflow for consolidating and standardising pa tient_summary data 
+ 
+Figure 41: KNIME preprocessing workflow for combining patient workbooks and preparing patient_detail 
+data  
+
+
+=== PDF PAGE 28 ===
+ 
+27 
+ 
+ 
+Figure 42: Processed patient_detail output showing patient identifiers, timestamps, glucose measu rements 
+and missing entries 
+2.2 Architecture and Access Foundation 
+Smart Diabetes Digital Twin uses a React and TypeScript frontend built with Vite. The frontend provides 
+role-based workspaces and interfaces for patient information, glucose monitoring, forecasting and 
+knowledge-graph exploration. Supabase supports authentication, account profiles and access to patient 
+summary and longitudinal records. A Flask backend provides API endpoints for application services and 
+module integration.  
+The authentication workflow links user accounts to their profiles and, where applicable, patient numbers. 
+Platform-assigned roles determine the appropriate workspace. The Doctor knowledge -graph API also 
+checks patient assignments before returning patient -specific graph information. Access control therefore 
+includes both role handling and checks on the patient records requested.  
+The knowledge -graph backend retrieves medical concepts and relationships from Neo4j Aura. Database 
+credentials are managed on the server. The graph integration combines this medical knowledge with 
+authorised patient information to support the Doctor Knowledge Graph workspace.  
+Glucose model training is performed offline, producing model checkpoints, evaluation results and exported 
+inference assets. The Prediction Lab supports browser -based inference and saved forecast previews, with 
+an additional backend forecasting route available through configuration. Forecast -source labels distinguish 
+model-generated results from saved previews. The backend forecasting route remains subject to 
+deployment verification . 
+
+
+=== PDF PAGE 29 ===
+ 
+28 
+ 
+ 
+Figure 43: Smart Diabetes Digital Twin architecture showing authentication, patient-data access, forecasting 
+and knowledge-graph integration 
+2.3 AI Training and Initial Forecasting Results 
+A PyTorch Gated Recurrent Unit (GRU) model was developed to predict the next 15 -minute glucose 
+reading using the preceding six hours of data. Each input sequence contains 24 time steps and nine features 
+representing glucose, meal and insulin context, and cyclic time -of-day information. The model predicts the 
+change from the latest glucose measurement, which is then added to that measurement to obtain the 
+forecast. 
+The model used a hidden size of 64, a batch size of 128 and a learning rate of 0.001, with the random seed 
+set to 2026. Training was configured for a maximum of 30 epochs and completed after 29 epochs.  
+Data were divided chronologically within each source record. The first 80% formed the training period, 
+with its final portion reserved for validation, while the remaining 20% formed the test period. This 
+approach evaluated predictions on later observations  from the same records. Performance on entirely 
+unseen patients remains to be evaluated.  
+
+
+=== PDF PAGE 30 ===
+ 
+29 
+ 
+2.3.1 Forecasting Performance 
+The GRU  was compared with a persistence baseline, which predicts that the next glucose reading will 
+equal the most recent measurement. Both methods were evaluated on the same 22,401 held -out test 
+windows. 
+Table 12: Forecasing Performance 
+Evaluation Metric GRU Model Persistence Baseline 
+Mean Absolute Error (MAE), mg/dL  3.81 5.93 
+Root Mean Squared Error (RMSE), mg/dL  5.28 8.78 
+Number of test windows  22,401 22,401 
+ 
+The GRU achieved lower MAE and RMSE than the persistence baseline, indicating improved next -step 
+forecasting on the evaluated records. These results apply to the 15 -minute prediction target. Longer -
+horizon forecasts require separate evaluation because errors can accumulate when predictions are 
+generated recursively.  
+ 
+ 
+ 
+Figure 44: GRU training configuration 
+
+
+=== PDF PAGE 31 ===
+ 
+30 
+ 
+ 
+Figure 45: Held-out 15-minute forecasting results comparing the GRU model with the persistence baseline 
+ 
+2.3.2 Forecasting Pipeline Corrections 
+During development, a timestamp -alignment issue was identified in recursive forecasting. A newly 
+generated history row was assigned a future timestamp while retaining the previous glucose value. The 
+recursion was corrected so that each new timestamp is paired with its corresponding predicted glucose 
+value. 
+Data interpretation was also reviewed, particularly the different units used for insulin administration and 
+the distinction between recorded food mass and carbohydrate quantity. These findings informed the 
+subsequent conditional -model experiment. Regression tests were added for the identified behaviours.  
+The initial GRU checkpoint was retained separately from the experimental conditional model, allowing 
+further model development without replacing the existing forecasting model.  
+2.4 Conditional GRU Development and Longer-horizon Evaluation 
+An experimental conditional GRU model was developed to predict 48 future glucose readings at 15 -minute 
+intervals, covering a 12 -hour trajectory. Model evaluation covered 3 -hour, 6 -hour and 12 -hour horizons. 
+The Prediction Lab interface retained the 6 -hour and 12 -hour prediction options, while the 3 -hour results 
+remained part of the model evaluation.  
+The model combines historical CGM measurements, separate dietary and insulin input channels, future -
+event indicators, time -of-day features and baseline patient information. The seven baseline fields are 
+gender, age, height, weight, BMI, smoking history and diabetes duration. Missing -value handling and 
+scaling parameters were fitted using training data, and each complete target trajectory was kept within a 
+single data split . 
+2.4.1 Comparison with the Initial Forecasting Model  
+The conditional GRU was compared with the persistence baseline and the initial GRU using corrected 
+recursive forecasting. All three methods were evaluated using the same 108 forecast starting points, with 
+
+
+=== PDF PAGE 32 ===
+ 
+31 
+ 
+no future meal or insulin plan supplied. Trajectory MAE measures the average absolute error across the 
+predicted readings within each horizon . 
+Table 13: Matched Forecasting Evaluation Results 
+Forecasting Method 3-hour MA E 
+(mg/dL) 
+6-hour MAE 
+(mg/dL) 
+12-hour MAE 
+(mg/dL) 
+Latest-CGM persistence  22.91 29.77 34.64 
+Initial GRU with corrected recursive forecasting  22.22 27.66 29.70 
+Conditional GRU with seven baseline summary 
+fields 
+20.55 22.98 24.77 
+The conditional GRU achieved the lowest error at all three evaluated  horizons in this comparison. These 
+results support further investigation of direct trajectory prediction, although evaluation on unseen patients 
+is still required.  
+2.4.2 Effect of Baseline Patient Information  
+A separate experiment examined the contribution of patient summary information using 1,422 overlapping 
+test trajectories. Three configurations were compared: no summary fields, seven baseline fields and an 
+expanded set of 23 fields that included laboratory measurements.  
+Table 14: Effect of Patient Summary Information  
+Patient Information Used  3-hour MAE 
+(mg/dL) 
+6-hour MAE 
+(mg/dL) 
+12-hour MAE 
+(mg/dL) 
+No summary fields  19.91 23.49 25.80 
+Seven baseline summary fields  19.90 23.16 25.16 
+Expanded 23-field set, including undated laboratory 
+measurements  
+19.69 22.92 24.80 
+The seven baseline fields produced a modest reduction in forecasting error. The expanded field set 
+achieved slightly lower errors, but the laboratory measurement dates were unavailable. Their availability 
+before each forecast could therefore not be established, limiting this configuration to retrospective 
+exploration.  
+This experiment used a different evaluation sample from the 108 -starting-point comparison. The 
+overlapping trajectories also do not represent 1,422 independent patients.  
+ 
+Figure 46: Model evaluation comparing the conditional GRU, initial GRU and persistence baseline across 3-
+hour, 6-hour and 12-hour horizons 
+
+
+=== PDF PAGE 33 ===
+ 
+32 
+ 
+2.4.3 Scenario Sensitivity and Current Limitations  
+Scenario tests examined how forecasts changed when dietary and insulin inputs were varied. A 60 g food -
+mass input produced a negative signed peak response in approximately 80% of the evaluated cases, while a 
+2 IU insulin bolus produced positive peak responses in all evaluated cases. These responses raised 
+concerns about the model’s suitability for physiological scenario simulation.  
+The tests demonstrate sensitivity to input changes but do not establish causal treatment effects. Changes 
+across the full forecast curve must also be considered, as a small difference at the final time point can 
+conceal larger intermediate changes.  
+The conditional GRU therefore remains experimental. Further investigation of event encoding, data quality 
+and response behaviour is required before using it for meal or insulin intervention simulation. Its 
+checkpoint remains separate from the initial forecasting model.  
+ 
+Figure 47: Experimental forecast sensitivity to dietary and insulin inputs  
+2.5 Knowledge-Graph Design and Relationship Documentation  
+The medical knowledge graph was developed to organise Type 2 Diabetes concepts and literature -linked 
+relationships. MedicalConcept nodes represent clinical measurements, conditions, treatments and 
+assessment concepts. Typed relationships describe how these concepts are connected, while supporting 
+metadata records their sources, interpretation and review status.  
+The relationship export contains 42 proposed relationships involving 37 distinct concepts across 15 
+relationship types. The graph follows the t2dm -medical-kg-v1 schema and focuses on Type 2 Diabetes.  
+Table 15: Knowledge Graph Component and Details  
+Graph 
+Component 
+Implementation Details  
+Node metadata  Concept name, category, description, scope, schema version and source references.  
+Relationship 
+metadata  
+Relationship type, evidence type, explanatory note, source references and review 
+status.  
+Review status  All 42 exported relationships are marked candidate_for_review and await review.  
+Source traceability  Relationships contain 25 distinct numeric reference labels for cross -referencing with 
+the supporting bibliography.  
+Graph scope Type 2 Diabetes concepts and their documented medical relationships.  
+
+
+=== PDF PAGE 34 ===
+ 
+33 
+ 
+The relationship types support classification, assessment, calculation and the representation of medical 
+associations. Their distribution in the export is summarised below.  
+Table 16: Knowledge Graph Relationship 
+Relationship Type Number of 
+Records 
+Purpose 
+IS_A 6 Represents classification within a broader concept.  
+ASSESSES 6 Links a metric to the concept it assesses.  
+SUPPORTS_CALCULATION_OF 6 Links an input to a calculated measure.  
+ASSOCIATED_WITH 4 Records an association between concepts.  
+USED_TO_ASSESS 4 Links a measurement to an assessment concept.  
+Other 10 relationship types  16 Represent monitoring, risk factors, treatment, 
+regulation and management relationships.  
+Total 42 Proposed relationships awaiting review.  
+ 
+Figure 48 illustrates a USED_FOR_DIAGNOSIS_OF relationship linking fasting plasma glucose 
+to diabetes. The relationship inspector displays an explanatory evidence note, a source reference 
+and the candidate_for_review status. Recording these properties supports traceability and allows 
+proposed relationships to be reviewed individually.  
+ 
+Figure 48: Neo4j medical-concept graph showing a selected relationship and its evidence note, source 
+reference and review status 
+A separate patient -condition prototype uses Patient and Condition nodes connected through 
+HAS_CONDITION relationships. This structure represents conditions recorded for an individual patient, 
+while the medical -concept graph represents general medical knowledge. Keeping these structures distinct 
+helps prevent recorded conditions from being interpreted as model -generated diagnoses or causal treatment 
+effects. 
+2.6 Knowledge-Graph Integration, Deployment and Testing  
+2.6.1 Doctor Knowledge Graph Workspace  
+The KnowledgeGraph branch implements a Doctor -facing workspace with three tabs: Patient Graph, 
+Clinical Concepts and Graph Analysis. The frontend communicates with backend APIs to retrieve assigned 
+patient identifiers, shared medical concepts, the selected patient’s graph and analysis results.  
+The integration separates shared medical knowledge from patient -specific information. Neo4j Aura stores 
+reusable MedicalConcept nodes and their relationships, which the backend retrieves through read -only 
+
+
+=== PDF PAGE 35 ===
+ 
+34 
+ 
+queries. Patient -specific graphs are composed in memory using authorised Supabase records and the shared 
+concepts. This integration does not write patient identifiers, demographics, glucose readings or patient -
+specific nodes to the shared Aura database.  
+2.6.2 Access Control and Graph Analysis  
+Patient-specific graph routes require Doctor authentication and verify that the requested patient is assigned 
+to the authenticated Doctor. Requests are rejected when the patient is unassigned or assignment 
+verification cannot be completed.  
+Graph analysis uses a rules -based provider by default, with an optional server -side OpenAI provider. 
+Relationship-based interpretation includes only relationships marked reviewed. Relationships marked 
+candidate_for_review are excluded from the reasoning context.  
+All 42 relationships in the exported evidence package remain candidates for review. If loaded with these 
+statuses unchanged, they are unavailable for relationship -based interpretation. Matching recorded patient 
+conditions to medical concepts can still support graph display, but the relationship -review process remains 
+incomplete.  
+2.6.3 Integration Testing and Deployment Progress  
+Browser network inspection recorded successful HTTP 200 responses for the assigned -patients request and 
+two knowledge -graph requests, as shown in Figure 49. This demonstrates that these requests completed 
+successfully during the captured session. Additional testing is required to confirm response contents, 
+graph-analysis behaviour and rejection of requests for unassigned patients.  
+The KnowledgeGraph branch history records updates to patient assignment handling, Aura configuration, 
+graph analysis and deployment configuration. It also records Vercel deployment retry commits. These 
+changes document integration progress; automated test outcomes and deployment status are recorded 
+separately through GitHub Actions and Vercel.  
+The Neo4j Aura instance was replaced during development. The earlier database counts of 37 
+MedicalConcept nodes and 42 relationships therefore require confirmation against the replacement 
+instance. Reproducible seed scripts, source references and relationship -review records also remain 
+necessary to support deployment and maintenance . 
+ 
+Figure 49: Browser network inspection showing HTTP 200 responses for assigned-patient and knowledge-
+graph requests 
+
+
+=== PDF PAGE 36 ===
+ 
+35 
+ 
+ 
+Figure 50: KnowledgeGraph branch commit hist ory showing access-control, Aura configuration and 
+deployment-related changes 
+ 
+
+
+=== PDF PAGE 37 ===
+ 
+36 
+ 
+3. SPRINT REVIEW 
+3.1 Review Purpose, Participants and Demonstration Scope 
+The Sprint Review assessed the progress of Smart Diabetes Digital Twin against the sprint objective, 
+focusing on interface usability, functional coverage and the glucose forecasting approach. Ts. Dr. Vong 
+Wan Tze served as both the client and supervisor, providing feedback during the Week 5, Week 6 and 
+Week 7 progress reviews.  
+The review discussions covered the role -based workspaces, application navigation, patient information, 
+longitudinal monitoring and forecasting development. Feedback across the three weeks guided revisions to 
+the interface and model development approach . 
+3.1.1 Client/Supervisor Feedback and Development Response  
+The following summary records the team’s recollection of verbal feedback provided during face -to-face 
+discussions in Weeks 5–7. The feedback is paraphrased rather than quoted directly.  
+Table 17: Client/Supervisor Feedback 
+Review Period Client/Supervisor Feedback  Development Response and Outcome  
+Week 5 — 
+Forecasting 
+approach 
+The training approach was organised 
+around individual patients, whereas the 
+expected approach should focus on the 
+chronological glucose timeline.  
+The feedback prompted a review of 
+sequence preparation and chronological 
+training and evaluation. The revised pipeline 
+used ordered glucose -history windows to 
+predict subsequent readings.  
+Week 5 — 
+Interface 
+usability 
+The interface was cluttered and did not 
+yet resemble a coherent, usable web 
+application.  
+The team revised the layout, navigation and 
+organisation of the principal screens to 
+improve consistency and usability.  
+Week 6 — 
+Functional 
+coverage 
+The revised interface still lacked required 
+functionality.  
+The team continued connecting screens to 
+their underlying features and addressing 
+incomplete user flows.  
+Week 6 — 
+Model quality  
+The forecasting model required further 
+improvement.  
+Further work focused on data interpretation, 
+forecasting behaviour and evaluation, 
+including investigation of the conditional 
+GRU approach. 
+Week 6 — 
+Other 
+components  
+The client/supervisor indicated that the 
+other components presented during the 
+Week 6 discussion were satisfactory at 
+that stage.  
+Development attention remained focused on 
+interface completeness and forecasting 
+quality.  
+Week 7 — 
+Interface 
+progress 
+The revised UI was considered 
+acceptable as a basis for continued 
+development. Further layout refinements 
+and additional functionality were 
+suggested.  
+The remaining layout changes and proposed 
+features became follow-up items for backlog 
+refinement.  
+3.1.2 Review Outcomes 
+The reviews identified two principal areas requiring improvement: the forecasting methodology and the 
+usability of the application. The Week 5 feedback prompted the team to revisit chronological sequence 
+modelling and redesign the interface. The Week 6 review showed that visual changes alone were 
+insufficient; the application also needed more complete functionality, while forecasting quality remained 
+an open issue.  
+By Week 7, feedback on the revised interface had become positive, and discussion shifted towards layout 
+refinements and additional features. This indicated progress in interface usability. Forecasting remained an 
+area for further evaluation and improvement.  
+
+=== PDF PAGE 38 ===
+ 
+37 
+ 
+The absence of further concerns about other components during the Week 6 discussion was recorded as 
+feedback on the demonstrated work, rather than formal acceptance of every feature.  
+3.2 Progress Against the Original Sprint Plan 
+Table 18: Progress Against the Original Sp rint Plan 
+Planned Item Estimated 
+Hours 
+Progress Achieved Outstanding Work 
+UI planning in 
+Figma 
+24 Developed the principal screen designs 
+and connected user flows. Revised the 
+designs following feedback on layout 
+and usability.  
+Address further layout 
+refinements and additional 
+features suggested during the 
+review. 
+Shared screens 
+and navigation  
+11 Implemented shared layouts, role -based 
+workspaces, navigation and patient 
+selection. Revised screens following 
+feedback about incomplete 
+functionality.  
+Complete remaining user flows 
+and test navigation and patient 
+context across connected 
+screens. 
+Basic backend 
+and API 
+7 Established the Flask backend, API 
+routes and service structure for module 
+integration.  
+Verify hosted API operation, 
+authenticated requests, error 
+handling and service 
+availability. 
+Supabase tables 
+and data 
+preparation 
+48 Developed KNIME workflows, 
+prepared patient summary and detail 
+datasets, and integrated patient records 
+with longitudinal views.  
+Complete verification of 
+database policies, patient 
+assignments and access 
+restrictions across accounts.  
+Login and 
+access control  
+48 Implemented login, patient registration, 
+input validation, role handling and 
+account -to-patient linkage.  
+Complete end -to-end testing of 
+account confirmation, sign -out 
+and unauthorised access 
+attempts.  
+Glucose 
+forecasting 
+prototype 
+72 Developed the initial GRU training 
+pipeline, baseline evaluation and 
+Prediction Lab integration. Investigated 
+conditional GRU forecasting over 
+longer horizons.  
+Improve forecasting quality, 
+evaluate unseen -patient 
+performance and investigate 
+inconsistent dietary and insulin 
+responses. 
+Knowledge-
+graph prototype  
+72 Developed the medical -concept graph, 
+relationship documentation and Doctor 
+graph workspace. Added patient 
+assignment checks and recorded 
+successful graph -related API responses.  
+Review proposed relationships, 
+verify the replacement Aura 
+database contents and complete 
+graph-analysis and denied -
+access testing.  
+Total planned 
+effort 
+282 
+  
+ 
+Progress was strongest in establishing the interface, data foundation and initial module implementations. 
+The review also identified a difference between having individual screens available and providing 
+complete user journeys. Further integration and testing were therefore required alongside interface 
+refinements.  
+Forecasting produced measurable results, with the initial GRU outperforming persistence on the evaluated 
+next-step task. However, the client/supervisor’s feedback and the conditional -model sensitivity results 
+showed that model quality remained an important development priority. The knowledge graph similarly 
+progressed from concept modelling towards application integration, while relationship review and 
+deployment verification remained outstanding.  
+3.2.1 Scope of the Sprint Increment  
+
+=== PDF PAGE 39 ===
+ 
+38 
+ 
+The sprint increment established the foundation of Smart Diabetes Digital Twin through shared application 
+screens, authentication, patient -data integration, longitudinal monitoring and initial forecasting and 
+knowledge-graph prototypes.  
+The forecasting outputs remained research results requiring further validation. Knowledge -graph 
+relationships remained subject to review, and advanced digital -twin, risk -assessment and treatment -
+simulation capabilities were not considered completed clinical functions.  
+Further development would focus on completing user journeys, verifying access restrictions, improving 
+forecasting quality and consolidating the modules into a consistently functioning application.  
+3.3 Critical Review of the Forecasting Increment 
+3.3.1 Forecasting Performance and Interpretation  
+The initial GRU achieved a next -step MAE of 3.81 mg/dL, compared with 5.93 mg/dL for the persistence 
+baseline. This demonstrates improved 15 -minute forecasting on the evaluated chronological test windows. 
+However, this result does not represent the accuracy of a recursively generated 6 -hour or 12 -hour forecast, 
+where errors can accumulate across prediction steps.  
+The conditional GRU addressed longer -horizon forecasting by directly predicting a glucose trajectory. On 
+the same 108 forecast starting points, its 12 -hour trajectory MAE was 24.77 mg/dL, compared with 29.70 
+mg/dL for the initial GRU with corrected recursion and 34.64 mg/dL for persistence. The lower error 
+supports further development, although statistical significance, performance on unseen patients and clinical 
+usefulness have not been established.  
+The separate patient -summary experiment showed modest improvements when baseline information was 
+included. Its 1,422 overlapping trajectories came from known records and therefore do not represent 
+independent patients. The expanded configuration also included undated laboratory measurements whose 
+availability at the forecast time could not be confirmed. Consequently, the seven -field baseline 
+configuration provides a more defensible basis for continued development, while the expanded 
+configuration remains re trospective.  
+3.3.2 Limitations of Scenario Simulation  
+The sensitivity experiments identified an important limitation: dietary inputs frequently produced 
+downward forecast changes, while insulin bolus inputs produced upward changes. These responses show 
+that the model uses the event inputs, but they do not support interpreting its outputs as reliable 
+physiological intervention effects.  
+Possible explanations include incomplete event recording, differences between insulin administration types 
+and treatment decisions made in response to existing glucose levels. These factors require further 
+investigation before the model can support meaningful meal or insulin scenarios.  
+The conditional model therefore remains an experimental forecasting component. Its current results do not 
+support insulin -dose selection or individual treatment recommendations.  
+3.3.3 Review Outcomes and Follow -up Actions 
+The forecasting increment established a working training and evaluation pipeline and provided measurable 
+comparisons with a simple baseline. However, the client/supervisor’s Week 6 feedback that model quality 
+required improvement remained relevant. Lower forecasting error alone did not resolve the concerns 
+identified in scenario testing.  
+Table 19: Follow-up Action 
+Follow-up Action Responsible 
+Member 
+Expected Outcome 
+Review event completeness, dietary 
+quantities and insulin administration types.  
+Fa Zhen, 
+supported by Jody  
+Clearer feature definitions and more 
+consistent model inputs.  
+
+=== PDF PAGE 40 ===
+ 
+39 
+ 
+Evaluate using patient -separated training 
+and test groups.  
+Fa Zhen  Evidence of generalisation to patients 
+excluded from training.  
+Investigate the unexpected meal and 
+insulin responses.  
+Fa Zhen  Better understanding of whether the 
+model is suitable for scenario 
+exploration.  
+Retain training settings, data splits, 
+baseline results and model versions with 
+each checkpoint.  
+Fa Zhen  Reproducible model evaluation and 
+comparison.  
+Identify the forecast source and horizon 
+clearly in the Prediction Lab.  
+Fa Zhen, 
+supported by 
+Andy 
+Clear distinction between the initial 
+model, saved previews and experimental 
+forecasts. 
+3.4 Critical Review of the Knowledge-Graph Increment 
+3.4.1 Knowledge Representation and Traceability  
+The knowledge -graph increment established a structured representation of Type 2 Diabetes knowledge. 
+The relationship evidence matrix contains 42 proposed relationships involving 37 distinct concepts across 
+15 relationship types. Source references and explanatory notes document the basis for each proposed 
+connection and support subsequent review.  
+This structure improves traceability compared with storing relationships without supporting information. 
+However, the presence of a reference does not establish that a relationship has been correctly interpreted. 
+Each proposed relationship still requires verification against its source and a recorded review decision.  
+3.4.2 Relationship Review and Analysis Limitations  
+The database query shown in Figure 51 returned 42 relationships, all marked candidate_for_review. No 
+relationships were marked reviewed, and none had a missing review status.  
+The graph -analysis service excludes candidate relationships from relationship -based interpretation. 
+Consequently, the queried graph currently provides no reviewed relationships for this form of analysis. 
+Direct matching between recorded patient conditions and medical concepts may still support graph display, 
+but it does not establish a diagnosis or treatment recommendation.  
+The review -status mechanism provides a useful control over which relationships can inform analysis. Its 
+practical value nevertheless depends on completing the source -review process and making approved 
+relationships available.  
+ 
+Figure 51: Neo4j query results showing 42 condidate relationships, zero revi ewed relationships and zero 
+missing review statuses 
+3.4.3 Integration and Reproducibility  
+The Doctor workspace brings together patient -specific graphs, shared clinical concepts and graph analysis. 
+Separating reusable medical knowledge in Neo4j Aura from patient records in Supabase provides a clear 
+division between the two data sources.  
+
+
+=== PDF PAGE 41 ===
+ 
+40 
+ 
+The successful API responses presented in Section 2.6 demonstrate progress in connecting the interface 
+and backend. Further testing is required to confirm the returned content, graph -analysis behaviour and 
+rejection of unassigned -patient requests.  
+Reproducibility also remains an outstanding requirement. The repository needs a version -controlled graph 
+seed package, its supporting bibliography and instructions for populating the intended Aura database. 
+Database verification should record the instance, query date and software version so that the results can be 
+associated with the demonstrated application.  
+3.4.4 Review Outcomes and Follow -up Actions 
+The increment achieved an initial graph structure, traceable relationship metadata and application 
+integration. Its principal remaining limitation is the absence of reviewed relationships for relationship -
+based analysis. 
+Table 20: Follow-up Action 
+Follow-up Action Responsible Member Expected Outcome 
+Consolidate the graph seed scripts, 
+relationship metadata and bibliography in 
+the repository.  
+Elijah A reproducible, version -controlled 
+graph package. 
+Verify each proposed relationship against 
+its cited source and record the review 
+decision. 
+Elijah, with 
+client/supervisor 
+guidance 
+Documented decisions on which 
+relationships are suitable for 
+analysis. 
+Populate and verify the intended Aura 
+database. 
+Elijah Recorded concept counts, 
+relationship counts and review -
+status totals.  
+Test authorised access, unassigned -patient 
+rejection and graph -analysis responses.  
+Elijah, supported by 
+Jody and Jit Heng  
+End-to-end results covering 
+functionality and access 
+restrictions.  
+3.5 Feedback, Progress Tracking and Deliverability Assessment 
+3.5.1 Improvements to Backlog and Progress Reporting  
+The report review identified insufficient detail in the backlog, Jira records and progress descriptions. In 
+response, the team expanded the sprint documentation to include seven selected backlog items, 35 
+development tasks, responsible members, estimated effort and acceptance criteria. Implementation 
+screenshots and evaluation results were also included to explain development progress.  
+Jira descriptions were updated with objectives, scope, deliverables and acceptance criteria. Further 
+improvements will focus on maintaining accurate sprint dates, updating issue statuses and recording 
+remaining work throughout development.  
+3.5.2 Jira Progress Tracking  
+Jira updates were not maintained consistently after Week 4, although development continued across the 
+individual workstreams. Following feedback on the initial submission, the team retrospectively updated 
+issue descriptions and statuses to document the work undertaken.  
+Figures 35–37 show the updated backlog. These records clarify task scope and recorded status, but the 
+update dates do not necessarily represent the actual development or completion dates. Development 
+progress is therefore supported by the implementation history and technical outputs presented in the 
+contribution statements and Section 2.  
+A reliable Sprint 1 burndown reflecting day -to-day development could not be established from the 
+available records. Retrospective status updates may concentrate recorded completion near the update date 
+rather than reflect the actual pattern of work . 
+
+=== PDF PAGE 42 ===
+ 
+41 
+ 
+3.5.3 Deliverability Assessment  
+The increment provides an initial Smart Diabetes Digital Twin prototype, including role -based interfaces, 
+authentication, patient -data integration, longitudinal monitoring and forecasting and knowledge -graph 
+components.  
+Client/supervisor feedback indicated improvement in interface usability by Week 7. However, incomplete 
+functionality and forecasting quality had been identified during the earlier reviews. Further model 
+evaluation, relationship review and end -to-end integration testing remain necessary.  
+The increment is suitable for demonstrating development progress and obtaining further feedback. The 
+positive Week 7 UI feedback applies to the interface presented during that discussion and does not 
+establish acceptance of every system component.  
+ 
+
+=== PDF PAGE 43 ===
+ 
+42 
+ 
+4. RETROSPECT  
+4.1 What worked well 
+Dividing responsibilities across five workstreams allowed frontend development, data preparation, 
+authentication, forecasting and knowledge -graph development to progress in parallel. Each member had a 
+principal area of responsibility, providing clear ownership while allowing collaboration on shared 
+integration tasks.  
+WhatsApp communication, Microsoft Teams meetings and Tuesday in -class discussions supported 
+coordination and problem -solving. The shared GitHub repository provided a common location for 
+development work and allowed changes to be tracked through individual branches.  
+Regular client/supervisor discussions helped the team identify weaknesses early. Feedback on the interface 
+led to successive revisions, with the revised UI receiving positive feedback in Week 7. Feedback on 
+forecasting also prompted closer examination of chronological data preparation, evaluation methods and 
+model behaviour.  
+Model evaluation and graph inspection made technical limitations more visible. Comparing forecasting 
+methods helped distinguish short -term accuracy from longer -horizon performance, while relationship -
+status queries identified the knowledge graph’s outstanding review work.  
+4.2 Challenges, Causes and Process Improvements 
+Table 21: Challenges, Causes and Process Improvement s 
+Challenge Underlying Cause Improvement for the 
+Next Sprint 
+Responsible Members 
+and Check 
+Backlog items and 
+progress records 
+lacked detail. 
+Broad task descriptions did 
+not clearly define expected 
+outputs or completion 
+conditions.  
+Break larger items into 
+manageable tasks with 
+acceptance criteria, 
+estimates and linked 
+results. Update Jira 
+throughout development.  
+All members; review 
+issue completeness 
+during weekly 
+coordination.  
+The UI required 
+repeated revisions.  
+Early screens were 
+developed without sufficient 
+agreement on the overall 
+user journey and consistent 
+layout.  
+Review connected Figma 
+flows before 
+implementation and 
+demonstrate complete 
+user journeys during 
+development.  
+Andy and team; conduct 
+a shared usability 
+walkthrough before 
+merging major interface 
+changes.  
+Required 
+functionality 
+remained 
+incomplete after 
+visual 
+improvements.  
+Progress focused partly on 
+individual screens rather 
+than their complete 
+behaviour and integration.  
+Define completion 
+around working user 
+journeys, including data 
+loading, validation and 
+error handling.  
+Module leads; test each 
+journey against its 
+acceptance criteria.  
+The forecasting 
+approach required 
+revision. 
+The initial interpretation of 
+the modelling requirement 
+did not sufficiently match 
+the client/supervisor’s 
+expected timeline -based 
+approach. 
+Agree on the prediction 
+target, sequence 
+construction and 
+evaluation design before 
+further training.  
+Fa Zhen; review the 
+modelling plan with the 
+client/supervisor.  
+Forecasting 
+accuracy did not 
+establish reliable 
+scenario behaviour.  
+Observational meal and 
+insulin records introduced 
+interpretation difficulties 
+beyond prediction error 
+alone. 
+Evaluate next -step 
+accuracy, trajectory 
+accuracy and scenario 
+sensitivity separately.  
+Fa Zhen, supported by 
+Jody; document the data 
+assumptions and 
+limitations for each 
+experiment.  
+Knowledge-graph Graph construction Add relationship Elijah; maintain source 
+
+=== PDF PAGE 44 ===
+ 
+43 
+ 
+relationships 
+remained 
+unreviewed.  
+progressed before a 
+complete source -review 
+workflow was established.  
+verification and review 
+decisions as explicit 
+backlog tasks.  
+references and 
+reviewed/candidate 
+counts.  
+Integration and 
+deployment 
+required additional 
+verification.  
+Members developed 
+modules in separate 
+branches and environments.  
+Integrate smaller changes 
+regularly and record the 
+source version and 
+deployment used for 
+testing.  
+Andy and module leads; 
+complete a shared 
+integration check before 
+each review. 
+Jira records fell 
+behind 
+development after 
+Week 4. 
+The team focused on 
+implementation without 
+maintaining regular task 
+updates.  
+Update assigned issues 
+before each weekly 
+meeting and record 
+remaining work and 
+blockers. 
+All members; Andy 
+coordinates the weekly 
+check. 
+ 
+4.3 Team conduct 
+The team recognised the importance of communicating blockers early and discussing changes that affect 
+other modules. Shared decisions about patient identifiers, data formats, navigation and API behaviour 
+should be recorded so that members can work from consistent requirements.  
+For the next sprint, each member will update their assigned Jira issues before the weekly coordination 
+discussion. The team will review outstanding dependencies, agree on integration actions and record the 
+main outcomes of verbal client/supervisor feedback.  
+Andy will coordinate the shared application walkthrough, while each module lead will provide the relevant 
+test results and outstanding issues. The next retrospective will assess whether these changes reduced 
+repeated work, improved integration and made progress easier to track . 
+ 
+
+=== PDF PAGE 45 ===
+ 
+44 
+ 
+4.4 Risk Registry Review 
+The retrospective identified the following risks requiring continued attention. These risks remain open until 
+their mitigation actions have been completed and verified.  
+Table 22: Risk Registry Review 
+Risk and Potential Impact  Current Controls Further Action Responsible 
+Members 
+Integration errors:  Screens 
+may display missing data or 
+information for an incorrect 
+patient.  
+Shared patient identifiers, 
+patient selection and 
+missing-data handling 
+support consistent views.  
+Test navigation, selected -
+patient context and empty 
+states after integration 
+changes.  
+Andy and 
+module leads  
+Unauthorised patient -data 
+access: Incorrect role 
+handling, assignments or 
+database policies may 
+expose records. 
+Role handling, database 
+policy scripts and Doctor 
+graph assignment checks 
+provide access-control 
+foundations.  
+Test unauthenticated 
+requests, patient access to 
+their own and other records, 
+and Doctor access to 
+assigned and unassigned 
+patients.  
+Jit Heng and 
+Jody 
+Misinterpretation of 
+forecasts: Experimental 
+outputs may be mistaken for 
+treatment guidance.  
+Model evaluation 
+identifies limitations, and 
+the conditional checkpoint 
+remains separate from the 
+initial model.  
+Maintain clear forecast -
+source labels and evaluate 
+unseen -patient performance 
+and scenario behaviour.  
+Fa Zhen  
+Unreviewed graph 
+relationships:  Proposed 
+connections may be 
+interpreted as approved 
+medical knowledge.  
+Relationships carry review 
+statuses, and candidate 
+relationships are excluded 
+from relationship -based 
+analysis. 
+Verify cited sources, record 
+review decisions and 
+distinguish candidate from 
+reviewed relationships in the 
+interface.  
+Elijah 
+Deployment inconsistency:  
+The demonstrated 
+application may use an 
+outdated build or incorrect 
+service configuration.  
+GitHub history records 
+implementation and 
+deployment -related 
+changes.  
+Record the demonstrated 
+commit and deployment, 
+verify service connections 
+and confirm which graph 
+integration is active.  
+Andy and 
+Elijah 
+Incomplete progress 
+tracking: Jira records may 
+not accurately reflect sprint 
+scope and remaining work.  
+Backlog descriptions now 
+include more detailed 
+objectives, deliverables 
+and acceptance criteria.  
+Reconcile sprint dates, 
+assignments and estimates; 
+maintain status updates and 
+record review outcomes.  
+All members  
+4.5 Ethical and Cybersecurity Protocol Review 
+The ethical and cybersecurity review focused on responsible data use, patient confidentiality, access 
+control and accurate presentation of experimental outputs. Further work is required to verify data 
+permissions, deployed access restrictions and the handling of information by optional external services.  
+Table 23: Ethical and Cybersecurity Protocol Review 
+Review Area Project Requirement and Follow -up 
+Data source and 
+permitted use  
+Record dataset provenance and permitted uses. Verify permission before including 
+source data or patient histories in publicly accessible application assets.  
+Privacy and 
+confidentiality  
+Minimise personal and health information in demonstrations, screenshots and 
+shared files. Patient numbers alone do not establish that records are anonymous.  
+Access control  Restrict patient -data access according to authenticated roles and patient 
+assignments. Verify restrictions through both permitted and denied requests.  
+Credential 
+management  
+Keep privileged Supabase keys, Neo4j passwords and external AI keys in server -
+side configuration. Exclude credentials from source control, screenshots and 
+
+=== PDF PAGE 46 ===
+ 
+45 
+ 
+reports. 
+External AI 
+processing 
+Review the information sent to an external provider before enabling the optional 
+AI service. Minimise transmitted data and obtain any required institutional 
+authorisation.  
+Responsible model 
+presentation  
+Identify forecasts and scenario outputs as experimental, state their limitations and 
+avoid presenting them as validated treatment recommendations.  
+Knowledge-graph 
+integrity  
+Preserve source references and review statuses. Require a recorded review decision 
+before candidate relationships are included in relationship -based analysis. 
+Participant 
+involvement  
+Confirm institutional requirements before collecting identifiable participant 
+information or conducting user research. Record any required permissions before 
+those activities begin.  
+ 
+These requirements will be revisited when datasets, deployment settings, external services or participant 
+activities change. Outstanding actions will be tracked alongside the relevant development tasks . 
+5. LESSONS LEARNED AND FUTURE PLAN  
+5.1 Reflection on Sprint 1 
+Sprint 1 demonstrated the importance of defining completion clearly. Dividing work into broad modules 
+helped allocate responsibilities, but did not provide enough detail for tracking progress. Backlog items 
+need specific outputs, owners, estimates and acceptance criteria so that implementation and outstanding 
+work can be assessed consistently.  
+The client/supervisor’s feedback also showed that interface appearance and functional completeness must 
+be developed together. Revising individual screens improved presentation, but a usable application also 
+requires connected navigation, consistent patient selection and complete user journeys. Earlier 
+walkthroughs of the shared application would help identify these issues before formal reviews.  
+The forecasting work highlighted the need to clarify the modelling objective before training. Prediction 
+targets, chronological sequence preparation and evaluation methods should be agreed early. Improved 
+forecasting accuracy also does not establish reliable treatment effects, as demonstrated by the conditional 
+model’s unexpected dietary and insulin responses.  
+Knowledge-graph development showed that constructing relationships is only part of the work. Source 
+verification, relationship review and reproducible database population are necessary before those 
+relationships can support analysis.  
+Finally, progress records should be maintained throughout development. Regular Jira updates, recorded 
+test results and brief notes from verbal feedback would reduce the effort needed to reconstruct progress 
+when preparing the report.  
+5.2 Prioritised Future Work 
+The next sprint will prioritise outstanding functionality, forecasting quality and integration verification. 
+Detailed forecasting and knowledge -graph actions are presented in Sections 3.3.3 and 3.4.4.  
+Table 24: Priority Future Work 
+Priority Next-Sprint Focus Responsible Members 
+Must Have  Complete principal user journeys and agreed UI refinements.  Andy and module leads  
+Must Have  Verify authentication and patient -data access restrictions.  Jit Heng and Jody  
+Must Have  Improve and evaluate glucose forecasting.  Fa Zhen, supported by Jody  
+Must Have  Consolidate the graph package and complete relationship 
+review. 
+Elijah 
+
+=== PDF PAGE 47 ===
+ 
+46 
+ 
+Must Have  Maintain accurate Jira scope, estimates, statuses and 
+remaining work.  
+All members; coordinated 
+by Andy 
+Should 
+Have 
+Complete Doctor graph integration testing.  Elijah, Jody and Jit Heng  
+Should 
+Have 
+Verify the shared deployment and complete regression 
+checks. 
+Andy and module leads  
+Could 
+Have 
+Implement additional client/supervisor -requested 
+enhancements.  
+Relevant module leads  
+Final selection and estimates will be agreed during sprint planning. Unfinished work will carry forward 
+with its remaining scope and updated estimate, while the 282 -hour Sprint 1 planning baseline will remain 
+unchanged . 
+5.3 Sprint 1 Deliverables 
+The deliverables comprise the application prototype, supporting technical artefacts and sprint 
+documentation. Their contents and relevance are summarised below.  
+Table 25: Sprint 1 Deliverables 
+Deliverable Contents Relevance to the Project  
+Interface design 
+and frontend  
+Figma designs, React and TypeScript 
+screens, shared navigation and role -
+based workspaces. 
+Establishes the application structure and 
+supports demonstration of the principal 
+user journeys.  
+Data preparation 
+and integration  
+KNIME workflows, processed patient 
+summary and detail outputs, patient 
+identifier mapping and Supabase 
+integration code.  
+Provides consistent patient records for 
+monitoring, forecasting and application 
+integration.  
+Backend 
+foundation  
+Flask routes, service modules, database 
+scripts and deployment configuration.  
+Provides the technical structure for 
+communication between application 
+components.  
+Authentication and 
+access control  
+Login, patient registration, validation, 
+role handling and account -to-patient 
+linkage. 
+Supports authenticated workspace entry 
+and the foundation for controlled patient -
+data access. 
+Forecasting 
+component  
+Training scripts, model checkpoints, 
+evaluation metrics, comparison outputs, 
+sensitivity experiments and Prediction 
+Lab integration.  
+Documents forecasting development and 
+measured performance. The conditional 
+model remains experimental.  
+Knowledge-graph 
+component  
+Medical-concept and relationship data, 
+source metadata, Neo4j queries, graph 
+visualisation and Doctor integration 
+code. 
+Organises diabetes -related knowledge 
+and supports graph exploration. The 42 
+proposed relationships remain subject to 
+review. 
+Testing and 
+demonstration 
+materials 
+Available automated -check results, API 
+response screenshots, interface 
+screenshots and demonstration materials.  
+Documents implemented behaviour and 
+identifies areas requiring further 
+verification.  
+Sprint 
+documentation  
+Sprint plan, backlog, task breakdown, 
+review, retrospective, risk registry and 
+future plan.  
+Records responsibilities, progress, 
+feedback, limitations and follow -up 
+actions.  
+5.3.1 Source Code and Application Access  
+Table 26: Project Resources and Access Links  
+Resource Location 
+GitHub repository https://github.com/AA -4499/FYP-A-Sep-2026 
+
+=== PDF PAGE 48 ===
+ 
+47 
+ 
+Frontend application https://frontend -ecru-nine-89.vercel.app/  
+Jira  
+(Access using school email) 
+Project-Backlog 
+YouTube Website demo https://youtu.be/yAjJc10Ss -w 
+Website Figma Website-Design 
+Research Report Slide https://canva.link/1cutrtaqitufh7b  
+Development branches retain the individual workstreams described in the contribution statements. 
+Demonstration and testing records identify the application version used, while restricted access details are 
+provided separately where required.  
+ 

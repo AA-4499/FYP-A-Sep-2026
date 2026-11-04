@@ -1,0 +1,161 @@
+Team and Project Plan
+Unit code: COS30082
+Unit Name: Applied Machine Learning
+Submission date: 27 Nov at 23:59
+
+
+Member
+Recommended role
+Primary ownership
+Andy
+Fa Zhen NG
+Data Engineering & Independent Baseline Lead
+Dataset pipeline, EDA, two independent crop/disease CNNs, augmentation
+Yuen Kai CHIAJonathan
+Multi-Task Learning & Training Lead
+Shared-backbone CNN, loss tuning, training infrastructure, Grad-CAM
+Yuen Kai CHIA
+Andy
+Zero-Shot ML & Integration Lead
+Proposed CLIP-based approach, crop-disease composition scoring, model inference integration
+Fa Zhen NG
+Frederick
+UI & Image Retrieval Lead
+GUI, embedding-based image retrieval, executable application, demonstration
+Jonathan
+Frederick
+Evaluation, Robustness & Experimentation Lead
+Top-1/5, harmonic mean, confusion matrices, robustness benchmarks, ablations and comparative analysis
+
+1. Project Overview & Problem Formulation
+This project investigates Out-of-Distribution (OOD) and Unseen Plant Disease Identification in the COS30082 Applied Machine Learning curriculum. In dynamic agricultural environments, automated visual diagnostic systems frequently encounter unseen disease categories, emerging pathogens, and severe environmental variations (lighting, complex background foliage, and varied camera viewpoints) not present during model training.
+The central research challenge is to achieve a balance between discriminative ability and generalization capability. A successful model must capture disease-specific features on seen classes while learning transferable representations capable of zero-shot recognition on unseen categories. The project deliverables include an operational interactive graphical user interface (GUI), an 8-page academic report, and an 8-minute presentation video, delivered by a 5-member team with an exact 20% balanced workload distribution.
+1.1 Dataset Specification (DPD-Small)
+Benchmark Dataset: All experiments and benchmarking are conducted using the curated Deep-Plant-Disease Small (DPD-Small) dataset, consisting of 11,448 real-world images:
+Split Name
+Image Count
+Metadata File
+Description
+Train Set
+8,000
+DPD-Small train.csv
+Training images from seen crop-disease categories (323 composition classes across 55 crops and 175 diseases).
+Test Seen Set
+2,000
+DPD-Small test seen.csv
+Evaluation images belonging to seen crop-disease composition classes to measure discriminative accuracy.
+Test Unseen Set
+1,448
+DPD-Small test unseen.csv
+Evaluation images belonging to 10 unseen crop-disease composition categories (Zero-Shot / OOD).
+Total Dataset
+11,448 (6/2/2)
+Combined Metadata
+7 metadata columns: filename, crop label, disease label, composition label, crop name, disease name, composition name.
+ 
+2. Project Requirements Specification
+2.1 Basic Requirements (Weight: 12% + Administrative)
+•  Baseline 1 (Independent CNNs): Train two distinct CNN backbones: Model A classifies 55 crop classes, while Model B classifies 175 disease categories. Both utilize standard data preprocessing, transfer learning, and augmentations.
+•  Baseline 2 (Multi-Task CNN): Train a single shared deep learning backbone with multi-task learning heads simultaneously predicting crop and disease classes with a balanced composite loss function.
+•  Accuracy Metrics: Provide Top-1 and Top-5 accuracy on both seen and unseen test sets.
+•  Harmonic Mean (H): Compute the Harmonic Mean between seen and unseen accuracies: H = (2 × Seen × Unseen) / (Seen + Unseen).
+•  Confusion Matrix: Generate and analyze high-resolution confusion matrix for seen test predictions.
+•  Git Repository: Grant read-only access to shlee@swinburne.edu.my within 1 week of team formation.
+•  Deliverables: Deliver an 8-page academic report (Methodology, Results & Discussion) and an 8-minute presentation video link by 11:59 pm, 27/11/2026 (Friday Week 12).
+2.2 High-Level Requirements (Weight: 13% + 5% UI)
+•  Proposed Novel Approach (13%): Propose, implement, and validate an advanced deep learning method specifically engineered to surpass conventional baselines in unseen class generalization (U) and environmental robustness.
+•  Zero-Shot Formulation: Formulate knowledge transfer mechanisms using Vision-Language Zero-Shot models (e.g., CLIP / BioCLIP adapters), Contrastive Representation Learning, or Compositional Disentanglement.
+•  Robustness Evaluation: Evaluate resilience against real-world field perturbations (variations in lighting conditions, complex background foliage, camera viewpoints, and image noise).
+•  User Interface & Retrieval (5%): Develop an interactive, user-friendly graphical application (Streamlit or Gradio). The UI takes a plant disease photo as input, outputs the predicted crop-disease category with confidence scores, and retrieves/displays the most visually/semantically similar matching training images.
+3. Project Timeline & Two-Sprint Agile Roadmap (Weeks 5 – 12)
+The project spans an 8-week timeline starting at Week 5 and concluding at Week 12. Active technical development is organized into two structured sprints (Weeks 5 to 10), while the final two weeks (Weeks 11 & 12) are dedicated to reviewing back, cross-verifying experimental results, authoring the 8-page academic report, and recording the 8-minute presentation video.
+3.1 Sprint 1: Data Foundations & Baseline Models (Weeks 5 – 7)
+Week
+Sprint Focus
+5-Member Technical Activities & Tasks
+Milestone / Deliverable
+Week 5
+Setup, EDA & Pipeline Setup
+• M1: Validate DPD-Small dataset, inspect class distributions, build TensorFlow Dataset & DataLoader. • M2: Initialize Git repo, branch rules, invite lecturer (shlee@swinburne.edu.my), prepare baseline scaffold. • M3: Literature review on zero-shot plant disease recognition; define text prompt / semantic attribute space. • M4: Build automated evaluation harness (Top-1/5, Harmonic Mean formula, validation scripts). • M5: Wireframe UI layouts (Streamlit/Gradio) & write baseline model inference wrapper script.
+Operational data loaders, Git repo shared, and evaluation harness ready.
+Week 6
+Baseline Models Development
+• M1: Implement augmentation pipelines (CutMix, MixUp, RandAugment) and create stratified validation splits. • M2: Train Baseline 1 (Independent CNNs) and Baseline 2 (Multi-Task CNN with shared backbone & dual heads). • M3: Design Proposed Approach architecture (Vision-Language / Contrastive Disentanglement) & zero-shot mapping. • M4: Implement seen test confusion matrix generator & automated metric logging (TensorBoard/CSV). • M5: Build initial UI prototype (image uploader & result containers) linked to baseline checkpoint.
+Trained checkpoints for Baseline 1 & 2; initial working UI prototype.
+Week 7
+Baseline Benchmarking & Sprint Review
+• M1: Construct synthetic field perturbation test suite (lighting shifts, blur, foliage background clutter). • M2: Finalize Baseline 1 & Baseline 2 training runs, log loss curves, extract Grad-CAM attention maps. • M3: Implement pre-training & fine-tuning loop for Proposed Model image-text alignment. • M4: Run full benchmark on Baselines (seen/unseen Top-1/5, Harmonic Mean H, confusion matrix). • M5: Implement feature extraction script to compute deep embeddings for all 8,000 training images. • ALL: Conduct Sprint 1 review, analyze baseline generalization gap, draft Report Section 2.1.
+Complete baseline benchmark table & draft Baseline report section.
+ 
+3.2 Sprint 2: Proposed Approach & User Interface (Weeks 8 – 10)
+Week
+Sprint Focus
+5-Member Technical Activities & Tasks
+Milestone / Deliverable
+Week 8
+Proposed Model Design & Retrieval Index
+• M1: Run field robustness perturbation stress tests on Baseline 1 & 2; quantify vulnerability to noise. • M2: Hyperparameter tuning and loss weight exploration (α, β) for Multi-Task baseline. • M3: Implement complete Proposed Approach (CLIP adapter or Contrastive Disentangled Network). • M4: Expand evaluation harness to compute zero-shot accuracy over the 10 unseen classes (U). • M5: Build vector similarity search index (FAISS / cosine distance) over training image embeddings.
+Proposed model functional prototype & vector retrieval index ready.
+Week 9
+Model Training & UI Integration
+• M1: Apply domain-generalization augmentations (RandAugment, background jitter) to Proposed Model. • M2: Analyze baseline model complexity (FLOPs, parameter count, memory footprint, throughput). • M3: Train and fine-tune Proposed Model; optimize contrastive temperature and projection heads. • M4: Evaluate Proposed Model on seen & unseen sets; compute Harmonic Mean H & compare to baselines. • M5: Integrate Proposed Model and image retrieval engine into UI; display top matching training photos.
+Converged Proposed Model & functional UI displaying matching training samples.
+Week 10
+Comparative Evaluation & UI Polish
+• M1: Benchmark Proposed Model against field perturbations; verify robustness superiority over baselines. • M2: Consolidate cross-model comparative data and compile comparative architectural analysis. • M3: Document ablation studies on loss components and analyze zero-shot knowledge transfer. • M4: Produce final benchmark tables (Top-1, Top-5, H) and perform qualitative error clustering. • M5: Optimize UI response latency (<2s), implement error handling, and package single-command launch. • ALL: Sprint 2 Milestone Review: verify all experimental numbers and finalize technical assets.
+Final comparative benchmark table & production-ready UI.
+ 
+3.3 Review Back & Finalization Phase (Weeks 11 – 12)
+Week
+Sprint Focus
+5-Member Technical Activities & Tasks
+Milestone / Deliverable
+Week 11
+Error Analysis & Report Drafting
+• M1: Draft Report Section 1 (Problem Formulation & EDA) & Section 3.3 (Robustness Evaluation). • M2: Draft Report Section 2.1 (Baseline 1 & 2 Methodology, Loss Functions, Training Scheme). • M3: Draft Report Section 2.2 (Proposed Methodology) & Section 3.2 (Results & Discussion Lead). • M4: Draft Report Section 3.1 (Evaluation Setup) & compile publication-quality figures/tables. • M5: Draft Report Section 2.3 (UI & Retrieval Systems) & prepare presentation slide deck structure. • ALL: Review Back: cross-verify results, perform peer-editing to enforce strict 8-page limit.
+Complete draft of 8-page report & presentation slides.
+Week 12
+Video Recording & Canvas Submission
+• M1: Clean repository code, standardize docstrings, test clean-slate reproducibility script. • M2: Audit Git commit history and confirm lecturer read-only access (shlee@swinburne.edu.my). • M3: Perform rigorous academic proofreading of report (equations, citations, justifications). • M4: Complete cover sheet, checklist, and 'Who did what' declaration (exact 20% balance per member). • M5: Lead recording and video editing of 8-minute presentation video (all 5 members present); embed URL in report. • ALL: Final joint submission review meeting; submit report to Canvas before 11:59 pm, 27/11/2026.
+Final Canvas submission & published 8-minute video presentation.
+ 
+4. Balanced 5-Member Workload Distribution Matrix (20% Each)
+To guarantee an equitable 20% distribution of effort among all five group members, responsibilities are partitioned into distinct primary ownership and collaborative secondary roles across data engineering, baseline architectures, advanced zero-shot research, evaluation harness, and UI/retrieval systems.
+Group Member & Role
+Sprint 1 Focus (Weeks 5–7)
+Sprint 2 Focus (Weeks 8–10)
+Review Back (Weeks 11–12)
+Contribution
+Andy Wei Jian CHU (M1: Data & Robustness Lead)
+• DPD-Small validation & EDA • PyTorch Dataset/DataLoader • CutMix/MixUp/RandAugment
+• Field perturbation suite • Robustness stress testing • Domain shift evaluation
+• Report Sec 1 & Sec 3.3 • Code cleanup & README • Presentation co-speaker
+20% (Balanced)
+Fa Zhen NG (M2: Multi-Task & Baseline Lead)
+• GitHub repo setup & rules • Baseline 1 (Independent CNNs) • Baseline 2 (Multi-Task CNN)
+• Multi-task loss tuning (α, β) • Grad-CAM visual maps • Model complexity & FLOPs
+• Report Sec 2.1 (Baselines) • Git access compliance • Presentation co-speaker
+20% (Balanced)
+Yuen Kai CHIA (M3: Advanced DL Researcher)
+• Zero-shot literature review • Semantic attribute mapping • Proposed Approach design
+• Proposed Model implementation • Contrastive loss & training • Unseen class zero-shot tuning
+• Report Sec 2.2 & 3.2 Lead • Academic proofreading • Presentation co-speaker
+20% (Balanced)
+Jonathan Zheng Li CHAI  (M4: Evaluation & Metrics Lead)
+• Evaluation harness (Top-1/5) • Harmonic Mean (H) calculator • Seen test confusion matrix
+• Unseen zero-shot benchmark • Comparative metric tables • Failure cluster analysis
+• Report Sec 3.1 & Figures • 'Who did what' form • Presentation co-speaker
+20% (Balanced)
+Member 5 (M5: UI & Retrieval Specialist)
+• UI layout wireframing • Baseline inference wrapper • Feature embedding extraction
+• FAISS/cosine vector search • UI retrieval gallery • Latency tuning (<2s) & UX
+• Report Sec 2.3 (UI Systems) • Slide deck lead • Video editing lead (≤8 mins)
+20% (Balanced)
+ 
+5. Evaluation Protocol & Quality Assurance Plan
+System evaluation strictly adheres to the course specifications outlined in the project brief:
+•  Top-1 and Top-5 Accuracy: Measures whether the ground truth label is the top prediction (Top-1) or within the top 5 predicted classes (Top-5). Evaluated separately on the 2,000 seen test images and 1,448 unseen test images.
+•  Harmonic Mean (H): Calculated as H = (2 × Seen Accuracy × Unseen Accuracy) / (Seen Accuracy + Unseen Accuracy). Penalizes models that perform well on seen categories but fail to generalize to unseen categories.
+•  Confusion Matrix: Detailed breakdown of predictions on seen test images to identify common confusion clusters between visually similar diseases and crops.
+•  UI Response Latency: End-to-end inference including image preprocessing, prediction, and vector retrieval of matching training images must execute in under 2 seconds on standard GPU/CPU hardware.
+•  Submission Verification: Strict adherence to constraints: Report ≤ 8 pages, Video ≤ 8 minutes, Git read-only access verified, submission before 11:59 pm on 27/11/2026.

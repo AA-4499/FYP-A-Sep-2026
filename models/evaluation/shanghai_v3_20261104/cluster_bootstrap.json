@@ -1,0 +1,770 @@
+[
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.470748521790364,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.8160680986139095,
+      9.836566264290214
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.385099056838666,
+    "cluster_bootstrap_95pct_mae_interval": [
+      12.118152378112311,
+      18.04344886108982
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 26.88885076029178,
+    "cluster_bootstrap_95pct_mae_interval": [
+      20.766420461165726,
+      31.786960030910354
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 120,
+    "patients": 4,
+    "mae_mg_dl": 40.73829850629964,
+    "cluster_bootstrap_95pct_mae_interval": [
+      31.613073904683272,
+      47.90596544863999
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.498727505603275,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.841145851385731,
+      9.90887991089909
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.337349236372555,
+    "cluster_bootstrap_95pct_mae_interval": [
+      12.067965647131336,
+      17.944340268646133
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 26.88646525397312,
+    "cluster_bootstrap_95pct_mae_interval": [
+      20.698059449284713,
+      31.734955056687983
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 52.13460844580927,
+    "cluster_bootstrap_95pct_mae_interval": [
+      44.44303482159401,
+      59.990566547511655
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.390477395227215,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.461997311556203,
+      9.746722801481488
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.756723886670205,
+    "cluster_bootstrap_95pct_mae_interval": [
+      11.720330479232198,
+      18.604978812820484
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 27.216273551179384,
+    "cluster_bootstrap_95pct_mae_interval": [
+      19.735089449302393,
+      32.32087298104298
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 57.35640618196437,
+    "cluster_bootstrap_95pct_mae_interval": [
+      43.14798195169579,
+      66.43340485333596
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.370767444191651,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.647146084505367,
+      9.703994117189238
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 16.111244305140225,
+    "cluster_bootstrap_95pct_mae_interval": [
+      12.668588186020187,
+      18.60819498245724
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 27.62687671652335,
+    "cluster_bootstrap_95pct_mae_interval": [
+      21.318017035537626,
+      32.26099549569104
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 58.295598308130224,
+    "cluster_bootstrap_95pct_mae_interval": [
+      44.76906108908229,
+      67.34300665224599
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.107756285407463,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.5288890408750335,
+      9.294049825945716
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.293176058753403,
+    "cluster_bootstrap_95pct_mae_interval": [
+      11.425296650255435,
+      17.858940351512434
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 27.860983172686186,
+    "cluster_bootstrap_95pct_mae_interval": [
+      21.210675545043404,
+      33.30606534730885
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 56.134386009877375,
+    "cluster_bootstrap_95pct_mae_interval": [
+      42.07890141105483,
+      63.871219701029894
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.158350032538152,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.526023367176885,
+      9.443606480217099
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.32830341671654,
+    "cluster_bootstrap_95pct_mae_interval": [
+      12.085913638679349,
+      17.97059477511714
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 26.506763597899813,
+    "cluster_bootstrap_95pct_mae_interval": [
+      19.082743988619825,
+      31.196244510603538
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 54.0399488680671,
+    "cluster_bootstrap_95pct_mae_interval": [
+      39.852436493854135,
+      61.10691013761243
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.185905604228115,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.571225446415032,
+      9.499133081110882
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.544294635088532,
+    "cluster_bootstrap_95pct_mae_interval": [
+      12.428652468040758,
+      18.098426058941442
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 26.775163075344356,
+    "cluster_bootstrap_95pct_mae_interval": [
+      20.67001163716219,
+      31.591552431051092
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 56.339430661587016,
+    "cluster_bootstrap_95pct_mae_interval": [
+      43.35636300710629,
+      65.8816404612051
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 15,
+    "patients": 4,
+    "mae_mg_dl": 8.281213762887628,
+    "cluster_bootstrap_95pct_mae_interval": [
+      6.529880364594887,
+      9.66712119834247
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 30,
+    "patients": 4,
+    "mae_mg_dl": 15.764734268690807,
+    "cluster_bootstrap_95pct_mae_interval": [
+      12.310883015156215,
+      18.504613729869256
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 60,
+    "patients": 4,
+    "mae_mg_dl": 27.89660304855415,
+    "cluster_bootstrap_95pct_mae_interval": [
+      21.269109416240703,
+      33.062056767938024
+    ]
+  },
+  {
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 240,
+    "patients": 4,
+    "mae_mg_dl": 60.29812259086346,
+    "cluster_bootstrap_95pct_mae_interval": [
+      46.9324272330576,
+      70.61476394179422
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.25008442869947,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.044186038751939,
+      4.486896052019652
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.4155240740269,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.84094740553804,
+      9.991313548895508
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 17.018409002168536,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.875275862803848,
+      18.236701440576482
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_2h",
+    "evaluation": "history only",
+    "horizon_minutes": 120,
+    "patients": 35,
+    "mae_mg_dl": 26.512102576486903,
+    "cluster_bootstrap_95pct_mae_interval": [
+      24.474747848316042,
+      28.852104833471802
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.239260001268806,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.02684831948312,
+      4.47210267614833
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.44333911151541,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.918152174033455,
+      10.073491028799483
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 17.096965168920907,
+    "cluster_bootstrap_95pct_mae_interval": [
+      16.055134082826722,
+      18.238487383070478
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_glucose_4h",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 32.34794122168568,
+    "cluster_bootstrap_95pct_mae_interval": [
+      29.305466188520388,
+      36.20116270096502
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.252601237568128,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.054285669012091,
+      4.487403538434595
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.308260526583176,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.80458918857448,
+      9.863776110839162
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 16.59948137712109,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.589205234684187,
+      17.810817540393543
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 29.700925860663716,
+    "cluster_bootstrap_95pct_mae_interval": [
+      26.33283476629167,
+      33.70504510312284
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.34642609798323,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.113221171181207,
+      4.629328760137311
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.356416136596247,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.824730769203565,
+      9.93734177771348
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 16.56176489687089,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.506887324387904,
+      17.7966704220162
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 29.545980156053254,
+    "cluster_bootstrap_95pct_mae_interval": [
+      26.085333452862574,
+      33.222760433562684
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.41705567473281,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.184494950688516,
+      4.715962067297958
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.43410156949854,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.928794662441904,
+      10.043357415899148
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 16.633793924021166,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.654333651142473,
+      17.88086865710429
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_context_insulin",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 29.695960709722158,
+    "cluster_bootstrap_95pct_mae_interval": [
+      26.43333208782441,
+      33.65587476937454
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.394939672792913,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.148552464934188,
+      4.695898262641879
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.284887714595449,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.736341441346696,
+      9.922206110443865
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 16.369667671262757,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.226427599225,
+      17.715075315630223
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 29.65554078894376,
+    "cluster_bootstrap_95pct_mae_interval": [
+      26.230743304461658,
+      33.410091336064845
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.4007945420514085,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.161694249701073,
+      4.6818683641237255
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.334196340822126,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.791785070788908,
+      9.881320517332789
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 16.57349155700792,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.542379277751078,
+      17.69970892423954
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "lstm_carb_iob",
+    "evaluation": "history only",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 30.147091453019964,
+    "cluster_bootstrap_95pct_mae_interval": [
+      26.912405128183533,
+      33.89465235382802
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 15,
+    "patients": 35,
+    "mae_mg_dl": 4.369844573043114,
+    "cluster_bootstrap_95pct_mae_interval": [
+      4.1510716072638445,
+      4.638723103690039
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 30,
+    "patients": 35,
+    "mae_mg_dl": 9.351729553183228,
+    "cluster_bootstrap_95pct_mae_interval": [
+      8.868393261650617,
+      9.986961948256402
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 60,
+    "patients": 35,
+    "mae_mg_dl": 16.3751278784848,
+    "cluster_bootstrap_95pct_mae_interval": [
+      15.370346278382863,
+      17.605233434698206
+    ]
+  },
+  {
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_future_event_decoder",
+    "evaluation": "oracle conditional",
+    "horizon_minutes": 240,
+    "patients": 35,
+    "mae_mg_dl": 29.42306598310939,
+    "cluster_bootstrap_95pct_mae_interval": [
+      25.666583844064597,
+      33.51992764077233
+    ]
+  }
+]

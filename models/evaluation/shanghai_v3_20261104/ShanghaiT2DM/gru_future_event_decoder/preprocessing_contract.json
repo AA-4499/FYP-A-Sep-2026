@@ -1,0 +1,34 @@
+{
+  "history_features": [
+    "glucose_mg_dl",
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "recorded_complete_meal_carb_0_1h_g",
+    "recorded_complete_meal_carb_1_3h_g",
+    "recorded_complete_meal_carb_3_6h_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete"
+  ],
+  "future_features": [
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete"
+  ],
+  "normalization": "Apply saved per-feature training means/scales. Static imputation and scaling use training sessions only. Predict glucose delta, undo horizon-specific target scaling, add last observed glucose.",
+  "future_schedule": "16 consecutive 15-minute future bins. Event-conditioned test uses actual recorded future meal/insulin annotations: oracle scenario evaluation, not ordinary prospective forecasting.",
+  "exposure_assumptions": "USDA reference complete meals only; modeled rapid/regular bolus IOB only; source-row timing; excluded exposure and missing meal flags retained.",
+  "scenario_consistency": "Recompute future IOB from past doses plus supplied scenario doses; never read future measured glucose. Future clocks are known at forecast origin."
+}

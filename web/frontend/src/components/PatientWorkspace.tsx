@@ -279,7 +279,7 @@ export function PatientWorkspace({
                     allowPatientSelection={false}
                   />
                 )}
-                {page === "patient_lab_results" && <LabResultsView key={patient.id} patientId={patient.id} />}
+                {page === "patient_lab_results" && <LabResultsView key={patient.id} patient={patient} />}
                 {page === "patient_reports" && (
                   <RecordedReport patient={patient} />
                 )}

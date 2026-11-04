@@ -1,5 +1,6 @@
 import { PhysiologyLab } from "./PhysiologyLab";
 import { ConditionalForecastPanel } from './ConditionalForecastPanel';
+import { ConditionalSimulatorPanel } from './ConditionalSimulatorPanel';
 import { savePrediction } from "../lib/predictionResults";
 import { ScenarioBuilder } from "./ScenarioBuilder";
 import { PredictionChart } from "./PredictionChart";
@@ -1801,7 +1802,7 @@ function ForecastPanel({
 }
 
 export const RiskSimulationView: React.FC<Props> = (props) => {
-  const [tab, setTab] = useState<"conditional" | "forecast" | "physiology">("conditional");
+  const [tab, setTab] = useState<"conditional" | "forecast" | "legacy" | "physiology">("forecast");
   return (
     <div className="space-y-5">
       <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
@@ -1831,7 +1832,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
                     )
                   )
                     return;
-                  setTab("conditional");
+                  setTab("forecast");
                   props.onSelectPatient?.(event.target.value);
                 }}
               >
@@ -1851,8 +1852,9 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
         >
           {(
             [
-              ["conditional", "Glucose forecast · v3"],
-              ["forecast", "Previous GRU · comparison"],
+              ["forecast", "CGM forecast & what-if"],
+              ["conditional", "v3 comparison · temporary"],
+              ["legacy", "Previous GRU · legacy"],
               ["physiology", "Physiology lab"],
             ] as const
           ).filter(([id]) => id !== 'physiology' || props.canViewPhysiology).map(([id, label]) => (
@@ -1873,7 +1875,7 @@ export const RiskSimulationView: React.FC<Props> = (props) => {
           ))}
         </div>
       </section>
-      {tab === "conditional" ? <ConditionalForecastPanel key={props.patient.id} patient={props.patient} allowInsulin={props.canViewPhysiology} /> : tab === "forecast" || !props.canViewPhysiology ? (
+      {tab === "forecast" ? <ConditionalSimulatorPanel key={props.patient.id} patient={props.patient} allowInsulin={props.canViewPhysiology} /> : tab === "conditional" ? <ConditionalForecastPanel key={props.patient.id} patient={props.patient} allowInsulin={props.canViewPhysiology} /> : tab === "legacy" || !props.canViewPhysiology ? (
         <ForecastPanel
           key={props.patient.id}
           {...props}

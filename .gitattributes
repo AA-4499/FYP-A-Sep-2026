@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# These exact bytes are verified against the browser manifest SHA-256.
+web/frontend/public/conditional-models/*.json text eol=lf
+web/frontend/src/lib/conditionalManifest.json text eol=lf

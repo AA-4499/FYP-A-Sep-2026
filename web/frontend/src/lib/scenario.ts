@@ -12,15 +12,16 @@ export interface ScenarioDraft {
   carbohydrateSource?: "manual" | "usda-cooked-white-rice";
   absorption: string;
   intensity: "moderate" | "intense";
+  insulinFormulation?: 'rapid' | 'regular';
 }
 // USDA SR28 NDB 20045: 28.17 g carbohydrate by difference and 0.4 g fibre / 100 g.
 // Subtracting fibre is an explicit approximate available-carbohydrate convention.
 export const cookedRiceReferenceUrl =
   "https://www.ars.usda.gov/ARSUserFiles/80400535/Data/SR/SR28/reports/sr28fg20.pdf#page=325";
-export function cookedRiceCarbohydrate(foodGrams: number): number | null {
+export function cookedRiceCarbohydrate(foodGrams: number, convention: 'available' | 'total' = 'available'): number | null {
   if (!Number.isFinite(foodGrams) || foodGrams <= 0 || foodGrams > 2000)
     return null;
-  return Number(((foodGrams * (28.17 - 0.4)) / 100).toFixed(1));
+  return Number(((foodGrams * (convention === 'total' ? 28.17 : 28.17 - 0.4)) / 100).toFixed(1));
 }
 export const eventNames: Record<ScenarioKind, string> = {
   meal: "Food / drink",
@@ -44,11 +45,12 @@ export function compileScenario(
   drafts: ScenarioDraft[],
   start: string,
   hours: number,
+  engine: 'physiology' | 'conditional' = 'physiology',
 ) {
   const origin = recordTime(start);
-  if (!Number.isFinite(origin) || ![6, 12].includes(hours))
+  if (!Number.isFinite(origin) || !(engine === 'conditional' ? hours === 4 : engine === 'physiology' && [6, 12].includes(hours)))
     throw new Error(
-      "A valid record time and 6- or 12-hour horizon are required.",
+      engine === 'conditional' ? 'A valid record time and four-hour model window are required.' : "A valid record time and 6- or 12-hour horizon are required.",
     );
   if (!drafts.length || drafts.length > 12)
     throw new Error("Add between 1 and 12 events before running the scenario.");
@@ -59,6 +61,8 @@ export function compileScenario(
       const label = `Event ${index + 1}`;
       if (!Object.prototype.hasOwnProperty.call(eventNames, draft.kind))
         throw new Error(`${label}: select a supported event type.`);
+      if (engine === 'conditional' && !['meal', 'insulin'].includes(draft.kind))
+        throw new Error(`${label}: this trained model supports meal carbohydrate and rapid/regular bolus events only.`);
       if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(draft.at))
         throw new Error(`${label}: enter a date and clock time.`);
       const at = recordTime(draft.at);
@@ -85,7 +89,7 @@ export function compileScenario(
         const absorptionMinutes = Number(draft.absorption);
         if (
           draft.carbohydrateSource === "usda-cooked-white-rice" &&
-          carbohydrate !== cookedRiceCarbohydrate(amount)
+          carbohydrate !== cookedRiceCarbohydrate(amount, engine === 'conditional' ? 'total' : 'available')
         )
           throw new Error(
             `${label}: the cooked-rice estimate no longer matches the portion. Re-select the reference or choose manual entry.`,
@@ -94,13 +98,13 @@ export function compileScenario(
           !draft.carbohydrate.trim() ||
           !Number.isFinite(carbohydrate) ||
           carbohydrate <= 0 ||
-          carbohydrate > 200 ||
+          carbohydrate > (engine === 'conditional' ? 150 : 200) ||
           carbohydrate > amount ||
           amount > 2000 ||
-          ![25, 45, 75].includes(absorptionMinutes)
+          (engine === 'physiology' && ![25, 45, 75].includes(absorptionMinutes))
         )
           throw new Error(
-            `${label}: enter food mass up to 2,000 g and available carbohydrate up to 200 g (no greater than food mass), and select absorption speed.`,
+            engine === 'conditional' ? `${label}: enter food mass up to 2,000 g and total carbohydrate up to 150 g, no greater than food mass.` : `${label}: enter food mass up to 2,000 g and available carbohydrate up to 200 g (no greater than food mass), and select absorption speed.`,
           );
         events.push({
           kind: "carbohydrate",
@@ -109,6 +113,8 @@ export function compileScenario(
           absorptionMinutes,
         });
       } else if (draft.kind === "insulin") {
+        if (engine === 'conditional' && !['rapid','regular'].includes(draft.insulinFormulation ?? ''))
+          throw new Error(`${label}: specify rapid or regular insulin; do not infer its action from a medicine name.`);
         if (amount > 20)
           throw new Error(
             `${label}: the research model supports up to 20 hypothetical units per injection.`,

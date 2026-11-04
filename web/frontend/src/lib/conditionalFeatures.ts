@@ -1,7 +1,8 @@
 import type {Cohort} from './conditionalDecoder';
 export type Formulation='rapid'|'regular';
 export interface Bolus{time:number;units:number;formulation:Formulation}
-export interface Plan{carbs:number;mealAt:number;bolus:number;bolusAt:number;formulation:Formulation}
+export interface PlannedEvent {kind:'meal'|'bolus';minutesAhead:number;amount:number;formulation?:Formulation}
+export interface Plan{carbs:number;mealAt:number;bolus:number;bolusAt:number;formulation:Formulation;events?:PlannedEvent[]}
 export interface ConditionalHistory{recordId:string;origin:number;timestamps:string[];features:number[][];staticContext:(number|null)[];boluses:Bolus[];excluded:number[];start:number;coverage:{describedMeals:number;convertedMeals:number;excludedInsulin:number;modeledBoluses:number;warmupIncomplete:boolean};}
 export const normalizeFood=(value:unknown)=>String(value??'').normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
 export function sourceTime(value:unknown){const text=String(value??'').trim().replace(' ','T');return Date.parse(/Z$|[+-]\d\d:\d\d$/i.test(text)?text:text+'Z');}
@@ -62,11 +63,31 @@ export function buildConditionalHistory(rows:Record<string,unknown>[],recordId:s
   coverage:{describedMeals:window.reduce((s,e)=>s+e.meal.described,0),convertedMeals:window.filter(e=>e.meal.described&&!e.meal.unresolved).length,modeledBoluses:boluses.filter(b=>b.time>origin-480*60000).length,excludedInsulin:events.filter(e=>e.time>origin-480*60000).reduce((s,e)=>s+e.insulin.excluded,0),warmupIncomplete:origin-start<480*60000}};
 }
 export function buildFuturePlan(history:ConditionalHistory,plan:Plan){
- if(![plan.carbs,plan.bolus,plan.mealAt,plan.bolusAt].every(Number.isFinite)||plan.carbs<0||plan.carbs>150||plan.bolus<0||plan.bolus>50||![15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240].includes(plan.mealAt)||![15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240].includes(plan.bolusAt)||!['rapid','regular'].includes(plan.formulation))throw Error('Choose a valid four-hour scenario.');
- const doses=[...history.boluses];if(plan.bolus>0)doses.push({time:history.origin+plan.bolusAt*60000,units:plan.bolus,formulation:plan.formulation});
+ let events:PlannedEvent[];
+ if(plan.events!==undefined){
+  if(!Array.isArray(plan.events)||plan.events.length>12)throw Error('Provide at most 12 planned events.');
+  events=plan.events;
+ }else{
+  if(![plan.carbs,plan.bolus,plan.mealAt,plan.bolusAt].every(Number.isFinite)||plan.carbs<0||plan.carbs>150||plan.bolus<0||plan.bolus>50||![15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240].includes(plan.mealAt)||![15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240].includes(plan.bolusAt)||!['rapid','regular'].includes(plan.formulation))throw Error('Choose a valid four-hour scenario.');
+  events=[];if(plan.carbs>0)events.push({kind:'meal',minutesAhead:plan.mealAt,amount:plan.carbs});if(plan.bolus>0)events.push({kind:'bolus',minutesAhead:plan.bolusAt,amount:plan.bolus,formulation:plan.formulation});
+ }
+ const doses=[...history.boluses],carbs=new Array<number>(16).fill(0),annotations=new Array<number>(16).fill(0);
+ for(const event of events){
+  if(!event||!['meal','bolus'].includes(event.kind)||!Number.isFinite(event.minutesAhead)||event.minutesAhead<=0||event.minutesAhead>240||!Number.isFinite(event.amount)||event.amount<=0)throw Error('Events need a positive amount and a time within the four-hour forecast.');
+  const bin=Math.ceil(event.minutesAhead/15)-1;
+  if(event.kind==='meal'){
+   carbs[bin]+=event.amount;if(carbs[bin]>150)throw Error('The research model supports at most 150 g carbohydrate in one 15-minute bin.');
+  }else{
+   if(event.amount>50||!['rapid','regular'].includes(event.formulation??''))throw Error('Specify a supported rapid/regular bolus of at most 50 units.');
+   doses.push({time:history.origin+event.minutesAhead*60000,units:event.amount,formulation:event.formulation!});annotations[bin]=1;
+  }
+ }
  return Array.from({length:16},(_,i)=>{const minute=(i+1)*15,time=history.origin+minute*60000,date=new Date(time),hour=date.getUTCHours()+date.getUTCMinutes()/60;
-  return [Math.sin(2*Math.PI*hour/24),Math.cos(2*Math.PI*hour/24),minute===plan.mealAt?plan.carbs:0,Number(minute===plan.mealAt&&plan.carbs>0),0,0,iobAt(time,doses),Number(minute===plan.bolusAt&&plan.bolus>0),Number(history.excluded.some(t=>t<=time&&t>time-480*60000)),Number(time-history.start<480*60000)].map(Math.fround);
+  return [Math.sin(2*Math.PI*hour/24),Math.cos(2*Math.PI*hour/24),carbs[i],Number(carbs[i]>0),0,0,iobAt(time,doses),annotations[i],Number(history.excluded.some(t=>t<=time&&t>time-480*60000)),Number(time-history.start<480*60000)].map(Math.fround);
  });
+}
+export function withoutPlannedEvents(plan:Plan,kind:'meal'|'bolus'):Plan{
+ return {...plan,...(kind==='meal'?{carbs:0}:{bolus:0}),...(plan.events?{events:plan.events.filter(event=>event.kind!==kind)}:{})};
 }
 export function syntheticConditionalHistory(cohort:Cohort,foods:Record<string,number>){
  const start=Date.UTC(2021,0,1);const rows=Array.from({length:64},(_,i)=>({'Patient Number':'synthetic',Date:new Date(start+i*900000).toISOString(),'CGM (mg / dl)':120+8*Math.sin(i/8),'Dietary intake':i===52?'Rice 100 g':'','Insulin dose - s.c.':i===48?'Novolin R, 2 IU':''}));

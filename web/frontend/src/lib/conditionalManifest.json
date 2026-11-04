@@ -3,7 +3,7 @@
   "models": {
     "ShanghaiT1DM": {
       "path": "/conditional-models/ShanghaiT1DM.json",
-      "artifact_sha256": "40eaee0da83fcde4f3783c0bd73c16565d3c2296bf45de1df714599d69660785",
+      "artifact_sha256": "560aeb6bc02aaade91d70cc911e51b085d692147f311fbc5117e615a20d4390b",
       "checkpoint_sha256": "ecf7cd90cbbc30b8ccdb9647c486e0826f7db5b284b15a10e8cb170dce97844c",
       "name": "ShanghaiT1DM conditional GRU",
       "version": "shanghai-v3-20261104",
@@ -47,7 +47,7 @@
     },
     "ShanghaiT2DM": {
       "path": "/conditional-models/ShanghaiT2DM.json",
-      "artifact_sha256": "c88ded6aae3136dac837640997e386c4d2012357134b711ccd3bd697bca7eee9",
+      "artifact_sha256": "ed9f225f5fd13fb3674b84bd6e527325b43b4fc2bd51bbb6996db33712a394ce",
       "checkpoint_sha256": "b62b1f0e58e1141d1c367633e2933f22ed0badecabdf658bb3507df9883d29e1",
       "name": "ShanghaiT2DM conditional GRU",
       "version": "shanghai-v3-20261104",
@@ -92,6 +92,6 @@
   },
   "food_reference": {
     "path": "/conditional-models/foods.json",
-    "artifact_sha256": "6f274e1271b1f8c8193b2f3f1e01b43b3a3509652fdbbd56fd9a25e5382dc7f0"
+    "artifact_sha256": "8151928310fd13edb1e6b2d7cf2c3d02a4c81c2b554f42952ff67fc150bc0ca9"
   }
 }

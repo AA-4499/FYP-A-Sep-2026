@@ -4,10 +4,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from models.training.train_shanghai_gru import write_json
 from models.training.predict_chronological import forecast,build_future_schedule
 
 ROOT=Path(__file__).resolve().parents[2]
+
+
+def write_json(path, value):
+    # Hash the same UTF-8/LF bytes Git and Linux deployment will serve. Windows
+    # text-mode write_text translates LF to CRLF and used to invalidate releases.
+    path.write_bytes((json.dumps(value, indent=2, allow_nan=False)+'\n').encode('utf-8'))
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--archive');p.add_argument('--run',default='models/evaluation/shanghai_v3_20261104');p.add_argument('--version',default='shanghai-v3-20261104');args=p.parse_args()
@@ -43,14 +48,25 @@ def main():
         for name,history,static,origin in [
             ('held-out',original['history'],original['static_context'],'2021-01-01T12:00:00Z'),
             ('synthetic',[[120,0,1,0,0,0,0,0,0,0,0,0,0,0] for _ in range(24)],[55,25,0,0],'2021-01-01T12:00:00Z')]:
-            for plan in ['baseline','meal','bolus','later','combined']:
+            for plan in ['baseline','meal','bolus','later','combined','multiple','off_grid','mixed_formulations']:
                 meals=[{'timestamp':'2021-01-01T12:30:00Z','carbohydrate_g':40}] if plan in ['meal','combined'] else []
                 boluses=[{'timestamp':'2021-01-01T12:45:00Z','units':2,'formulation':'regular'}] if plan in ['bolus','combined'] else []
                 if plan=='later':meals=[{'timestamp':'2021-01-01T14:00:00Z','carbohydrate_g':60}]
+                if plan=='multiple':
+                    meals=[{'timestamp':'2021-01-01T12:30:00Z','carbohydrate_g':40},{'timestamp':'2021-01-01T13:30:00Z','carbohydrate_g':20}]
+                    boluses=[{'timestamp':'2021-01-01T12:45:00Z','units':2,'formulation':'regular'},{'timestamp':'2021-01-01T13:45:00Z','units':1,'formulation':'rapid'}]
+                if plan=='off_grid':
+                    meals=[{'timestamp':'2021-01-01T12:20:00Z','carbohydrate_g':35}]
+                    boluses=[{'timestamp':'2021-01-01T12:05:00Z','units':1,'formulation':'rapid'}]
+                if plan=='mixed_formulations':
+                    meals=[{'timestamp':'2021-01-01T12:30:00Z','carbohydrate_g':40}]
+                    boluses=[{'timestamp':'2021-01-01T12:45:00Z','units':2,'formulation':'regular'},{'timestamp':'2021-01-01T13:10:00Z','units':1,'formulation':'rapid'}]
                 future=build_future_schedule(origin,[{'timestamp':'2021-01-01T11:00:00Z','units':3,'formulation':'rapid'}],meals,boluses,history_start='2021-01-01T00:00:00Z')
                 payload={'history':history,'static_context':static,'future_schedule':future.tolist()}
                 result=forecast(folder/'checkpoint.pt',payload)
-                cases.append({'cohort':cohort,'name':name+'-'+plan,**payload,'expected':list(result['predictions_mg_dl'].values()),'checkpoint_sha256':model['checkpoint_sha256']})
+                planned_events=[{'kind':'meal','minutesAhead':(pd.Timestamp(e['timestamp'])-pd.Timestamp(origin)).total_seconds()/60,'amount':e['carbohydrate_g']} for e in meals]
+                planned_events += [{'kind':'bolus','minutesAhead':(pd.Timestamp(e['timestamp'])-pd.Timestamp(origin)).total_seconds()/60,'amount':e['units'],'formulation':e['formulation']} for e in boluses]
+                cases.append({'cohort':cohort,'name':name+'-'+plan,**payload,'planned_events':planned_events,'expected':list(result['predictions_mg_dl'].values()),'checkpoint_sha256':model['checkpoint_sha256']})
     mapping=pd.read_csv(run/'reference_food_mapping.csv')
     write_json(public/'foods.json',{'version':1,'source':'USDA SR Legacy 2018, carbohydrate by difference; analyst-selected reference preparations, not dietitian verified.',
         'foods':{str(r['food_key']):float(r['carb_g_per_100g']) for r in mapping.to_dict('records')}})

@@ -1,5 +1,5 @@
 import {predictConditional,validateConditionalModel,type ConditionalModel} from './conditionalDecoder';
-import {buildFuturePlan,type ConditionalHistory,type Plan} from './conditionalFeatures';
+import {buildFuturePlan,withoutPlannedEvents,type ConditionalHistory,type Plan} from './conditionalFeatures';
 self.onmessage=({data}:{data:{model:ConditionalModel;history:ConditionalHistory;baseline:Plan;scenario:Plan;minutes:number}})=>{
  try{
   const model=validateConditionalModel(data.model),history=data.history;
@@ -12,7 +12,7 @@ self.onmessage=({data}:{data:{model:ConditionalModel;history:ConditionalHistory;
    const f=changed.map(row=>row.map((v,i)=>group.future.includes(i)?model.scalers.future_mean[i]:v));
    return {name:group.name,change:scenario[index]-predictConditional(model,x,history.staticContext,f)[index]};
   });
-  const mealRemoved=buildFuturePlan(history,{...data.scenario,carbs:0}),bolusRemoved=buildFuturePlan(history,{...data.scenario,bolus:0});
+  const mealRemoved=buildFuturePlan(history,withoutPlannedEvents(data.scenario,'meal')),bolusRemoved=buildFuturePlan(history,withoutPlannedEvents(data.scenario,'bolus'));
   explanations.push({name:'Planned carbohydrate (removed and rerun)',change:scenario[index]-predictConditional(model,history.features,history.staticContext,mealRemoved)[index]});
   explanations.push({name:'Planned bolus (removed; IOB recalculated)',change:scenario[index]-predictConditional(model,history.features,history.staticContext,bolusRemoved)[index]});
   self.postMessage({result:{baseline,scenario,explanations,baselineFuture:base,scenarioFuture:changed}});

@@ -4,8 +4,11 @@ This directory contains training code, saved checkpoints, evaluation artifacts,
 model metadata, and tests for the project's glucose forecasting models.
 
 The default Digital twin workspace uses the **v3 conditional GRU decoders**,
-trained separately for ShanghaiT1DM and ShanghaiT2DM. The previous T2DM GRU
-remains available in the comparison tab. The Admin retraining queue updates
+trained separately for ShanghaiT1DM and ShanghaiT2DM. The main chart and what-if
+event editor use these decoders for baseline and scheduled scenarios, including
+multiple meals and explicitly typed rapid/regular boluses. The standalone v3
+comparison page is temporarily retained. The previous T2DM GRU remains available
+in the legacy tab. The Admin retraining queue updates
 that previous online GRU; it does not update the bundled v3 decoders.
 
 ## Folder guide
@@ -119,6 +122,12 @@ The exporter writes inference-only assets to
 `web/frontend/src/lib/conditionalManifest.json`, and numerical reference fixtures
 to frontend tests. Deploy the matching weights and manifest together after
 running `npm test` and `npm run build` in `web/frontend`.
+
+Hashed public JSON assets are exported as UTF-8 with LF line endings and pinned
+to LF in `.gitattributes`. Their SHA-256 must describe the deployed bytes, not a
+Windows CRLF working copy. The frontend's `prebuild` check rejects mismatched
+assets before publication. Browser downloads include the expected digest in
+the request URL to keep model versions separate in caches.
 
 ## Interpretation
 

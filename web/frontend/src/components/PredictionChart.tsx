@@ -56,10 +56,12 @@ export function PredictionChart({
   series,
   loading,
   clockLabel = 'UTC',
+  markSamples = false,
 }: {
   series: PredictionChartSeries[];
   loading: boolean;
   clockLabel?: string;
+  markSamples?: boolean;
 }) {
   const id = useId().replace(/:/g, "");
   const [focused, setFocused] = useState(true),
@@ -337,9 +339,9 @@ export function PredictionChart({
                 activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }}
                 dot={(props) => {
                   const row = props.payload as ChartRow | undefined;
-                  return row && row.timestamp === last?.timestamp ? (
+                  return row && (markSamples || row.timestamp === last?.timestamp) ? (
                     <circle
-                      key={`${item.key}-end`}
+                      key={`${item.key}-${row.timestamp}`}
                       cx={props.cx}
                       cy={props.cy}
                       r={4}

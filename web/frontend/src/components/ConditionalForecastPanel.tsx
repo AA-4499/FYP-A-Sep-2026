@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Patient } from '../types';
-import { getSupabaseClient, fetchSupabasePatientDetail } from '../lib/supabase';
-import { getForecastApiUrl, type GlucoseForecast } from '../lib/forecast';
-import { buildConditionalHistory, type Plan } from '../lib/conditionalFeatures';
-import { decoderManifest, loadConditionalModel, loadFoodReference, runConditionalComparison, type ConditionalResult } from '../lib/conditionalPrediction';
-import { cohortForPatient, conditionalForecast } from '../lib/conditionalForecast';
+import type { GlucoseForecast } from '../lib/forecast';
+import type { Plan } from '../lib/conditionalFeatures';
+import type { ConditionalResult } from '../lib/conditionalPrediction';
+import { loadConditionalSession, forecastConditionalSession } from '../lib/conditionalSession';
 import { predictionHighlights } from '../lib/resultHighlights';
 import { savePrediction } from '../lib/predictionResults';
 import { PredictionChart } from './PredictionChart';
@@ -40,29 +39,10 @@ export function ConditionalForecastPanel({patient, allowInsulin = false}: {patie
     setBusy(true); setResult(null); setError(''); setNotice('');
     try {
       if (!confirmed) throw Error('Confirm the assumptions for both plans before running.');
-      let selected = patient, rows: Record<string, unknown>[];
-      if (source === 'supabase') {
-        const loaded = await fetchSupabasePatientDetail(patient.id);
-        if (!loaded) throw Error('No authorized summary exists for this record.');
-        selected = loaded.patient; rows = loaded.details as unknown as Record<string, unknown>[];
-      } else {
-        const client = getSupabaseClient(); const session = client ? (await client.auth.getSession()).data.session : null;
-        if (!session) throw Error('Sign in to read an authorized local workbook.');
-        const response = await fetch(`${getForecastApiUrl()}/api/patients/${encodeURIComponent(patient.id)}/conditional-input`, {signal: abort.signal, headers: {Authorization: `Bearer ${session.access_token}`}});
-        if (!response.headers.get('content-type')?.includes('application/json')) throw Error('Connect the Python model service to use local workbooks.');
-        const loaded = await response.json(); if (!response.ok) throw Error(loaded.error ?? 'Local source unavailable.');
-        if (loaded.patient_id !== patient.id) throw Error('The local source belongs to a different patient.');
-        selected = {...patient, recordedFields: {...loaded.summary, source_dataset: loaded.source_dataset}, age: Number(loaded.summary['Age (years)']), bmi: Number(loaded.summary['BMI (kg/m²)'])};
-        rows = loaded.rows;
-      }
+      const session = await loadConditionalSession(patient, source, abort.signal);
+      const {forecast, comparison} = await forecastConditionalSession(session, baseline, scenario, abort.signal);
       if (abort.signal.aborted) return;
-      const cohort = cohortForPatient(selected);
-      const [model, foods] = await Promise.all([loadConditionalModel(cohort, abort.signal), loadFoodReference(abort.signal)]);
-      const history = buildConditionalHistory(rows, patient.id, selected.age, selected.bmi, foods);
-      const comparison = await runConditionalComparison(model, history, baseline, scenario, 240, abort.signal);
-      if (abort.signal.aborted) return;
-      const entry = decoderManifest[cohort];
-      setResult({...conditionalForecast(patient.id, source, cohort, model.checkpoint_sha256, entry.version, history, comparison, baseline, scenario), model_evaluation: {scope: entry.evaluation_scope, mae_mg_dl: Object.fromEntries(Object.entries(entry.test_metrics).map(([h,metric]) => [h,metric.mae_mg_dl]))}});
+      setResult(forecast);
       setExplanations(comparison.explanations); setSnapshot(crypto.randomUUID());
     } catch (failure) { if (!abort.signal.aborted) setError(failure instanceof Error ? failure.message : 'The comparison could not be calculated.'); }
     finally { if (!abort.signal.aborted) setBusy(false); }

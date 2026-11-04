@@ -5,9 +5,9 @@ import type {ConditionalHistory,Plan} from './conditionalFeatures';
 export interface ConditionalResult {baseline:number[];scenario:number[];explanations:{name:string;change:number}[];baselineFuture:number[][];scenarioFuture:number[][]}
 export const decoderManifest=manifest.models;
 async function loadVerifiedJson(path:string,expected:string,signal:AbortSignal){
- const response=await fetch(path,{signal,cache:'no-cache'});if(!response.ok)throw Error('A conditional model asset could not be loaded.');
+ const response=await fetch(`${path}?sha256=${expected}`,{signal,cache:'no-store'});if(!response.ok)throw Error('A conditional model asset could not be loaded.');
  const bytes=await response.arrayBuffer();const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
- if(digest!==expected)throw Error('A model asset does not match its saved version. Reload and retry.');
+ if(digest!==expected)throw Error(`The deployed ${path.split('/').pop()} file does not match this model version. Reload after the website deployment finishes; the comparison has not run.`);
  return JSON.parse(new TextDecoder().decode(bytes));
 }
 export async function loadConditionalModel(cohort:Cohort,signal:AbortSignal){

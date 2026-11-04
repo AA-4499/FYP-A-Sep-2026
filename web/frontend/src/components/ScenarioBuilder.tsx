@@ -21,14 +21,18 @@ export function ScenarioBuilder({
   disabled = false,
   onRun,
   onReset,
+  engine = 'physiology',
+  allowedKinds,
 }: {
   value: ScenarioDraft[];
   onChange: (events: ScenarioDraft[]) => void;
   start?: string;
   hours: number;
   disabled?: boolean;
-  onRun: (events: ReturnType<typeof compileScenario>) => boolean | void;
+  onRun: (events: ReturnType<typeof compileScenario>) => boolean | void | Promise<boolean | void>;
   onReset: () => void;
+  engine?: 'physiology' | 'conditional';
+  allowedKinds?: ScenarioKind[];
 }) {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -42,7 +46,7 @@ export function ScenarioBuilder({
           next.kind === "meal" &&
           next.carbohydrateSource === "usda-cooked-white-rice"
         ) {
-          const estimate = cookedRiceCarbohydrate(Number(next.amount));
+          const estimate = cookedRiceCarbohydrate(Number(next.amount), engine === 'conditional' ? 'total' : 'available');
           next.carbohydrate = estimate === null ? "" : String(estimate);
         }
         return next;
@@ -58,11 +62,12 @@ export function ScenarioBuilder({
         const details = (event.target as HTMLElement).closest("details");
         if (details) details.open = true;
       }}
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
         try {
-          const completed = onRun(compileScenario(value, start || "", hours));
-          if (completed !== false) setSubmitted(JSON.stringify(value));
+          const submittedDraft = JSON.stringify(value);
+          const completed = await onRun(compileScenario(value, start || "", hours, engine));
+          if (completed !== false) setSubmitted(submittedDraft);
           setError("");
         } catch (reason) {
           setError(
@@ -75,7 +80,7 @@ export function ScenarioBuilder({
     >
       <div className="rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
         <p className="flex items-center gap-1.5 font-semibold">
-          <CalendarClock size={14} /> Record clock · UTC
+          <CalendarClock size={14} /> Record clock · {engine === 'conditional' ? 'source clock' : 'UTC'}
         </p>
         <p className="mt-1">
           {Number.isFinite(origin)
@@ -106,15 +111,16 @@ export function ScenarioBuilder({
                 carbohydrate: "",
                 absorption: "45",
                 intensity: "moderate",
+                insulinFormulation: 'rapid',
               },
             ]);
             setError("");
           }}
         >
           <option value="">Choose an event...</option>
-          {Object.entries(eventNames).map(([kind, label]) => (
+          {Object.entries(eventNames).filter(([kind]) => !allowedKinds || allowedKinds.includes(kind as ScenarioKind)).map(([kind, label]) => (
             <option key={kind} value={kind}>
-              {label}
+              {engine === 'conditional' && kind === 'insulin' ? 'Insulin bolus (rapid / regular)' : label}
             </option>
           ))}
         </select>
@@ -126,7 +132,7 @@ export function ScenarioBuilder({
           </span>
           <p className="font-medium text-slate-600">Start with one event</p>
           <p className="mt-1 text-[11px]">
-            Add a meal, injection or activity to compare with the baseline.
+            {engine === 'conditional' ? 'Add a meal or supported bolus to compare with the same recorded baseline.' : 'Add a meal, injection or activity to compare with the baseline.'}
           </p>
         </div>
       )}
@@ -143,10 +149,10 @@ export function ScenarioBuilder({
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1">
-                {eventNames[row.kind]}
+                {engine === 'conditional' && row.kind === 'insulin' ? `${row.insulinFormulation === 'regular' ? 'Regular' : 'Rapid-acting'} insulin bolus` : eventNames[row.kind]}
                 <span className="mt-1 block text-[10px] font-normal text-slate-400">
                   {row.at
-                    ? row.at.replace("T", " ") + " UTC"
+                    ? row.at.replace("T", " ") + (engine === 'conditional' ? ' · source clock' : ' UTC')
                     : "Set the time and details"}
                 </span>
               </span>
@@ -160,7 +166,7 @@ export function ScenarioBuilder({
                 {row.kind === "meal"
                   ? "What did you eat / drink?"
                   : row.kind === "insulin"
-                    ? "Rapid-acting insulin name"
+                    ? engine === 'conditional' ? 'Insulin name (context)' : "Rapid-acting insulin name"
                     : row.kind === "medication"
                       ? "Medicine name and formulation"
                       : "Describe the event"}
@@ -183,7 +189,7 @@ export function ScenarioBuilder({
                 />
               </label>
               <label className="block text-[11px] text-slate-500">
-                Date and time · UTC
+                Date and time · {engine === 'conditional' ? 'source clock' : 'UTC'}
                 <input
                   aria-label={`Event ${index + 1} time`}
                   type="datetime-local"
@@ -259,13 +265,13 @@ export function ScenarioBuilder({
                     </select>
                   </label>
                   <label className="block text-[11px] text-slate-500">
-                    Carbohydrate excluding fibre (g), not food weight
+                    {engine === 'conditional' ? 'Total carbohydrate (g), not food weight' : 'Carbohydrate excluding fibre (g), not food weight'}
                     <input
                       aria-label={`Event ${index + 1} carbohydrate`}
                       type="number"
                       required
                       min={0.1}
-                      max={200}
+                      max={engine === 'conditional' ? 150 : 200}
                       step={0.1}
                       className={input}
                       readOnly={
@@ -284,8 +290,7 @@ export function ScenarioBuilder({
                   {row.carbohydrateSource === "usda-cooked-white-rice" ? (
                     <p className="rounded-lg bg-teal-50 p-3 text-[10px] leading-relaxed text-teal-900">
                       Reference estimate: {row.amount || "—"} g cooked white
-                      rice → {row.carbohydrate || "—"} g carbohydrate excluding
-                      fibre. Uses (28.17 − 0.4) g / 100 g; recipes and water
+                      rice → {row.carbohydrate || "—"} g {engine === 'conditional' ? 'total carbohydrate. Uses 28.17' : 'carbohydrate excluding fibre. Uses (28.17 − 0.4)'} g / 100 g; recipes and water
                       content vary. Only use if the entire portion is cooked
                       white rice, not dry rice or a mixed meal.{" "}
                       <a
@@ -316,7 +321,7 @@ export function ScenarioBuilder({
                       </p>
                     )
                   )}
-                  <label className="block text-[11px] text-slate-500">
+                  {engine === 'physiology' && <label className="block text-[11px] text-slate-500">
                     Assumed absorption speed
                     <select
                       aria-label={`Event ${index + 1} absorption`}
@@ -336,7 +341,7 @@ export function ScenarioBuilder({
                       Illustrative timing assumption, not a food-specific
                       measured response.
                     </span>
-                  </label>
+                  </label>}
                 </>
               )}
               {row.kind === "activity" && (
@@ -370,7 +375,7 @@ export function ScenarioBuilder({
                 </p>
               )}
               {row.kind === "insulin" && (
-                <p className="text-[10px] leading-relaxed text-slate-400">
+                engine === 'conditional' ? <label className="block text-[11px] text-slate-500">Insulin action assumption<select aria-label={`Event ${index + 1} insulin formulation`} className={input} value={row.insulinFormulation ?? 'rapid'} onChange={event => patch(row.id, {insulinFormulation:event.target.value as 'rapid'|'regular'})}><option value="rapid">Rapid analogue · 6h duration / 75m peak</option><option value="regular">Regular · 8h duration / 180m peak</option></select><span className="mt-1 block text-[10px]">Estimated IOB is recalculated from dose, time and formulation. No dose is suggested.</span></label> : <p className="text-[10px] leading-relaxed text-slate-400">
                   Only a hypothetical rapid-acting injection is represented.
                   Basal insulin, pumps and non-insulin injections require
                   different models. No dose is suggested.
@@ -409,9 +414,7 @@ export function ScenarioBuilder({
         </p>
       )}
       <p className="text-[10px] leading-relaxed text-slate-400">
-        Up to 12 events. Changes are drafts until you run the simulation. Meals,
-        rapid insulin and activity use an unvalidated physiology model, not a
-        treatment prediction.
+        {engine === 'conditional' ? 'Up to 12 events. Both curves use the saved v3 decoder and the same observed history. Unrecorded future intake/exposure is unknown. Exercise and other medicine effects are not trained inputs.' : 'Up to 12 events. Changes are drafts until you run the simulation. Meals, rapid insulin and activity use an unvalidated physiology model, not a treatment prediction.'}
       </p>
       <button
         type="submit"
@@ -422,6 +425,7 @@ export function ScenarioBuilder({
       </button>
       <button
         type="button"
+        disabled={disabled}
         className="w-full text-xs text-slate-500 hover:text-teal-700"
         onClick={() => {
           onChange([]);

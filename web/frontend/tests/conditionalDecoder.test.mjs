@@ -15,9 +15,16 @@ const manifest=read('../src/lib/conditionalManifest.json');
 for(const cohort of Object.keys(models))test(`${cohort}: exact saved checkpoint and asset identity; no patient metadata in public weights`,()=>{
  const bytes=readFileSync(new URL(`../public/conditional-models/${cohort}.json`,import.meta.url));
  assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.models[cohort].artifact_sha256);
+ assert.equal(bytes.includes(Buffer.from('\r\n')),false,'hashed deployment assets use canonical LF bytes');
  const checkpoint=readFileSync(new URL(`../../../models/evaluation/shanghai_v3_20261104/${cohort}/gru_future_event_decoder/checkpoint.pt`,import.meta.url));
  assert.equal(createHash('sha256').update(checkpoint).digest('hex'),models[cohort].checkpoint_sha256);
  for(const key of ['patient_split','patient_id','history','test_predictions'])assert.equal(key in models[cohort],false);
+});
+for(const fixture of read('./fixtures/conditional-decoder-reference.json').cases.filter(c=>c.planned_events))test(`Planned-event preprocessing parity: ${fixture.cohort} ${fixture.name}`,()=>{
+ const h={origin:Date.parse('2021-01-01T12:00:00Z'),start:Date.parse('2021-01-01T00:00:00Z'),excluded:[],boluses:[{time:Date.parse('2021-01-01T11:00:00Z'),units:3,formulation:'rapid'}]};
+ const future=features.buildFuturePlan(h,{events:fixture.planned_events});
+ const error=Math.max(...future.flatMap((row,i)=>row.map((v,j)=>Math.abs(v-fixture.future_schedule[i][j]))));
+ assert.ok(error<.0001,`maximum future-schedule difference ${error}`);
 });
 for(const fixture of read('./fixtures/conditional-decoder-reference.json').cases)test(`PyTorch decoder parity: ${fixture.cohort} ${fixture.name}`,()=>{
  const output=predictConditional(models[fixture.cohort],fixture.history,fixture.static_context,fixture.future_schedule);

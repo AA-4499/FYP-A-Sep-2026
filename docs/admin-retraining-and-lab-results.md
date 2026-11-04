@@ -10,6 +10,26 @@ training, export and deployment workflow.
 This integration combines `AndyTesting`, `AndyTest` (including the live Admin
 workspace), and `KnowledgeGraph` into `TrainingModel`.
 
+## Doctor identity, assignments, and prediction services
+
+Supabase Auth verifies the signed-in account, and `get_my_access_state` reads its
+authoritative profile role/status. Admin assigns patients through
+`admin_set_patient_assignment`; the relationship is stored in
+`clinician_patient_assignments`. The Doctor workspace reads only assignment rows
+for the verified user ID, then scopes clinical queries to those patient IDs.
+An empty or failed assignment lookup never falls back to the full cohort.
+Clinical RLS and the Python endpoints retain their own assignment checks.
+Refresh the Doctor workspace after Admin changes an assignment.
+
+Doctor-list loading and v3 browser inference use Supabase directly. They do not
+require Render. The previous GRU's **Supabase data · Python service** option also
+needs a reachable Python backend, configured through `VITE_API_BASE_URL` or
+Service connection, with the website allowed by CORS. A browser `Failed to fetch`
+cannot by itself identify missing deployment, a wrong URL, HTTPS/network failure,
+or CORS; it does not establish that Admin assignments or Supabase data are wrong.
+The repository-browser comparison uses bundled historical records rather than
+refreshed Supabase data.
+
 ## Deployment
 
 1. Apply the existing account migrations in the order described in

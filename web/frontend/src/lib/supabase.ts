@@ -146,14 +146,22 @@ let cachedRawDetails: SupabasePatientDetail[] = [];
 /**
  * Fetch all patients from Supabase public.patient_summary
  */
-export async function fetchSupabasePatients(): Promise<Patient[]> {
+export async function fetchSupabasePatients(patientIds?: ReadonlySet<string>): Promise<Patient[]> {
   const client = getSupabaseClient();
   if (!client)
     throw new Error("Connect your Supabase project to load patient records.");
-  const [summaries, details] = await Promise.all([
-    readClinicalRows(client, "patient_summary"),
-    readClinicalRows(client, "patient_detail"),
-  ]);
+  clearSupabasePatientCache();
+  if (patientIds?.size === 0) return [];
+  // Bound PostgREST filter lengths and scope requests before receiving/caching
+  // clinical data, rather than filtering an entire cohort only after download.
+  const ids = patientIds === undefined ? undefined : [...patientIds];
+  const groups: (ReadonlySet<string> | undefined)[] = ids === undefined ? [undefined] : [];
+  if (ids) for (let start=0; start<ids.length; start+=100) groups.push(new Set(ids.slice(start,start+100)));
+  const batches = await Promise.all(groups.map(group => Promise.all([
+    readClinicalRows(client, "patient_summary", undefined, group),
+    readClinicalRows(client, "patient_detail", undefined, group),
+  ])));
+  const summaries = batches.flatMap(batch => batch[0]), details = batches.flatMap(batch => batch[1]);
   cachedRawSummaries = summaries as unknown as SupabasePatientSummary[];
   cachedRawDetails = details as unknown as SupabasePatientDetail[];
   const grouped = new Map<string, SupabasePatientDetail[]>();

@@ -15,7 +15,8 @@ import {
   RecordedMonitoring,
   RecordedReport,
 } from "./components/ClinicalWorkspace";
-import { fetchSupabasePatients } from "./lib/supabase";
+import { fetchSupabasePatients, getSupabaseClient, clearSupabasePatientCache } from "./lib/supabase";
+import { fetchDoctorAssignedPatientIds } from './lib/doctorAssignments';
 import type { NavigationModule, Patient, UserRole } from "./types";
 
 const KnowledgeGraphView = React.lazy(async () => ({
@@ -65,8 +66,11 @@ function Workspace({
     const request = ++revision.current;
     setLoading(true);
     setError("");
+    clearSupabasePatientCache();
     try {
-      const records = await fetchSupabasePatients();
+      const assignedIds = initialRole === 'doctor' && !isPreview
+        ? new Set(await fetchDoctorAssignedPatientIds(getSupabaseClient())) : undefined;
+      const records = await fetchSupabasePatients(assignedIds);
       if (request !== revision.current) return;
       setPatients(records);
       setSelectedId((previous) =>
@@ -87,7 +91,7 @@ function Workspace({
     } finally {
       if (request === revision.current) setLoading(false);
     }
-  }, []);
+  }, [initialRole, isPreview]);
   useEffect(() => {
     void refresh();
     return () => {
@@ -153,7 +157,7 @@ function Workspace({
                 ? "Loading clinical records…"
                 : error
                   ? "Database records unavailable"
-                  : `${patients.length} accessible records`}
+                  : initialRole === 'doctor' && !isPreview ? `${patients.length} patients assigned by Admin` : `${patients.length} accessible records`}
               {isPreview ? " · Preview" : ""}
             </span>
             <button

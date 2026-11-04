@@ -413,6 +413,14 @@ test('Admin workspace migration and RPC contract hold in an isolated PostgreSQL 
     ).catch((error) => { throw new Error(`doctor read: ${error.message}`); });
     assert.deepEqual(doctorRows.rows.map((row) => row['Patient Number']), ['PT-000001']);
 
+    // Reassignment takes effect for the same accounts without a role change.
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', id(14)]);
+    const previousDoctor = await asAccount(10, tx => tx.query('select "Patient Number" from patient_summary'), {role:'doctor'});
+    const newDoctor = await asAccount(14, tx => tx.query('select "Patient Number" from patient_summary'), {role:'doctor'});
+    assert.deepEqual(previousDoctor.rows, []);
+    assert.deepEqual(newDoctor.rows.map(row => row['Patient Number']), ['PT-000001']);
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', id(10)]);
+
     const adminRows = await asAccount(1, (tx) => tx.query('select "Patient Number" from patient_summary'), { role: 'admin' })
       .catch((error) => { throw new Error(`admin read: ${error.message}`); });
     assert.equal(adminRows.rows.length, 2);

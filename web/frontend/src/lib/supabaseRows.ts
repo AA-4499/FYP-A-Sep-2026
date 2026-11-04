@@ -5,12 +5,15 @@ export async function readClinicalRows(
   client: SupabaseClient,
   table: "patient_summary" | "patient_detail",
   patientId?: string,
+  patientIds?: ReadonlySet<string>,
 ): Promise<Record<string, unknown>[]> {
+  if (patientIds?.size === 0) return [];
   const rows: Record<string, unknown>[] = [];
   let expected: number | null = null;
   for (;;) {
     let query = client.from(table).select("*", { count: "exact" });
     if (patientId !== undefined) query = query.eq("Patient Number", patientId);
+    if (patientIds !== undefined) query = query.in("Patient Number", [...patientIds]);
     const { data, error, count } = await query
       .order(table === "patient_detail" ? "id" : "Patient Number", {
         ascending: true,
@@ -32,6 +35,8 @@ export async function readClinicalRows(
       data.some((row) => String(row["Patient Number"]) !== patientId)
     )
       throw new Error("The response contains a different patient record.");
+    if (patientIds !== undefined && data.some(row => !patientIds.has(String(row['Patient Number']))))
+      throw new Error('The clinical response contains a patient outside the Admin assignment list.');
     rows.push(...data);
     if (expected !== null ? rows.length >= expected : data.length < 1000)
       return rows;

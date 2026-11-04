@@ -990,7 +990,7 @@ function ForecastPanel({
             <option value="browser">
               Repository GRU · browser (no Render)
             </option>
-            <option value="supabase">Supabase Cloud (online service)</option>
+            <option value="supabase">Supabase data · Python service (Render)</option>
             {patient.dataSource !== "supabase" && (
               <>
                 <option value="preview">Local data preview (no server)</option>

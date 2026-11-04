@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "./supabase";
 import { loadForecastPreview } from "./forecastPreview";
+import { requestModelService } from './modelServiceRequest';
 
 export type ForecastSource = "browser" | "preview" | "local" | "supabase";
 
@@ -136,7 +137,7 @@ export async function fetchGlucoseForecast(
   const client = getSupabaseClient();
   const session = client ? (await client.auth.getSession()).data.session : null;
   if (!session) throw new Error("Sign in to access patient forecasts.");
-  const response = await fetch(
+  const response = await requestModelService(
     `${base}/api/patients/${encodeURIComponent(patientId)}/glucose-forecast`,
     {
       method: "POST",

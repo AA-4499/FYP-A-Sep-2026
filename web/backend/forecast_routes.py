@@ -6,6 +6,23 @@ from flask import Blueprint, jsonify, request, g
 forecast_api = Blueprint('forecast_api', __name__)
 
 
+@forecast_api.post('/api/patients/<patient_id>/conditional-forecast')
+def conditional_forecast(patient_id):
+    try:
+        from auth import request_access_token
+        from services.medium_v3_service import forecast_patient
+        return jsonify(forecast_patient(patient_id, request.get_json(silent=True), getattr(g, 'current_user', {}).get('role'), request_access_token()))
+    except PermissionError as exc:
+        return jsonify(error=str(exc)), 403
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+    except LookupError as exc:
+        return jsonify(error=str(exc)), 404
+    except Exception:
+        logging.exception('Medium v3 inference failed')
+        return jsonify(error='The medium v3 service could not load its model or authorized records. Check the Render logs.'), 503
+
+
 @forecast_api.get('/api/patients/<patient_id>/conditional-input')
 def conditional_input(patient_id):
     try:

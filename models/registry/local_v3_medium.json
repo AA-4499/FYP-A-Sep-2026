@@ -1,0 +1,27 @@
+{
+  "version": "local-v3-medium-20261106",
+  "cohort": "ShanghaiT2DM",
+  "checkpoint": "models/evaluation/local_v3_medium_20261106/ShanghaiT2DM/gru_future_event_decoder/checkpoint.pt",
+  "checkpoint_sha256": "e53e2b457d643683633160555dec145080b7575a76dff88ac9ac3ba5c9d73a71",
+  "hidden_dim": 64,
+  "head_dim": 32,
+  "parameters": 82625,
+  "source": "data/raw/Shanghai_T2DM + data/raw/Shanghai_T2DM_Summary.xlsx",
+  "food_reference_sha256": "8151928310fd13edb1e6b2d7cf2c3d02a4c81c2b554f42952ff67fc150bc0ca9",
+  "evaluation": {
+    "scope": "retrospective calendar-held-out conditional on recorded future events; separate unknown-plan evaluation in medium_comparison.json",
+    "mae_mg_dl": {
+      "15": 4.337241395101433,
+      "30": 9.271461766074745,
+      "60": 16.17566095234601,
+      "240": 29.14457537204314
+    }
+  },
+  "unknown_plan_mae_mg_dl": {
+    "15": 4.33620998904482,
+    "30": 9.274867922373675,
+    "60": 16.34465533173399,
+    "240": 30.53534355232593
+  },
+  "activation": "Explicit server engine selection; original browser model retained."
+}

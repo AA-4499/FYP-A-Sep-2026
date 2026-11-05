@@ -1,0 +1,35 @@
+{
+  "all_complete": true,
+  "models": 1,
+  "source_files": 109,
+  "test_metrics": {
+    "15": {
+      "mae_mg_dl": 4.337241429999201,
+      "rmse_mg_dl": 6.153517824536393,
+      "persistence_mae_mg_dl": 6.673081431770817,
+      "persistence_rmse_mg_dl": 9.869821970823045,
+      "mae_improvement_pct": 35.00391873910881
+    },
+    "30": {
+      "mae_mg_dl": 9.271461787088281,
+      "rmse_mg_dl": 13.439236262451784,
+      "persistence_mae_mg_dl": 12.289941881855022,
+      "persistence_rmse_mg_dl": 18.19042593695452,
+      "mae_improvement_pct": 24.56057257051192
+    },
+    "60": {
+      "mae_mg_dl": 16.17566101668109,
+      "rmse_mg_dl": 23.72858453350901,
+      "persistence_mae_mg_dl": 20.77877910278872,
+      "persistence_rmse_mg_dl": 30.516227727519876,
+      "mae_improvement_pct": 22.152976665938215
+    },
+    "240": {
+      "mae_mg_dl": 29.144575363351393,
+      "rmse_mg_dl": 40.78252976970546,
+      "persistence_mae_mg_dl": 39.50011631265783,
+      "persistence_rmse_mg_dl": 54.76069060450613,
+      "mae_improvement_pct": 26.21648216764364
+    }
+  }
+}

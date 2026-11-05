@@ -29,19 +29,20 @@ VARIANTS={
 }
 
 class ChronologicalForecast(nn.Module):
-    def __init__(self,kind,input_dim,static_context=False,conditional=False,future_dim=10):
+    def __init__(self,kind,input_dim,static_context=False,conditional=False,future_dim=10,hidden_dim=32,num_layers=2,head_dim=16):
         super().__init__();self.conditional=conditional;self.static_context=static_context
-        self.encoder=(nn.GRU if kind=='GRU' else nn.LSTM)(input_dim,32,num_layers=2,dropout=.15,batch_first=True)
+        self.encoder=(nn.GRU if kind=='GRU' else nn.LSTM)(input_dim,hidden_dim,num_layers=num_layers,dropout=.15,batch_first=True)
+        self.hidden_dim=hidden_dim;self.num_layers=num_layers
         if conditional:
-            self.static_initial=nn.Linear(4,64)
-            self.decoder=nn.GRU(future_dim,32,num_layers=2,dropout=.15,batch_first=True)
-            self.head=nn.Sequential(nn.Linear(32,16),nn.GELU(),nn.Linear(16,1))
-        else:self.head=nn.Sequential(nn.Linear(32+(4 if static_context else 0),16),nn.GELU(),nn.Linear(16,4))
+            self.static_initial=nn.Linear(4,hidden_dim*num_layers)
+            self.decoder=nn.GRU(future_dim,hidden_dim,num_layers=num_layers,dropout=.15,batch_first=True)
+            self.head=nn.Sequential(nn.Linear(hidden_dim,head_dim),nn.GELU(),nn.Linear(head_dim,1))
+        else:self.head=nn.Sequential(nn.Linear(hidden_dim+(4 if static_context else 0),head_dim),nn.GELU(),nn.Linear(head_dim,4))
 
     def forward(self,x,static,future):
         encoded,state=self.encoder(x)
         if self.conditional:
-            initial=state+self.static_initial(static).reshape(-1,2,32).transpose(0,1)
+            initial=state+self.static_initial(static).reshape(-1,self.num_layers,self.hidden_dim).transpose(0,1)
             decoded,_=self.decoder(future,initial)
             return self.head(decoded)[:,[0,1,3,15],0]
         last=encoded[:,-1]
@@ -159,7 +160,8 @@ def train_variant(cohort,variant,assignments,manifest,output,args):
     train=batches['train'];target=((train['y']-train['x'][:,-1,0,None]-scalers['target_mean'])/scalers['target_scale']).astype(np.float32)
     loader=DataLoader(TensorDataset(*[torch.from_numpy(v) for v in prepared['train']],torch.from_numpy(target)),
         batch_size=args.batch_size,shuffle=True,generator=torch.Generator().manual_seed(args.seed))
-    model=ChronologicalForecast(kind,len(indices),static_context,conditional);optimizer=torch.optim.Adam(model.parameters(),lr=.001)
+    dimensions={'hidden_dim':getattr(args,'hidden_dim',32),'head_dim':getattr(args,'head_dim',16)}
+    model=ChronologicalForecast(kind,len(indices),static_context,conditional,**dimensions);optimizer=torch.optim.Adam(model.parameters(),lr=.001)
     criterion=nn.HuberLoss();best=float('inf');state=None;stale=0;history=[];started=time.monotonic()
     for epoch in range(1,args.epochs+1):
         model.train();losses=[]
@@ -177,7 +179,7 @@ def train_variant(cohort,variant,assignments,manifest,output,args):
     model.load_state_dict(state);test=batches['test'];prediction=predict(model,test,prepared['test'],scalers)
     metrics=evaluate(test['y'],prediction,test['x'][:,-1,0],horizons)
     contract={'architecture':'chronological-history-and-event-gru-v1','family':family,'recurrent_kind':kind,'input_dim':len(indices),
-        'hidden_dim':32,'num_layers':2,'sequence_length':24,'static_context':static_context,'conditional':conditional,
+        **dimensions,'num_layers':2,'sequence_length':24,'static_context':static_context,'conditional':conditional,
         'dynamic_features':[names[i] for i in indices],'static_features':supported.STATIC if static_context else [],
         'future_features':[exposure.FEATURES[i] for i in FUTURE_INDICES] if conditional else [],
         'horizons_minutes':horizons,'future_steps':16 if conditional else 0,'cohort':cohort,'variant':variant,
@@ -203,7 +205,7 @@ def train_variant(cohort,variant,assignments,manifest,output,args):
         if mask.any():groups['seen_in_development' if seen else 'unseen_in_development']=evaluate(test['y'][mask],prediction[mask],test['x'][mask,-1,0],horizons)
     # Load the exact saved checkpoint and verify its full held-out predictions.
     saved=torch.load(checkpoint,map_location='cpu',weights_only=True)
-    restored=ChronologicalForecast(kind,len(indices),static_context,conditional);restored.load_state_dict(saved['state_dict'])
+    restored=ChronologicalForecast(kind,len(indices),static_context,conditional,**dimensions);restored.load_state_dict(saved['state_dict'])
     check=predict(restored,test,prepared['test'],scalers);deviation=float(np.max(np.abs(check-prediction)))
     assert deviation<1e-6
     early_difference=None

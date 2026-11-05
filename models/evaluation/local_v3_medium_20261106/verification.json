@@ -1,0 +1,9 @@
+{
+  "all_saved_test_predictions_replayed": true,
+  "test_windows": 30960,
+  "max_abs_difference_mg_dl": 7.717084372416139e-05,
+  "validation_selected_epoch": 19,
+  "teacher_development_test_record_overlap": 0,
+  "later_events_cannot_change_earlier_outputs": true,
+  "no_live_deployment_performed": true
+}

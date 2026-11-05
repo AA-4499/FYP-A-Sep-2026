@@ -1,0 +1,145 @@
+{
+  "test_windows": 30960,
+  "test_sessions": 38,
+  "test_patients": 35,
+  "same_test_windows_for_both_sizes": true,
+  "teacher_development_test_record_overlap": 0,
+  "all_saved_predictions_replayed_max_difference": 7.717084372416139e-05,
+  "results": {
+    "local_medium": {
+      "parameters": 82625,
+      "checkpoint_sha256": "e53e2b457d643683633160555dec145080b7575a76dff88ac9ac3ba5c9d73a71",
+      "recorded_future_events": {
+        "15": {
+          "mae_mg_dl": 4.337241395101433,
+          "rmse_mg_dl": 6.153517797503167,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 35.00391926207213
+        },
+        "30": {
+          "mae_mg_dl": 9.271461766074745,
+          "rmse_mg_dl": 13.439236239062481,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 24.560572741493488
+        },
+        "60": {
+          "mae_mg_dl": 16.17566095234601,
+          "rmse_mg_dl": 23.728584471050645,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 22.152976975557365
+        },
+        "240": {
+          "mae_mg_dl": 29.14457537204314,
+          "rmse_mg_dl": 40.78252982860628,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 26.216482145639286
+        }
+      },
+      "unknown_future_events": {
+        "15": {
+          "mae_mg_dl": 4.33620998904482,
+          "rmse_mg_dl": 6.152118726378645,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 35.01937548071954
+        },
+        "30": {
+          "mae_mg_dl": 9.274867922373675,
+          "rmse_mg_dl": 13.473138607967526,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 24.532857750392036
+        },
+        "60": {
+          "mae_mg_dl": 16.34465533173399,
+          "rmse_mg_dl": 24.203461679903842,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 21.339674237451362
+        },
+        "240": {
+          "mae_mg_dl": 30.53534355232593,
+          "rmse_mg_dl": 43.2479488355648,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 22.695560411449055
+        }
+      }
+    },
+    "original_small": {
+      "parameters": 22369,
+      "checkpoint_sha256": "b62b1f0e58e1141d1c367633e2933f22ed0badecabdf658bb3507df9883d29e1",
+      "recorded_future_events": {
+        "15": {
+          "mae_mg_dl": 4.369844590416701,
+          "rmse_mg_dl": 6.120963608279368,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 34.51534144912888
+        },
+        "30": {
+          "mae_mg_dl": 9.351729471333963,
+          "rmse_mg_dl": 13.39327858275458,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 23.907455696426535
+        },
+        "60": {
+          "mae_mg_dl": 16.375127819951167,
+          "rmse_mg_dl": 23.771917065471637,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 21.19302227071917
+        },
+        "240": {
+          "mae_mg_dl": 29.423065901079053,
+          "rmse_mg_dl": 41.16192902141509,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 25.511444907694063
+        }
+      },
+      "unknown_future_events": {
+        "15": {
+          "mae_mg_dl": 4.364815033744418,
+          "rmse_mg_dl": 6.117916155637383,
+          "persistence_mae_mg_dl": 6.673081431770817,
+          "persistence_rmse_mg_dl": 9.869821970823045,
+          "mae_improvement_pct": 34.59071227629034
+        },
+        "30": {
+          "mae_mg_dl": 9.333321665754008,
+          "rmse_mg_dl": 13.415083175424492,
+          "persistence_mae_mg_dl": 12.289941881855022,
+          "persistence_rmse_mg_dl": 18.19042593695452,
+          "mae_improvement_pct": 24.057235131975634
+        },
+        "60": {
+          "mae_mg_dl": 16.518804115155845,
+          "rmse_mg_dl": 24.240163313889123,
+          "persistence_mae_mg_dl": 20.77877910278872,
+          "persistence_rmse_mg_dl": 30.516227727519876,
+          "mae_improvement_pct": 20.501565402661914
+        },
+        "240": {
+          "mae_mg_dl": 30.889700685086133,
+          "rmse_mg_dl": 44.038872707743025,
+          "persistence_mae_mg_dl": 39.50011631265783,
+          "persistence_rmse_mg_dl": 54.76069060450613,
+          "mae_improvement_pct": 21.79845638786761
+        }
+      }
+    }
+  },
+  "limitations": [
+    "Both sources are Shanghai T2DM; this is not external validation.",
+    "Recorded-future evaluation assumes future annotations known. Unknown-plan results use only past exposure, not confirmed fasting.",
+    "Overlapping windows are correlated; subjects can repeat across calendar partitions.",
+    "No calibrated individual interval, causal effect or insulin dosing validation.",
+    "Only 77 completely mapped meals among 3060 meal descriptions; IOB excludes unsupported insulin."
+  ]
+}

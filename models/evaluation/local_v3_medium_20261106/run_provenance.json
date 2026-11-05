@@ -1,0 +1,22 @@
+{
+  "arguments": {
+    "data_dir": "data/raw/Shanghai_T2DM",
+    "summary": "data/raw/Shanghai_T2DM_Summary.xlsx",
+    "output": "models/evaluation/local_v3_medium_20261106",
+    "epochs": 40,
+    "patience": 8,
+    "seed": 20261106,
+    "batch_size": 256,
+    "training_stride": 4,
+    "hidden_dim": 64,
+    "head_dim": 32
+  },
+  "source": "local data/raw workbooks, not Sample or the downloaded teacher archive",
+  "source_files": 109,
+  "patients": 100,
+  "summary_sha256": "5d2c8cc9ab5477910d69bf1ada30db12effb542d536706345fe3a74468a2fa16",
+  "food_reference_sha256": "8151928310fd13edb1e6b2d7cf2c3d02a4c81c2b554f42952ff67fc150bc0ca9",
+  "torch": "2.9.1+cpu",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3"
+}

@@ -1,0 +1,340 @@
+{
+  "architecture": "chronological-history-and-event-gru-v1",
+  "family": "future_event_conditional",
+  "recurrent_kind": "GRU",
+  "input_dim": 14,
+  "hidden_dim": 64,
+  "head_dim": 32,
+  "num_layers": 2,
+  "sequence_length": 24,
+  "static_context": true,
+  "conditional": true,
+  "dynamic_features": [
+    "glucose_mg_dl",
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "recorded_complete_meal_carb_0_1h_g",
+    "recorded_complete_meal_carb_1_3h_g",
+    "recorded_complete_meal_carb_3_6h_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete"
+  ],
+  "static_features": [
+    "age_years",
+    "bmi_kg_m2",
+    "age_missing",
+    "bmi_missing"
+  ],
+  "future_features": [
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete"
+  ],
+  "horizons_minutes": [
+    15,
+    30,
+    60,
+    240
+  ],
+  "future_steps": 16,
+  "cohort": "ShanghaiT2DM",
+  "variant": "gru_future_event_decoder",
+  "scalers": {
+    "history_mean": [
+      139.3084716796875,
+      -0.0032939340453594923,
+      0.006071947980672121,
+      0.015449768863618374,
+      0.061799075454473495,
+      0.12359815090894699,
+      0.185397207736969,
+      0.0,
+      0.0,
+      0.0,
+      0.3177604377269745,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "history_scale": [
+      49.398101806640625,
+      0.7082300782203674,
+      0.7059479355812073,
+      0.7125533223152161,
+      1.4241012334823608,
+      2.0120861530303955,
+      2.477290153503418,
+      1.0,
+      1.0,
+      1.0,
+      1.422333836555481,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "static_median": [
+      63.0,
+      23.469999313354492
+    ],
+    "static_mean": [
+      59.98181915283203,
+      23.985172271728516
+    ],
+    "static_scale": [
+      12.404531478881836,
+      3.2967469692230225
+    ],
+    "future_mean": [
+      -0.0032939340453594923,
+      0.006071947980672121,
+      0.015449768863618374,
+      0.0,
+      0.0,
+      0.0,
+      0.3177604377269745,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "future_scale": [
+      0.7082300782203674,
+      0.7059479355812073,
+      0.7125533223152161,
+      1.0,
+      1.0,
+      1.0,
+      1.422333836555481,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "target_mean": [
+      -0.08631382882595062,
+      -0.06308897584676743,
+      -0.10121976584196091,
+      -0.1526382565498352
+    ],
+    "target_scale": [
+      9.355077743530273,
+      17.174949645996094,
+      28.662057876586914,
+      52.955291748046875
+    ]
+  },
+  "patient_split": {
+    "train": [
+      "2000",
+      "2001",
+      "2002",
+      "2014",
+      "2015",
+      "2016",
+      "2017",
+      "2018",
+      "2019",
+      "2020",
+      "2022",
+      "2024",
+      "2025",
+      "2027",
+      "2028",
+      "2029",
+      "2037",
+      "2043",
+      "2045",
+      "2046",
+      "2047",
+      "2048",
+      "2049",
+      "2050",
+      "2051",
+      "2052",
+      "2053",
+      "2054",
+      "2055",
+      "2056",
+      "2057",
+      "2058",
+      "2059",
+      "2060",
+      "2083",
+      "2085",
+      "2086",
+      "2087",
+      "2088",
+      "2089",
+      "2090",
+      "2091",
+      "2092",
+      "2093",
+      "2094",
+      "2095",
+      "2096",
+      "2097",
+      "2098",
+      "2099"
+    ],
+    "validation": [
+      "2003",
+      "2033",
+      "2034",
+      "2038",
+      "2039",
+      "2063",
+      "2064",
+      "2065",
+      "2066",
+      "2067",
+      "2068"
+    ],
+    "test": [
+      "2004",
+      "2005",
+      "2006",
+      "2007",
+      "2008",
+      "2009",
+      "2010",
+      "2011",
+      "2012",
+      "2013",
+      "2021",
+      "2023",
+      "2026",
+      "2032",
+      "2035",
+      "2036",
+      "2040",
+      "2041",
+      "2042",
+      "2044",
+      "2069",
+      "2070",
+      "2071",
+      "2072",
+      "2073",
+      "2074",
+      "2075",
+      "2076",
+      "2077",
+      "2078",
+      "2079",
+      "2080",
+      "2081",
+      "2082",
+      "2084"
+    ]
+  },
+  "seed": 20261106,
+  "best_epoch": 19,
+  "split_policy": "cohort-global calendar chronology; whole sessions crossing cutoffs purged",
+  "split_manifest": "../../ShanghaiT2DM_split_manifest.json",
+  "future_action_inputs_supported": true,
+  "causal_treatment_effect_validated": false,
+  "status": "research_candidate_not_activated",
+  "patients": {
+    "train": 50,
+    "validation": 11,
+    "test": 35
+  },
+  "sessions": {
+    "train": 55,
+    "validation": 11,
+    "test": 38
+  },
+  "windows": {
+    "train": 15578,
+    "validation": 9446,
+    "test": 30960
+  },
+  "test_metrics": {
+    "15": {
+      "mae_mg_dl": 4.337241429999201,
+      "rmse_mg_dl": 6.153517824536393,
+      "persistence_mae_mg_dl": 6.673081431770817,
+      "persistence_rmse_mg_dl": 9.869821970823045,
+      "mae_improvement_pct": 35.00391873910881
+    },
+    "30": {
+      "mae_mg_dl": 9.271461787088281,
+      "rmse_mg_dl": 13.439236262451784,
+      "persistence_mae_mg_dl": 12.289941881855022,
+      "persistence_rmse_mg_dl": 18.19042593695452,
+      "mae_improvement_pct": 24.56057257051192
+    },
+    "60": {
+      "mae_mg_dl": 16.17566101668109,
+      "rmse_mg_dl": 23.72858453350901,
+      "persistence_mae_mg_dl": 20.77877910278872,
+      "persistence_rmse_mg_dl": 30.516227727519876,
+      "mae_improvement_pct": 22.152976665938215
+    },
+    "240": {
+      "mae_mg_dl": 29.144575363351393,
+      "rmse_mg_dl": 40.78252976970546,
+      "persistence_mae_mg_dl": 39.50011631265783,
+      "persistence_rmse_mg_dl": 54.76069060450613,
+      "mae_improvement_pct": 26.21648216764364
+    }
+  },
+  "test_metrics_by_patient_overlap": {
+    "unseen_in_development": {
+      "15": {
+        "mae_mg_dl": 4.337241429999201,
+        "rmse_mg_dl": 6.153517824536393,
+        "persistence_mae_mg_dl": 6.673081431770817,
+        "persistence_rmse_mg_dl": 9.869821970823045,
+        "mae_improvement_pct": 35.00391873910881
+      },
+      "30": {
+        "mae_mg_dl": 9.271461787088281,
+        "rmse_mg_dl": 13.439236262451784,
+        "persistence_mae_mg_dl": 12.289941881855022,
+        "persistence_rmse_mg_dl": 18.19042593695452,
+        "mae_improvement_pct": 24.56057257051192
+      },
+      "60": {
+        "mae_mg_dl": 16.17566101668109,
+        "rmse_mg_dl": 23.72858453350901,
+        "persistence_mae_mg_dl": 20.77877910278872,
+        "persistence_rmse_mg_dl": 30.516227727519876,
+        "mae_improvement_pct": 22.152976665938215
+      },
+      "240": {
+        "mae_mg_dl": 29.144575363351393,
+        "rmse_mg_dl": 40.78252976970546,
+        "persistence_mae_mg_dl": 39.50011631265783,
+        "persistence_rmse_mg_dl": 54.76069060450613,
+        "mae_improvement_pct": 26.21648216764364
+      }
+    }
+  },
+  "completed_epochs": 27,
+  "checkpoint_sha256": "e53e2b457d643683633160555dec145080b7575a76dff88ac9ac3ba5c9d73a71",
+  "runtime_seconds": 357.89520180000545,
+  "verification": {
+    "safe_checkpoint_full_test_max_abs_difference": 0.0,
+    "decoder_later_event_early_output_max_difference": 0.0
+  },
+  "limitations": [
+    "Both sources are Shanghai T2DM; this is not external validation.",
+    "Recorded-future evaluation assumes future annotations known. Unknown-plan results use only past exposure, not confirmed fasting.",
+    "Overlapping windows are correlated; subjects can repeat across calendar partitions.",
+    "No calibrated individual interval, causal effect or insulin dosing validation.",
+    "Only 77 completely mapped meals among 3060 meal descriptions; IOB excludes unsupported insulin."
+  ],
+  "data_source": "local data/raw/Shanghai_T2DM"
+}

@@ -39,7 +39,7 @@ export function ConditionalForecastPanel({patient, allowInsulin = false}: {patie
     setBusy(true); setResult(null); setError(''); setNotice('');
     try {
       if (!confirmed) throw Error('Confirm the assumptions for both plans before running.');
-      const session = await loadConditionalSession(patient, source, abort.signal);
+      const session = await loadConditionalSession(patient, source, abort.signal, 'browser');
       const {forecast, comparison} = await forecastConditionalSession(session, baseline, scenario, abort.signal);
       if (abort.signal.aborted) return;
       setResult(forecast);

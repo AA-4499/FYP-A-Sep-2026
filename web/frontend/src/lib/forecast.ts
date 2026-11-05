@@ -26,7 +26,7 @@ export interface GlucoseForecast {
   source: string;
   horizon_hours: number;
   model_sha256: string;
-  delivery?: "precomputed" | "browser";
+  delivery?: "precomputed" | "browser" | "server";
   generated_at?: string;
   data_origin?: "repository-workbook";
   storage?: {

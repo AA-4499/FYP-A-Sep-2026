@@ -68,7 +68,7 @@ def authorize_api_request():
         return response
     user = getattr(g, "current_user", {})
     patient_id = request.view_args.get("patient_id") if request.view_args else None
-    if request.endpoint in {"forecast_api.glucose_forecast", "forecast_api.conditional_input"}:
+    if request.endpoint in {"forecast_api.glucose_forecast", "forecast_api.conditional_input", "forecast_api.conditional_forecast"}:
         if not patient_id:
             return jsonify({"error": "A patient record is required for a glucose forecast."}), 403
         if user.get("role") == "doctor":

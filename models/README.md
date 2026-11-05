@@ -3,7 +3,18 @@
 This directory contains training code, saved checkpoints, evaluation artifacts,
 model metadata, and tests for the project's glucose forecasting models.
 
-The default Digital twin workspace uses the **v3 conditional GRU decoders**,
+The Digital twin workspace supports a **local-data medium v3 server model**:
+`evaluation/local_v3_medium_20261106/`, registered in
+`registry/local_v3_medium.json`. It uses the local `data/raw/Shanghai_T2DM`
+workbooks (109 visits / 100 patients), 64 hidden units and 82,625 parameters.
+Select Medium v3 in the main simulator or set `VITE_CONDITIONAL_ENGINE=server`
+after deploying the Python API. See
+[`Render deployment`](../docs/render-model-deployment.md) and the run's
+[`evaluation report`](evaluation/local_v3_medium_20261106/evaluation_report.md).
+There is no online medium training queue; use the local training commands below.
+
+Before a Python service is configured, the default workspace retains the
+original **v3 conditional GRU decoders**,
 trained separately for ShanghaiT1DM and ShanghaiT2DM. The main chart and what-if
 event editor use these decoders for baseline and scheduled scenarios, including
 multiple meals and explicitly typed rapid/regular boluses. The standalone v3

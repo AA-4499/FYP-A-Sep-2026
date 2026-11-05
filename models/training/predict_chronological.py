@@ -62,7 +62,7 @@ def forecast(checkpoint_path,payload):
         if not np.isin(future[:,[3,4,5,7,8,9]],[0,1]).all():raise ValueError('Future annotation/coverage flags must be binary')
         future=((future-scale['future_mean'])/scale['future_scale']).astype(np.float32)
     history=((x-scale['history_mean'])/scale['history_scale']).astype(np.float32)
-    model=ChronologicalForecast(saved['recurrent_kind'],saved['input_dim'],saved['static_context'],saved['conditional'])
+    model=ChronologicalForecast(saved['recurrent_kind'],saved['input_dim'],saved['static_context'],saved['conditional'],hidden_dim=saved.get('hidden_dim',32),num_layers=saved.get('num_layers',2),head_dim=saved.get('head_dim',16))
     model.load_state_dict(saved['state_dict']);model.eval()
     with torch.inference_mode():prediction=model(torch.from_numpy(history[None]),torch.from_numpy(static[None]),torch.from_numpy(future[None])).numpy()[0]*scale['target_scale']+scale['target_mean']+x[-1,0]
     return {'cohort':saved['cohort'],'variant':saved['variant'],'predictions_mg_dl':{str(h):float(v) for h,v in zip(saved['horizons_minutes'],prediction)},

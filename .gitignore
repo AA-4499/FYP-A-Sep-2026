@@ -54,5 +54,6 @@ models/weights/training-runs/
 !models/weights/conditional_gru_v2.pt
 !models/weights/conditional_gru_v2_retrospective.pt
 !models/evaluation/shanghai_v3_20261104/**/checkpoint.pt
+!models/evaluation/local_v3_medium_20261106/**/checkpoint.pt
 models/evaluation/t2dm/conditional_v2/*_test.npz
 models/evaluation/t2dm/conditional_v2/retrospective_labs/*_test.npz

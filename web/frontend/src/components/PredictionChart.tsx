@@ -57,11 +57,13 @@ export function PredictionChart({
   loading,
   clockLabel = 'UTC',
   markSamples = false,
+  forecastStart,
 }: {
   series: PredictionChartSeries[];
   loading: boolean;
   clockLabel?: string;
   markSamples?: boolean;
+  forecastStart?: string;
 }) {
   const id = useId().replace(/:/g, "");
   const [focused, setFocused] = useState(true),
@@ -141,8 +143,7 @@ export function PredictionChart({
                   strokeDasharray={item.key === "scenario" ? "5 3" : undefined}
                 />
               </svg>
-              {item.key === "scenario" ? "What-if" : "Baseline"}{" "}
-              {!modelOnly && item.range ? "average" : "estimate"}
+              {item.label}{item.range && !modelOnly ? " average" : ""}
             </span>
           ))}
           {hasRanges && !modelOnly && (
@@ -325,12 +326,15 @@ export function PredictionChart({
                 }}
               />
             ))}
+            {forecastStart && Number.isFinite(instant(forecastStart)) && (
+              <ReferenceLine x={instant(forecastStart)} stroke="#64748b" strokeDasharray="4 4" label={{ value: 'Forecast begins', position: 'insideTopLeft', fontSize: 10, fill: '#475569' }} />
+            )}
             {series.map((item) => (
               <Line
                 key={item.key}
                 type="linear"
                 dataKey={shown(item)}
-                name={`${item.key} average`}
+                name={item.label}
                 stroke={item.color}
                 strokeWidth={2.8}
                 strokeDasharray={item.key === "scenario" ? "7 4" : undefined}
@@ -339,7 +343,7 @@ export function PredictionChart({
                 activeDot={{ r: 5, stroke: "white", strokeWidth: 2 }}
                 dot={(props) => {
                   const row = props.payload as ChartRow | undefined;
-                  return row && (markSamples || row.timestamp === last?.timestamp) ? (
+                  return row && typeof row[shown(item)] === 'number' && Number.isFinite(row[shown(item)]) && (markSamples || row.timestamp === last?.timestamp) ? (
                     <circle
                       key={`${item.key}-${row.timestamp}`}
                       cx={props.cx}
@@ -393,8 +397,7 @@ export function PredictionChart({
               return (
                 <div key={item.key}>
                   <p className="text-[11px] text-black">
-                    {item.key === "scenario" ? "What-if" : "Baseline"}{" "}
-                    {!modelOnly && item.range ? "average" : "estimate"}
+                    {item.label}{item.range && !modelOnly ? " average" : ""}
                   </p>
                   <p className="mt-0.5 text-lg font-semibold tracking-tight">
                     {typeof value === "number" ? value.toFixed(1) : "—"}

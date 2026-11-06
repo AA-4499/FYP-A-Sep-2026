@@ -77,6 +77,15 @@ A network failure suggests
 URL, server availability, HTTPS or CORS; a returned 401/403 indicates an
 authentication or authorization check. Inspect Render logs for server errors.
 
+A healthy `/api/health` response alone does not prove browser access. For a
+cross-origin prediction, the browser first sends an unauthenticated `OPTIONS`
+preflight with `authorization,content-type` requested headers. The API must let
+Flask handle this preflight and return CORS headers for an allowed origin;
+the subsequent POST still requires the signed-in user's Bearer token and the
+patient assignment check. Include each actual frontend domain (Production and
+any used Preview domain) in `ALLOWED_ORIGINS`, separated by commas. Preserve
+other existing allowed origins when adding a new deployment domain.
+
 ## Retained browser v3 and rollback
 
 Build and deploy the frontend from `TrainingModel`. `npm run build` first verifies

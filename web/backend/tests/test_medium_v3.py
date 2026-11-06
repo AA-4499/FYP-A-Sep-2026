@@ -21,6 +21,29 @@ def synthetic_data():
 class MediumV3Tests(unittest.TestCase):
     setUp = ForecastApiTests.setUp
 
+    def test_browser_preflight_is_allowed_without_bypassing_prediction_auth(self):
+        from flask import Flask
+        from flask_cors import CORS
+        from app import authorize_api_request
+        from forecast_routes import forecast_api
+        app = Flask('medium-v3-cors-test')
+        app.register_blueprint(forecast_api)
+        app.before_request(authorize_api_request)
+        origins = ['https://frontend-ecru-nine-89.vercel.app', 'https://smart-diabetes-digital-twin-and-pers-git-08df26-aa-49s-projects.vercel.app']
+        CORS(app, resources={r'/api/*': {'origins': origins}})
+        client = app.test_client()
+        url = '/api/patients/2017_1_20201118/conditional-forecast'
+        with patch.object(service, 'forecast_patient') as predict:
+            for origin in origins:
+                preflight = client.options(url, headers={'Origin':origin, 'Access-Control-Request-Method':'POST', 'Access-Control-Request-Headers':'authorization,content-type'})
+                self.assertEqual(200, preflight.status_code)
+                self.assertEqual(origin, preflight.headers['Access-Control-Allow-Origin'])
+                self.assertIn('authorization', preflight.headers['Access-Control-Allow-Headers'].lower())
+                self.assertEqual(401, client.post(url, json={}, headers={'Origin':origin}).status_code)
+            rejected = client.options(url, headers={'Origin':'https://unconfigured.example', 'Access-Control-Request-Method':'POST'})
+            self.assertNotIn('Access-Control-Allow-Origin', rejected.headers)
+            predict.assert_not_called()
+
     def test_new_route_requires_auth_and_admin_assignment_before_data_loading(self):
         url = '/api/patients/2017_1_20201118/conditional-forecast'
         with patch.object(service,'forecast_patient') as forecast:

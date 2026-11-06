@@ -63,6 +63,11 @@ def clinical_data_unavailable(error):
 def authorize_api_request():
     if not request.path.startswith("/api/patients"):
         return None
+    # Browser preflights contain no Bearer token. Flask supplies the OPTIONS
+    # response and flask-cors checks the configured origin; actual requests
+    # still pass every authentication and patient-assignment check below.
+    if request.method == "OPTIONS":
+        return None
     response = require_auth(APP_ROLES)(lambda: None)()
     if response is not None:
         return response

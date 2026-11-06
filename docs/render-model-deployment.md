@@ -14,16 +14,18 @@ frontend after restoring the original variables.
 
 The default v3 engine runs in the browser and reads authorized Supabase records.
 It does not require the newly created model Render service. The trained medium
-checkpoint and server inference code remain in the repository for later use;
-no server model is selected automatically by an environment variable.
+checkpoint and server inference code remain in the repository for later use.
+The medium server option has been removed from the simulator because its Render
+service was deleted; no new server environment variable is required.
 
 ## Clear a saved model-service override
 
 Main's shared API resolver gives the browser-local `dt_forecast_api_url` setting
-priority over `VITE_API_BASE_URL`. If the new model server was saved in Service
-connection, clear that field and save, then reload. Otherwise Knowledge Graph
-requests can still be sent to the removed model server even with correct Vercel
-variables. This is a local browser setting, not a Supabase assignment.
+priority over `VITE_API_BASE_URL`. The frontend now automatically removes that
+override only when its host is the deleted `fyp-a-sep-2026-2.onrender.com` service,
+then uses the original configured API origin. Existing KG/legacy server settings,
+Supabase credentials and other browser data are preserved. The deleted service
+cannot be saved again through Service connection.
 
 ## Existing backend
 

@@ -3,7 +3,7 @@ import { Activity, Download, RefreshCw, Settings2 } from 'lucide-react';
 import type { Patient } from '../types';
 import type { GlucoseForecast } from '../lib/forecast';
 import { getForecastApiUrl, saveForecastApiUrl } from '../lib/forecast';
-import { loadConditionalSession, forecastConditionalSession, defaultConditionalEngine, type ConditionalEngine, type ConditionalSession, type ConditionalSource } from '../lib/conditionalSession';
+import { loadConditionalSession, forecastConditionalSession, defaultConditionalEngine, type ConditionalSession, type ConditionalSource } from '../lib/conditionalSession';
 import { conditionalPlanFromSchedule, emptyConditionalPlan } from '../lib/conditionalScenario';
 import { predictionHighlights } from '../lib/resultHighlights';
 import { savePrediction } from '../lib/predictionResults';
@@ -19,7 +19,7 @@ type Compiled = ReturnType<typeof compileScenario>;
 /** Keep the chart + existing event editor; run both curves through the v3 model. */
 export function ConditionalSimulatorPanel({patient, allowInsulin = false}: {patient: Patient; allowInsulin?: boolean}) {
   const [source, setSource] = useState<ConditionalSource>('supabase');
-  const [engine, setEngine] = useState<ConditionalEngine>(defaultConditionalEngine);
+  const engine = defaultConditionalEngine();
   const [showHistory, setShowHistory] = useState(false);
   const [revision, setRevision] = useState(0);
   const [session, setSession] = useState<ConditionalSession | null>(null);
@@ -101,16 +101,15 @@ export function ConditionalSimulatorPanel({patient, allowInsulin = false}: {pati
 
   return <div className="space-y-5" data-testid="conditional-simulator">
     <section className={`${card} flex flex-wrap items-center justify-between gap-4 !py-4`}>
-      <div><p className="flex items-center gap-2 text-sm font-semibold"><Activity size={17} className="text-teal-700"/>CGM forecast & what-if simulator</p><p className="mt-1 text-xs text-slate-500">{engine==='server'?'Local-data medium GRU v3 · Python service':'Original conditional GRU v3 · browser inference'}</p></div>
+      <div><p className="flex items-center gap-2 text-sm font-semibold"><Activity size={17} className="text-teal-700"/>CGM forecast & what-if simulator</p><p className="mt-1 text-xs text-slate-500">Conditional GRU v3 · browser inference</p></div>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex flex-wrap items-center gap-2 text-xs text-slate-600">Model<select className={`${field} max-w-full`} aria-label="Prediction model engine" value={engine} onChange={event=>setEngine(event.target.value as ConditionalEngine)}><option value="browser">Original v3 · browser</option><option value="server">Medium v3 · Render</option></select></label>
         <label className="flex flex-wrap items-center gap-2 text-xs text-slate-600">Data source<select className={`${field} max-w-full`} aria-label="Simulator data source" value={source} onChange={event => setSource(event.target.value as ConditionalSource)}><option value="supabase">Authorized Supabase visit</option><option value="local">Local workbook · Python service</option></select></label>
         <span className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">4-hour window · 15 / 30 / 60 / 240 min outputs</span>
         <button type="button" className="rounded-lg border border-slate-200 p-2 text-slate-600" aria-label="Refresh forecast history" disabled={busy} onClick={()=>setRevision(v=>v+1)}><RefreshCw size={16}/></button>
-        {(source==='local'||engine==='server')&&<button type="button" aria-label="Model service connection" className="rounded-lg border border-slate-200 p-2 text-slate-600" onClick={()=>setConnectionOpen(v=>!v)}><Settings2 size={16}/></button>}
+        {source==='local'&&<button type="button" aria-label="Model service connection" className="rounded-lg border border-slate-200 p-2 text-slate-600" onClick={()=>setConnectionOpen(v=>!v)}><Settings2 size={16}/></button>}
       </div>
     </section>
-    {connectionOpen&&(source==='local'||engine==='server')&&<form className={`${card} flex flex-wrap gap-3`} onSubmit={event=>{event.preventDefault();try{saveForecastApiUrl(apiUrl);setConnectionOpen(false);setRevision(v=>v+1);}catch(failure){setError(failure instanceof Error?failure.message:'Invalid service address.');}}}><label className="grow text-sm">Python model service address<input className={`${field} mt-2 w-full`} value={apiUrl} onChange={event=>setApiUrl(event.target.value)} placeholder="https://your-service.onrender.com"/></label><button className="rounded-xl bg-teal-700 px-4 py-2 text-sm text-white">Connect</button></form>}
+    {connectionOpen&&source==='local'&&<form className={`${card} flex flex-wrap gap-3`} onSubmit={event=>{event.preventDefault();try{saveForecastApiUrl(apiUrl);setConnectionOpen(false);setRevision(v=>v+1);}catch(failure){setError(failure instanceof Error?failure.message:'Invalid service address.');}}}><label className="grow text-sm">Python model service address<input className={`${field} mt-2 w-full`} value={apiUrl} onChange={event=>setApiUrl(event.target.value)} placeholder="https://your-service.onrender.com"/></label><button className="rounded-xl bg-teal-700 px-4 py-2 text-sm text-white">Connect</button></form>}
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {[['Latest recorded CGM',current?`${current.latest_glucose.toFixed(1)} mg/dL`:'Awaiting history'],['Estimated bolus IOB',current?.exposure?`${current.exposure.iob_units.toFixed(2)} U`:'Unavailable'],['What-if difference at 4h',current?.scenario_enabled?`${current.scenario_end-current.baseline_end>=0?'+':''}${(current.scenario_end-current.baseline_end).toFixed(1)} mg/dL`:'No events applied']].map(([label,value])=><section key={label} className={`${card} !p-4`}><p className="text-xs text-slate-500">{label}</p><p className="mt-2 text-xl font-semibold text-slate-900">{value}</p></section>)}
     </div>

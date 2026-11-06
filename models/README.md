@@ -7,8 +7,8 @@ The Digital twin workspace supports a **local-data medium v3 server model**:
 `evaluation/local_v3_medium_20261106/`, registered in
 `registry/local_v3_medium.json`. It uses the local `data/raw/Shanghai_T2DM`
 workbooks (109 visits / 100 patients), 64 hidden units and 82,625 parameters.
-Medium v3 remains an optional manual selection after a compatible Python API
-is deployed; the default is the original browser v3. See
+The medium checkpoint is retained offline for future deployment. Its deleted
+server is no longer offered in the simulator; the default is the original browser v3. See
 [`Render deployment`](../docs/render-model-deployment.md) and the run's
 [`evaluation report`](evaluation/local_v3_medium_20261106/evaluation_report.md).
 There is no online medium training queue; use the local training commands below.

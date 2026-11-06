@@ -1,6 +1,7 @@
 import { getSupabaseClient } from "./supabase";
 import { loadForecastPreview } from "./forecastPreview";
 import { requestModelService } from './modelServiceRequest';
+import { isRetiredModelOrigin, readForecastApiOverride } from './retiredModelConnection';
 
 export type ForecastSource = "browser" | "preview" | "local" | "supabase";
 
@@ -63,7 +64,7 @@ const API_URL_STORAGE_KEY = "dt_forecast_api_url";
 export function getForecastApiUrl(): string {
   const saved =
     typeof window !== "undefined"
-      ? localStorage.getItem(API_URL_STORAGE_KEY)
+      ? readForecastApiOverride(localStorage)
       : null;
   return (
     saved ||
@@ -79,6 +80,9 @@ export function saveForecastApiUrl(value: string): void {
   if (!trimmed) {
     localStorage.removeItem(API_URL_STORAGE_KEY);
     return;
+  }
+  if (isRetiredModelOrigin(trimmed)) {
+    throw new Error('This model service has been deleted. Clear the address to use the original configured backend.');
   }
   let url: URL;
   try {

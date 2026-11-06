@@ -64,7 +64,7 @@ The existing frontend remains the Vercel project. Configure:
 | Build Command | `npm run build` |
 | Output Directory | `dist` |
 | Install Command | `npm ci` |
-| `VITE_MODEL_API_BASE_URL` | Your deployed Python API origin, e.g. `https://your-api.onrender.com` (without `/api`) |
+| `VITE_API_BASE_URL` | Your deployed Python API origin, e.g. `https://your-api.onrender.com` (without `/api`) |
 | `VITE_SUPABASE_URL` | Your Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Your public anonymous/publishable key |
 
@@ -143,4 +143,4 @@ Server key handling follows the [Supabase API key documentation](https://supabas
 
 The prediction chart is in the main column, the CGM training/validation/testing chart is directly below, and evaluation, forecast values and model details follow. The simulator sits in the right column on desktop. Chart panels remain mounted when the API is unavailable; completed results are retained during same-selection refreshes.
 
-The page provides a browser-local **Service connection** setting. It overrides `VITE_MODEL_API_BASE_URL` for this browser; clearing it restores the deployment setting. For a step-by-step explanation of Vercel, the Python model service, and Supabase, see [Prediction service setup](prediction-web-setup.md). The Python service must be deployed before the live webpage can compute new forecasts.
+The page provides a browser-local **Service connection** setting. It overrides `VITE_API_BASE_URL` for this browser; clearing it restores the deployment setting. For a step-by-step explanation of Vercel, the Python model service, and Supabase, see [Prediction service setup](prediction-web-setup.md). The Python service must be deployed before the live webpage can compute new forecasts.

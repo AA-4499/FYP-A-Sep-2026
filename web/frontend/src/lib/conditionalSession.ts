@@ -11,7 +11,7 @@ import type { ConditionalResult } from './conditionalPrediction';
 
 export type ConditionalSource = 'supabase' | 'local';
 export type ConditionalEngine = 'browser' | 'server';
-export const defaultConditionalEngine = (): ConditionalEngine => import.meta.env.VITE_CONDITIONAL_ENGINE === 'server' ? 'server' : 'browser';
+export const defaultConditionalEngine = (): ConditionalEngine => 'browser';
 export interface ConditionalSession {
   patientId: string;
   source: ConditionalSource;

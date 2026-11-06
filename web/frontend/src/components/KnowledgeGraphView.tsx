@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import type { Patient } from "../types";
 import { getSupabaseClient } from "../lib/supabase";
-import { resolveKnowledgeGraphApiUrl } from "../lib/serviceOrigins";
+import { getForecastApiUrl } from "../lib/forecast";
 
 interface Props {
   patients: Patient[];
@@ -95,8 +95,8 @@ async function requestApi<T>(path: string, signal?: AbortSignal, method = "GET")
   const { data, error } = await client.auth.getSession();
   if (error) throw new Error(error.message);
   if (!data.session) throw new Error("Sign in with an authorised Doctor account to load assigned knowledge graphs.");
-  const apiBase = resolveKnowledgeGraphApiUrl(import.meta.env.VITE_API_BASE_URL, import.meta.env.DEV ? "http://localhost:5000" : "");
-  if (!apiBase) throw new Error("The Knowledge Graph backend is not configured. Set VITE_API_BASE_URL to the backend origin.");
+  const apiBase = getForecastApiUrl();
+  if (!apiBase) throw new Error("The Python backend is not configured. Set VITE_API_BASE_URL to the backend origin.");
   const response = await fetch(apiBase + path, {
     method,
     signal,

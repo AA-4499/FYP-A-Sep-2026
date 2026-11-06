@@ -444,6 +444,27 @@ test('Admin workspace migration and RPC contract hold in an isolated PostgreSQL 
     assert.equal(anonRows.rows.length, 0);
   });
 
+  await t.test('patient dashboard follows Admin doctor reassignment without exposing other patient profiles', async () => {
+    const read = (n, metadata = {}) => asAccount(n, async (tx) => asJson((await tx.query('select get_my_patient_dashboard() as data')).rows[0].data), metadata);
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', id(10)]);
+    const assigned = await read(2);
+    assert.equal(assigned.profile.id, id(2));
+    assert.deepEqual(assigned.assigned_doctor, {id:id(10), full_name:(await profile(10)).full_name});
+    assert.equal(await read(3), null, 'Previously suspended Patient remains blocked');
+    await adminCall("select admin_set_account_status($1, 'active') as data", [id(3)]);
+    const other = await read(3);
+    assert.equal(other.profile.id, id(3));
+    assert.equal(other.summary['Patient Number'], 'PT-000002');
+    await adminCall("select admin_set_account_status($1, 'suspended') as data", [id(3)]);
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', id(14)]);
+    assert.equal((await read(2)).assigned_doctor.id, id(14));
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', null]);
+    assert.equal((await read(2)).assigned_doctor, null);
+    assert.equal(await read(10, {role:'doctor'}), null);
+    assert.equal(await read(10), null, 'Doctor cannot use Patient RPC by omitting a role claim');
+    await adminCall('select admin_set_patient_assignment($1, $2) as data', ['PT-000001', id(10)]);
+  });
+
   await t.test('suspended patients receive an empty dashboard while active patients keep theirs', async () => {
     const activeDashboard = await asAccount(2, async (tx) => asJson(
       (await tx.query('select get_my_patient_dashboard() as data')).rows[0].data,

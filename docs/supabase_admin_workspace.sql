@@ -1071,11 +1071,20 @@ end;
 $$;
 
 -- Suspended patients must also receive nothing from the dashboard RPC.
--- SECURITY INVOKER retains table RLS; no caller-supplied user/record identifier.
+-- SECURITY DEFINER permits the assigned doctor name only for the active patient
+-- whose profile matches auth.uid(); no caller-supplied record identifier.
 create or replace function public.get_my_patient_dashboard()
-returns jsonb language sql stable security invoker set search_path = '' as $$
+returns jsonb language sql stable security definer set search_path = '' as $$
   select jsonb_build_object(
     'profile', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'patient_id', p.patient_id),
+    'assigned_doctor', (
+      select jsonb_build_object('id', d.id, 'full_name', d.full_name)
+      from public.clinician_patient_assignments a
+      join public.profiles d on d.id = a.clinician_id
+      where a.patient_id = p.patient_id
+        and d.role::text = 'doctor' and d.status::text = 'active'
+      limit 1
+    ),
     'summary', (
       select jsonb_build_object(
         'Patient Number', s."Patient Number"::text,
@@ -1101,6 +1110,7 @@ returns jsonb language sql stable security invoker set search_path = '' as $$
       ) r
     ), '[]'::jsonb)
   ) from public.profiles p where p.id = auth.uid()
+    and p.role::text = 'patient'
     and public.current_account_active()
     and coalesce(auth.jwt()->'app_metadata'->>'role', 'patient') = 'patient';
 $$;

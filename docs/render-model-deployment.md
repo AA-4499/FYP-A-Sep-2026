@@ -102,3 +102,28 @@ requires exporting matching JSON assets/manifest and redeploying the frontend.
 Official references: [Flask deployment](https://render.com/docs/deploy-flask),
 [Python versions](https://render.com/docs/python-version),
 [health checks](https://render.com/docs/health-checks).
+
+## Separate Knowledge Graph and model services
+
+The integrated frontend can use two servers without changing the prediction
+configuration:
+
+```env
+VITE_API_BASE_URL=https://your-model-service.onrender.com
+VITE_CONDITIONAL_ENGINE=server
+VITE_KG_API_BASE_URL=https://your-knowledge-graph-service.onrender.com
+```
+
+Set these on the frontend host (for example Vercel) and redeploy. A nonempty
+`VITE_KG_API_BASE_URL` routes all Knowledge Graph requests to that dedicated
+origin, independently of the saved model service connection. Leave it empty to
+use the existing shared backend. Both servers must allow the frontend origin
+and authenticate against the same Supabase project. Neo4j credentials belong
+on the KG backend, never in frontend `VITE_` variables.
+
+The merged Patient profile can display the Admin-assigned doctor's name. Existing
+databases need the updated `docs/supabase_admin_workspace.sql` applied before
+that field is available. Initial Patient setup remains compatible without an
+assignment table; the final Admin migration installs the owner-scoped,
+active-account dashboard RPC. Source integration does not execute any Supabase
+migrations or KG migration/seed scripts against live services.

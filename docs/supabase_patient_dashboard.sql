@@ -58,23 +58,15 @@ begin
 end;
 $$;
 
--- SECURITY DEFINER is restricted to the authenticated patient's own profile
--- so the assigned doctor's identity can be read without exposing other records.
+-- Initial dashboard also supports installations before care-team assignments exist.
+-- The Admin migration adds assigned-doctor details with active-account checks.
+-- SECURITY INVOKER retains clinical table RLS.
 -- Null measurements remain null; no demo records, inferred risks, or ID numbers.
 create or replace function public.get_my_patient_dashboard()
-returns jsonb language sql stable security definer set search_path = '' as $$
+returns jsonb language sql stable security invoker set search_path = '' as $$
   select jsonb_build_object(
     'profile', jsonb_build_object('id', p.id, 'full_name', p.full_name, 'patient_id', p.patient_id),
-    'assigned_doctor', (
-      select jsonb_build_object(
-        'id', d.id,
-        'full_name', d.full_name
-      )
-      from public.clinician_patient_assignments a
-      join public.profiles d on d.id = a.clinician_id
-      where a.patient_id = p.patient_id
-      limit 1
-    ),
+    'assigned_doctor', null,
     'summary', (
       select jsonb_build_object(
         'Patient Number', s."Patient Number"::text,

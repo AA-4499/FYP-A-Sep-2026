@@ -16,6 +16,7 @@ import {
 import type { Patient } from "../types";
 import { getSupabaseClient } from "../lib/supabase";
 import { getForecastApiUrl } from "../lib/forecast";
+import { resolveKnowledgeGraphApiUrl } from "../lib/serviceOrigins";
 
 interface Props {
   patients: Patient[];
@@ -95,8 +96,8 @@ async function requestApi<T>(path: string, signal?: AbortSignal, method = "GET")
   const { data, error } = await client.auth.getSession();
   if (error) throw new Error(error.message);
   if (!data.session) throw new Error("Sign in with an authorised Doctor account to load assigned knowledge graphs.");
-  const apiBase = getForecastApiUrl();
-  if (!apiBase) throw new Error("The Python backend is not configured. Set VITE_API_BASE_URL to the backend origin.");
+  const apiBase = resolveKnowledgeGraphApiUrl(import.meta.env.VITE_KG_API_BASE_URL, getForecastApiUrl());
+  if (!apiBase) throw new Error("The Knowledge Graph backend is not configured. Set VITE_KG_API_BASE_URL, or use VITE_API_BASE_URL for a shared backend.");
   const response = await fetch(apiBase + path, {
     method,
     signal,

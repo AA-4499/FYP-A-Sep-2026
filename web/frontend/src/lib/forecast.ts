@@ -1,6 +1,7 @@
 import { getSupabaseClient } from "./supabase";
 import { loadForecastPreview } from "./forecastPreview";
 import { requestModelService } from './modelServiceRequest';
+import { resolveModelApiUrl } from './serviceOrigins';
 
 export type ForecastSource = "browser" | "preview" | "local" | "supabase";
 
@@ -65,13 +66,8 @@ export function getForecastApiUrl(): string {
     typeof window !== "undefined"
       ? localStorage.getItem(API_URL_STORAGE_KEY)
       : null;
-  return (
-    saved ||
-    (import.meta.env.VITE_API_BASE_URL as string) ||
-    (import.meta.env.DEV ? "http://localhost:5000" : "")
-  )
-    .trim()
-    .replace(/\/+$/, "");
+  return resolveModelApiUrl(import.meta.env.VITE_MODEL_API_BASE_URL, saved,
+    import.meta.env.DEV ? "http://localhost:5000" : "");
 }
 
 export function saveForecastApiUrl(value: string): void {

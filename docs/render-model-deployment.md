@@ -58,7 +58,7 @@ model inference, Supabase access, and patient assignments all succeed.
 
 ## Connect the frontend
 
-Set `VITE_API_BASE_URL=https://<service>.onrender.com` in the frontend hosting
+Set `VITE_MODEL_API_BASE_URL=https://<service>.onrender.com` in the frontend hosting
 environment, set `VITE_CONDITIONAL_ENGINE=server`, and rebuild/redeploy the
 frontend. Keep `VITE_SUPABASE_URL` and
 `VITE_SUPABASE_ANON_KEY` pointing to the same Supabase project. Never put the
@@ -109,15 +109,16 @@ The integrated frontend can use two servers without changing the prediction
 configuration:
 
 ```env
-VITE_API_BASE_URL=https://your-model-service.onrender.com
+VITE_API_BASE_URL=https://your-knowledge-graph-service.onrender.com
+VITE_MODEL_API_BASE_URL=https://your-model-service.onrender.com
 VITE_CONDITIONAL_ENGINE=server
-VITE_KG_API_BASE_URL=https://your-knowledge-graph-service.onrender.com
 ```
 
-Set these on the frontend host (for example Vercel) and redeploy. A nonempty
-`VITE_KG_API_BASE_URL` routes all Knowledge Graph requests to that dedicated
-origin, independently of the saved model service connection. Leave it empty to
-use the existing shared backend. Both servers must allow the frontend origin
+Set these on the frontend host (for example Vercel) and redeploy. Keep the
+existing `VITE_API_BASE_URL` and its KG address unchanged. The model now reads
+`VITE_MODEL_API_BASE_URL`; its browser-local connection setting affects models
+only. The removed `VITE_KG_API_BASE_URL` is no longer read. For a shared backend,
+set both API variables to the same origin explicitly. Both servers must allow the frontend origin
 and authenticate against the same Supabase project. Neo4j credentials belong
 on the KG backend, never in frontend `VITE_` variables.
 

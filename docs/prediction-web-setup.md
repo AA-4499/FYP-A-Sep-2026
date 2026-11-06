@@ -20,7 +20,7 @@ python -m models.training.export_forecast_preview
 
 Generation uses the Python training dependencies, but Vercel builds only the frontend and copies the committed snapshots. No Python runtime or new environment variable is required for preview mode. Deploy the `TrainingModel` frontend branch to Vercel to receive this change.
 
-When the API is ready, use **Service connection** to connect and switch to Supabase, or select **Supabase Cloud (online service)** in Data source. Configure `VITE_API_BASE_URL` and `ALLOWED_ORIGINS` as described below for all visitors. Local preview remains an explicit selectable mode; failed online requests do not silently substitute preview data.
+When the API is ready, use **Service connection** to connect and switch to Supabase, or select **Supabase Cloud (online service)** in Data source. Configure `VITE_MODEL_API_BASE_URL` and `ALLOWED_ORIGINS` as described below for all visitors. Local preview remains an explicit selectable mode; failed online requests do not silently substitute preview data.
 
 GitHub stores the code and trained weights. The frontend can run on Vercel or on the optional Render static site defined in this repository. Render runs the Python prediction API, which reads patient data from Supabase and saves completed forecasts back to Supabase.
 
@@ -53,7 +53,7 @@ For the Render static site, use the repository's `TrainingModel` branch, set **R
 
 | Frontend variable | Value |
 | --- | --- |
-| `VITE_API_BASE_URL` | The deployed Python service origin, without `/api` or a trailing slash. |
+| `VITE_MODEL_API_BASE_URL` | The deployed Python service origin, without `/api` or a trailing slash. |
 | `VITE_SUPABASE_URL` | The Supabase project URL. |
 | `VITE_SUPABASE_ANON_KEY` | The Supabase publishable/anon key. |
 
@@ -94,14 +94,14 @@ For an existing Supabase database, apply `models/training/supabase_forecast_outp
 For all visitors:
 
 1. Open the Vercel project's environment variable settings.
-2. Set `VITE_API_BASE_URL` to the actual Python service origin, for example `https://your-model-service.onrender.com`.
+2. Set `VITE_MODEL_API_BASE_URL` to the actual Python service origin, for example `https://your-model-service.onrender.com`.
 3. Apply it to the environments you use, including **Preview** for branch deployments and **Production** if needed.
 4. Redeploy the frontend. Changing an environment variable does not update an existing build.
 5. Include the actual frontend origin in Render's `ALLOWED_ORIGINS`. A preview deployment can have a different origin from production.
 
 Use the service origin only, without `/api`. Keep the frontend's existing Supabase URL and publishable/anon key configuration. See the official [Vercel environment variable guide](https://vercel.com/docs/environment-variables/managing-environment-variables).
 
-For a quick check in one browser, open **Service connection** on the Risk Prediction page, enter the same Python service origin and select **Connect and retry**. This override is saved only in that browser and takes precedence over `VITE_API_BASE_URL`. Clear it to return to the deployment setting.
+For a quick check in one browser, open **Service connection** on the Risk Prediction page, enter the same Python service origin and select **Connect and retry**. This override is saved only in that browser and takes precedence over `VITE_MODEL_API_BASE_URL`. Clear it to return to the deployment setting.
 
 ## 4. Verify a real forecast
 
@@ -113,7 +113,7 @@ The webpage still uses the legacy checkpoint `models/weights/gru_t2dm_forecaster
 
 | Symptom | What to check |
 | --- | --- |
-| Model service is not connected | Set `VITE_API_BASE_URL` and redeploy, or use Service connection in the current browser. |
+| Model service is not connected | Set `VITE_MODEL_API_BASE_URL` and redeploy, or use Service connection in the current browser. |
 | The address returns HTML instead of prediction JSON | Use the Python service origin, rather than the Vercel webpage or Supabase project URL. |
 | Health endpoint does not respond | Check Render deployment/runtime logs and confirm the Blueprint root, build command and start command. |
 | Browser reports a CORS failure | Add the exact current frontend origin to `ALLOWED_ORIGINS` on Render and apply the updated environment. |

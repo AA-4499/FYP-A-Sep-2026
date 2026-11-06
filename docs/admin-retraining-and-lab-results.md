@@ -23,7 +23,7 @@ Refresh the Doctor workspace after Admin changes an assignment.
 
 Doctor-list loading and v3 browser inference use Supabase directly. They do not
 require Render. The previous GRU's **Supabase data · Python service** option also
-needs a reachable Python backend, configured through `VITE_API_BASE_URL` or
+needs a reachable Python backend, configured through `VITE_MODEL_API_BASE_URL` or
 Service connection, with the website allowed by CORS. A browser `Failed to fetch`
 cannot by itself identify missing deployment, a wrong URL, HTTPS/network failure,
 or CORS; it does not establish that Admin assignments or Supabase data are wrong.
@@ -39,7 +39,7 @@ refreshed Supabase data.
 2. Apply `docs/supabase_prediction_results.sql` after the Admin migration. It
    creates the immutable saved-results table and access policies. The migration
    is safe to rerun; it does not delete existing predictions.
-3. Deploy the frontend and Python backend. Configure `VITE_API_BASE_URL` on the
+3. Deploy the frontend and Python backend. Configure `VITE_MODEL_API_BASE_URL` on the
    frontend and `SUPABASE_URL` plus the server-only `SUPABASE_SECRET_KEY` on the
    backend. Existing forecast output migrations are still required for online
    inference's audit save.

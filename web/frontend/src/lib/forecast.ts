@@ -2,6 +2,7 @@ import { getSupabaseClient } from "./supabase";
 import { loadForecastPreview } from "./forecastPreview";
 import { requestModelService } from './modelServiceRequest';
 import { isRetiredModelOrigin, readForecastApiOverride } from './retiredModelConnection';
+import { resolveMainApiOrigin } from './mainApiOrigin';
 
 export type ForecastSource = "browser" | "preview" | "local" | "supabase";
 
@@ -66,13 +67,7 @@ export function getForecastApiUrl(): string {
     typeof window !== "undefined"
       ? readForecastApiOverride(localStorage)
       : null;
-  return (
-    saved ||
-    (import.meta.env.VITE_API_BASE_URL as string) ||
-    (import.meta.env.DEV ? "http://localhost:5000" : "")
-  )
-    .trim()
-    .replace(/\/+$/, "");
+  return resolveMainApiOrigin(import.meta.env.VITE_API_BASE_URL, saved, import.meta.env.DEV);
 }
 
 export function saveForecastApiUrl(value: string): void {

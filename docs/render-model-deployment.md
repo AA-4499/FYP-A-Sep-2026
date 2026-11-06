@@ -12,6 +12,12 @@ existing frontend hosting project. The removed model/KG-specific origin variable
 and conditional-engine variable are no longer read. Rebuild and redeploy the
 frontend after restoring the original variables.
 
+The KG component and API contract match `main`. Production builds with no
+nonempty `VITE_API_BASE_URL` now default to the original public backend,
+`https://diabetes-digital-twin-kg-api.onrender.com`, so a missing Preview variable
+does not disable KG. An explicitly configured origin and a valid saved connection
+retain their existing priority. Local development still defaults to localhost.
+
 The default v3 engine runs in the browser and reads authorized Supabase records.
 It does not require the newly created model Render service. The trained medium
 checkpoint and server inference code remain in the repository for later use.

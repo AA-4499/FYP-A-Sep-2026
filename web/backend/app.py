@@ -45,6 +45,10 @@ from services.knowledge_graph_analysis_service import (
     KnowledgeGraphAnalysisUnavailableError,
     analyze_patient_knowledge_graph,
 )
+from services.clinical_knowledge_sources_service import (
+    ClinicalKnowledgeSourcesUnavailableError,
+    get_clinical_knowledge_sources,
+)
 
 
 app = Flask(__name__)
@@ -240,6 +244,17 @@ def _verify_doctor_patient_assignment(patient_id: str):
     if str(patient_id) not in assigned_ids:
         return jsonify({"error": "This patient is not assigned to your doctor account."}), 403
     return None
+
+
+@app.route("/api/doctor/knowledge-graph/sources", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_clinical_knowledge_sources():
+    """Return the checked-in literature bibliography for the Doctor KG workspace."""
+    try:
+        return jsonify(get_clinical_knowledge_sources())
+    except ClinicalKnowledgeSourcesUnavailableError as exc:
+        app.logger.warning("Clinical KG bibliography unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc), "source": "repository-bibliography"}), 503
 
 
 @app.route("/api/doctor/assigned-patients", methods=["GET"])

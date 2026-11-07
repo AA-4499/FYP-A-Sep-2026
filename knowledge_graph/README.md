@@ -5,6 +5,8 @@ This directory contains several separate knowledge-graph prototypes and resource
 - `patient_kg/` is the isolated patient-condition graph prototype.
 - `seed_graph.py` is a legacy scaffold, not the curated clinical T2D concept-graph seeder.
 - `clinical_t2dm_pack_security_review.md` records the sanitization review for the curated Type 2 Diabetes concept-graph package.
+- `../docs/kg-phase0-audit.md` records the branch baseline, current architecture and Phase 1 literature-viewer boundary.
+- `../docs/trainingmodel-ai-architecture-review.md` explains the TrainingModel prediction pipeline and the remaining KG-grounded recommendation work.
 
 The curated package includes concept and relationship catalogues, source references, a relationship evidence matrix, seed queries, read-only audit/verification queries, and migration/AI-use notes. All proposed relationships remain candidates for review.
 

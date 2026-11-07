@@ -4,7 +4,9 @@ import {
   Activity,
   ArrowRight,
   BrainCircuit,
+  BookOpen,
   CheckCircle2,
+  ExternalLink,
   Info,
   Network,
   RefreshCw,
@@ -24,7 +26,7 @@ interface Props {
   onPreviewPatientView: (patientId: string) => void;
 }
 
-type TabId = "patient" | "clinical" | "analysis";
+type TabId = "patient" | "clinical" | "analysis" | "sources";
 type NodeRecord = {
   id: string;
   label: string;
@@ -87,6 +89,28 @@ type AnalysisResponse = {
   contextStats: Record<string, number>;
   safetyNote: string;
   error?: string;
+};
+type LiteratureSource = {
+  ref: string;
+  authors: string;
+  title: string;
+  publication: string;
+  year: number | null;
+  details?: string | null;
+  doi?: string | null;
+  url?: string | null;
+  kind?: string | null;
+  v1_usage?: string | null;
+  note?: string | null;
+  projectCitationAsSupplied?: string | null;
+  firstPublishedOnlineYear?: number | null;
+};
+type LiteratureSourcesResponse = {
+  source: string;
+  version: string;
+  sha256: string;
+  totalReferences: number;
+  references: LiteratureSource[];
 };
 
 async function requestApi<T>(path: string, signal?: AbortSignal, method = "GET"): Promise<T> {
@@ -162,6 +186,10 @@ export const KnowledgeGraphView: React.FC<Props> = ({
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState("");
+  const [sources, setSources] = useState<LiteratureSourcesResponse | null>(null);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+  const [sourcesError, setSourcesError] = useState("");
+  const [sourceSearch, setSourceSearch] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -237,6 +265,34 @@ export const KnowledgeGraphView: React.FC<Props> = ({
       controller.abort();
     };
   }, [refreshKey]);
+
+  useEffect(() => {
+    if (activeTab !== "sources") return undefined;
+    const controller = new AbortController();
+    let active = true;
+    setSourcesLoading(true);
+    setSourcesError("");
+    void requestApi<LiteratureSourcesResponse>("/api/doctor/knowledge-graph/sources", controller.signal)
+      .then((result) => {
+        if (!active) return;
+        if (!Array.isArray(result.references) || result.references.length !== result.totalReferences) {
+          throw new Error("The literature source response has an unexpected structure.");
+        }
+        setSources(result);
+      })
+      .catch((error: unknown) => {
+        if (!active || controller.signal.aborted) return;
+        setSources(null);
+        setSourcesError(error instanceof Error ? error.message : "The literature sources could not be loaded.");
+      })
+      .finally(() => {
+        if (active && !controller.signal.aborted) setSourcesLoading(false);
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     if (!patientId || !assignedIds.includes(patientId)) {
@@ -466,10 +522,38 @@ export const KnowledgeGraphView: React.FC<Props> = ({
     }
   }
 
-  const currentLoading = activeTab === "patient" ? patientGraphLoading : activeTab === "clinical" ? clinicalGraphLoading : analysisLoading;
-  const currentError = activeTab === "patient" ? patientGraphError : activeTab === "clinical" ? clinicalGraphError : analysisError;
-  const nodeCount = activeTab === "patient" ? patientGraph?.stats.total_nodes ?? 0 : clinicalGraph?.stats.totalNodes ?? 0;
-  const edgeCount = activeTab === "patient" ? patientGraph?.stats.total_edges ?? 0 : clinicalGraph?.stats.totalEdges ?? 0;
+  const filteredSources = useMemo(() => {
+    const query = sourceSearch.trim().toLocaleLowerCase();
+    if (!sources || !query) return sources?.references ?? [];
+    return sources.references.filter((source) => [
+      source.ref, source.authors, source.title, source.publication, source.year,
+      source.doi, source.kind, source.v1_usage,
+    ].some((value) => String(value ?? "").toLocaleLowerCase().includes(query)));
+  }, [sources, sourceSearch]);
+
+  const sourceUsage = useMemo(() => {
+    const result = new Map<string, { concepts: string[]; relationships: string[] }>();
+    for (const source of sources?.references ?? []) result.set(source.ref, { concepts: [], relationships: [] });
+    for (const node of clinicalGraph?.nodes ?? []) {
+      for (const ref of node.sourceRefs ?? []) {
+        const item = result.get(ref);
+        if (item && !item.concepts.includes(node.name)) item.concepts.push(node.name);
+      }
+    }
+    for (const edge of clinicalGraph?.edges ?? []) {
+      for (const ref of edge.sourceRefs ?? []) {
+        const item = result.get(ref);
+        const label = edge.sourceName + " —" + edge.predicate + "→ " + edge.targetName;
+        if (item && !item.relationships.includes(label)) item.relationships.push(label);
+      }
+    }
+    return result;
+  }, [sources, clinicalGraph]);
+
+  const currentLoading = activeTab === "patient" ? patientGraphLoading : activeTab === "clinical" ? clinicalGraphLoading : activeTab === "sources" ? sourcesLoading : analysisLoading;
+  const currentError = activeTab === "patient" ? patientGraphError : activeTab === "clinical" ? clinicalGraphError : activeTab === "sources" ? sourcesError : analysisError;
+  const nodeCount = activeTab === "sources" ? sources?.totalReferences ?? 0 : activeTab === "patient" ? patientGraph?.stats.total_nodes ?? 0 : clinicalGraph?.stats.totalNodes ?? 0;
+  const edgeCount = activeTab === "sources" ? 0 : activeTab === "patient" ? patientGraph?.stats.total_edges ?? 0 : clinicalGraph?.stats.totalEdges ?? 0;
 
   return (
     <section className="space-y-5">
@@ -532,12 +616,12 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Graph nodes</span>
             <p className="mt-2 text-2xl font-bold text-slate-900">{nodeCount}</p>
-            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "patient" ? "Patient and recorded conditions" : "Shared medical concepts"}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "sources" ? "Bibliography entries" : activeTab === "patient" ? "Patient and recorded conditions" : "Shared medical concepts"}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Relationships</span>
             <p className="mt-2 text-2xl font-bold text-slate-900">{edgeCount}</p>
-            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "clinical" ? (clinicalGraph?.stats.reviewedEdges ?? 0) + " reviewed · " + (clinicalGraph?.stats.candidateEdges ?? 0) + " candidates" : "Recorded graph relationships"}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "sources" ? "Source registry" : activeTab === "clinical" ? (clinicalGraph?.stats.reviewedEdges ?? 0) + " reviewed · " + (clinicalGraph?.stats.candidateEdges ?? 0) + " candidates" : "Recorded graph relationships"}</p>
           </div>
         </div>
       </div>
@@ -555,6 +639,10 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           <BrainCircuit className="h-4 w-4" />
           Graph analysis
         </button>
+        <button type="button" onClick={() => setActiveTab("sources")} className={"inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold " + (activeTab === "sources" ? "border-teal-600 text-teal-800" : "border-transparent text-slate-500 hover:text-slate-800")}>
+          <BookOpen className="h-4 w-4" />
+          Literature sources
+        </button>
       </div>
 
       {currentError && (
@@ -563,7 +651,94 @@ export const KnowledgeGraphView: React.FC<Props> = ({
         </div>
       )}
 
-      {activeTab !== "analysis" ? (
+      {activeTab === "sources" ? (
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Literature source registry</h2>
+                <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500">
+                  Full citation metadata resolved from the checked-in project bibliography. Source IDs are matched against the sourceRefs stored on the shared clinical concepts and relationships.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-600">
+                <BookOpen className="h-3.5 w-3.5" /> Read only
+              </span>
+            </div>
+            <label className="relative mt-4 block">
+              <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
+              <input
+                value={sourceSearch}
+                onChange={(event) => setSourceSearch(event.target.value)}
+                placeholder="Search reference ID, author, title, journal, DOI or source type…"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-teal-500"
+              />
+            </label>
+            {sources && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                <span>{sources.totalReferences} bibliography entries</span>
+                <span>Registry version {sources.version}</span>
+                <span className="break-all">SHA-256 {sources.sha256}</span>
+              </div>
+            )}
+          </section>
+          {sourcesLoading && <div role="status" className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Loading literature sources…</div>}
+          {sources && !sourcesLoading && (
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500">{filteredSources.length} of {sources.totalReferences} sources shown</p>
+              {filteredSources.map((source) => {
+                const usage = sourceUsage.get(source.ref) ?? { concepts: [], relationships: [] };
+                const publisherUrl = source.url || (source.doi ? "https://doi.org/" + source.doi : "");
+                return (
+                  <article key={source.ref} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">{source.ref}</span>
+                          {source.kind && <span className="text-[11px] text-slate-500">{source.kind}</span>}
+                        </div>
+                        <h3 className="mt-2 text-sm font-bold leading-6 text-slate-900">{source.title}</h3>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">{source.authors}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{source.publication}{source.year ? " · " + source.year : ""}{source.details ? " · " + source.details : ""}</p>
+                      </div>
+                      {publisherUrl && (
+                        <a href={publisherUrl} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-teal-700 hover:underline">
+                          Open source <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">DOI</p>
+                        <p className="mt-1 break-all text-xs text-slate-700">{source.doi || "Not recorded"}</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">KG v1 usage</p>
+                        <p className="mt-1 text-xs text-slate-700">{source.v1_usage ? source.v1_usage.replace(/_/g, " ") : "Not specified"}</p>
+                      </div>
+                    </div>
+                    {source.note && <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-xs leading-5 text-slate-700">{source.note}</p>}
+                    {source.projectCitationAsSupplied && <p className="mt-3 text-xs leading-5 text-slate-500">Project citation as supplied: {source.projectCitationAsSupplied}</p>}
+                    <div className="mt-4 border-t border-slate-100 pt-3">
+                      <div className="flex flex-wrap gap-4 text-[11px] text-slate-500">
+                        <span>{usage.concepts.length} concepts reference this source</span>
+                        <span>{usage.relationships.length} relationships reference this source</span>
+                      </div>
+                      {usage.concepts.length > 0 && <p className="mt-2 text-xs leading-5 text-slate-600"><span className="font-semibold">Concepts:</span> {usage.concepts.join(" · ")}</p>}
+                      {usage.relationships.length > 0 && <p className="mt-2 text-xs leading-5 text-slate-600"><span className="font-semibold">Relationships:</span> {usage.relationships.slice(0, 8).join(" · ")}{usage.relationships.length > 8 ? " · …" : ""}</p>}
+                      {usage.concepts.length === 0 && usage.relationships.length === 0 && <p className="mt-2 text-xs text-slate-500">No matching sourceRefs were found in the graph response currently loaded.</p>}
+                    </div>
+                  </article>
+                );
+              })}
+              {filteredSources.length === 0 && <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No sources match this search.</div>}
+            </div>
+          )}
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-[11px] leading-5 text-slate-500">
+            Bibliographic metadata and source links are displayed for traceability. This page does not independently verify the full publication, grant text-mining permission, or approve any relationship for AI use. Editing and review decisions are not available here.
+          </p>
+        </div>
+      ) : activeTab !== "analysis" ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
           <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">

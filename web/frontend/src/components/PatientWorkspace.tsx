@@ -6,6 +6,7 @@ import { loadPatientDashboard } from "../lib/patientDashboard";
 import type { PatientDashboardData } from "../lib/patientDashboard";
 import type { NavigationModule } from "../types";
 import { Sidebar } from "./Sidebar";
+import { FontSizeSettings } from "./FontSizeSettings";
 import {
   RecordedMonitoring,
   OrganEvidence,
@@ -25,6 +26,7 @@ const pages = new Set<NavigationModule>([
   "patient_digital_twin",
   "patient_recommendations",
   "patient_reports",
+  "patient_settings",
 ]);
 
 export function PatientWorkspace({
@@ -117,7 +119,7 @@ export function PatientWorkspace({
       : "";
   return (
     <div className="min-h-screen bg-[#f8fafc] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
-      <div className="mx-auto flex max-w-[1400px] flex-col items-start gap-5 md:flex-row lg:gap-6">
+      <div className="mx-auto flex max-w-[1400px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode="patient"
           activeModule={page}
@@ -243,6 +245,7 @@ export function PatientWorkspace({
                     your care team.
                   </section>
                 )}
+                {page === "patient_settings" && <FontSizeSettings />}
                 {page === "patient_home" && (
                   <PatientHomeView patient={patient} onNavigate={navigate} />
                 )}

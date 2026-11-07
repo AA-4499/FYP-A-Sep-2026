@@ -35,7 +35,9 @@ export type PatientModule =
   | "patient_digital_twin"
   | "patient_insights"
   | "patient_recommendations"
-  | "patient_reports";
+  | "patient_reports"
+  | "patient_knowledge_graph"
+  | "patient_settings";
 
 export type NavigationModule = PatientModule | AdminModule | DoctorModule;
 

@@ -152,7 +152,7 @@ let cachedRawDetails: SupabasePatientDetail[] = [];
 /**
  * Fetch all patients from Supabase public.patient_summary
  */
-export async function fetchSupabasePatients(): Promise<Patient[]> {
+export async function fetchSupabasePatients(patientIds?: ReadonlySet<string>): Promise<Patient[]> {
   const client = getSupabaseClient();
   if (!client)
     throw new Error("Connect your Supabase project to load patient records.");
@@ -167,9 +167,11 @@ export async function fetchSupabasePatients(): Promise<Patient[]> {
     const id = String(row["Patient Number"]);
     grouped.set(id, [...(grouped.get(id) ?? []), row]);
   });
-  return cachedRawSummaries.map((row) =>
-    mapSupabaseToPatient(row, grouped.get(String(row["Patient Number"])) ?? []),
-  );
+  return cachedRawSummaries
+    .filter((row) => !patientIds || patientIds.has(String(row["Patient Number"]).trim()))
+    .map((row) =>
+      mapSupabaseToPatient(row, grouped.get(String(row["Patient Number"])) ?? []),
+    );
 }
 
 export function getCachedRawDetails(): SupabasePatientDetail[] {

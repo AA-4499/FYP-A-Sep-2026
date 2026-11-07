@@ -1,6 +1,7 @@
 ﻿/** Clinical workspace. Database facts and research simulations have separate views. */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
+import { FontSizeSettings } from "./components/FontSizeSettings";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
 import { AdminWorkspace } from "./components/admin/AdminWorkspace";
@@ -15,7 +16,8 @@ import {
   OrganEvidence,
   RecordedReport,
 } from "./components/ClinicalWorkspace";
-import { fetchSupabasePatients } from "./lib/supabase";
+import { fetchSupabasePatients, getSupabaseClient, clearSupabasePatientCache } from "./lib/supabase";
+import { fetchDoctorAssignedPatientIds } from "./lib/doctorAssignments";
 import type { NavigationModule, Patient, UserRole } from "./types";
 
 const KnowledgeGraphView = React.lazy(async () => ({
@@ -47,6 +49,7 @@ function Workspace({
   const [mode, setMode] = useState<UserRole>(initialRole);
   // initialRole is verified by AuthGateway; changing the displayed workspace grants no role.
   const canViewPredictions = !isPreview && initialRole === "doctor";
+  const canViewKnowledgeGraph = !isPreview && initialRole === "doctor";
   const [doctorPage, setDoctorPage] =
     useState<NavigationModule>("doctor_overview");
   const [patientPage, setPatientPage] =
@@ -62,8 +65,12 @@ function Workspace({
     const request = ++revision.current;
     setLoading(true);
     setError("");
+    clearSupabasePatientCache();
     try {
-      const records = await fetchSupabasePatients();
+      const assignedIds = initialRole === "doctor" && !isPreview
+        ? new Set(await fetchDoctorAssignedPatientIds())
+        : undefined;
+      const records = await fetchSupabasePatients(assignedIds);
       if (request !== revision.current) return;
       setPatients(records);
       setSelectedId((previous) =>
@@ -84,7 +91,7 @@ function Workspace({
     } finally {
       if (request === revision.current) setLoading(false);
     }
-  }, []);
+  }, [initialRole, isPreview]);
   useEffect(() => {
     void refresh();
     return () => {
@@ -103,6 +110,7 @@ function Workspace({
       !canViewPredictions
     )
       return;
+    if (page === "patient_knowledge_graph" && !canViewKnowledgeGraph) return;
     if (page.startsWith("doctor_")) {
       setMode("doctor");
       setDoctorPage(page);
@@ -117,11 +125,11 @@ function Workspace({
   };
   if (mode === "admin") return <AdminWorkspace onExit={onExit} />;
   const page = mode === "doctor" ? doctorPage : patientPage;
-  const settings = page === "doctor_settings";
+  const settings = page === "doctor_settings" || page === "patient_settings";
   const overview = page === "doctor_overview";
   return (
     <div className="min-h-screen bg-[#f5f8f8] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
-      <div className="mx-auto flex max-w-[1500px] flex-col items-start gap-5 md:flex-row lg:gap-6">
+      <div className="mx-auto flex max-w-[1500px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode={mode}
           activeModule={page}
@@ -129,6 +137,7 @@ function Workspace({
           currentPatientName={patient?.name}
           onReturnToCareTeam={backToDoctor}
           canViewPredictions={canViewPredictions}
+          canViewKnowledgeGraph={canViewKnowledgeGraph}
         />
         <main className="w-full min-w-0 flex-1 space-y-5">
           <TopBar
@@ -136,7 +145,8 @@ function Workspace({
             currentPatient={patient}
             patientsList={patients}
             isSupabaseConnected={!!loadedAt && !error}
-            onSelectPatient={mode === "patient" ? openPatient : setSelectedId}
+            onSelectPatient={openPatient}
+            showPatientSearch={!(mode === "doctor" && (page === "doctor_overview" || page === "doctor_patients"))}
             onSwitchMode={(next) => {
               setMode(next);
               if (next === "doctor") setDoctorPage("doctor_overview");
@@ -144,24 +154,23 @@ function Workspace({
             }}
             onOpenAuth={onExit}
             isDemo={isPreview}
-            onOpenAdmin={() => setMode("admin")}
             onOpenSupabaseModal={() => setConnectionOpen(true)}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3 text-[11px] text-teal-900">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-slate-500">
             <span>
               {loading
                 ? "Loading clinical records…"
                 : error
                   ? "Database records unavailable"
-                  : `${patients.length} accessible records · refreshed ${loadedAt}`}
-              {isPreview ? " · Read-only research cohort preview" : ""}
+                  : `${patients.length} patients assigned by Admin`}
+              {isPreview ? " · Preview" : ""}
             </span>
             <button
               disabled={loading}
               onClick={() => refresh()}
               className="font-semibold underline underline-offset-2 disabled:opacity-50"
             >
-              Refresh database records
+              Refresh
             </button>
           </div>
           {isPreview && (
@@ -203,7 +212,7 @@ function Workspace({
               {error}
             </div>
           )}
-          {!patient && !overview && !settings && page !== "doctor_knowledge_graph" && (
+          {!patient && !overview && !settings && page !== "doctor_knowledge_graph" && page !== "patient_knowledge_graph" && (
             <section
               role="status"
               className="rounded-3xl border border-slate-200 bg-white p-8"
@@ -246,6 +255,7 @@ function Workspace({
               />
             </React.Suspense>
           )}
+          {settings && <FontSizeSettings />}
           {settings && (
             <section className="rounded-3xl border border-slate-200 bg-white p-6">
               <h1 className="text-2xl font-bold">Workspace settings</h1>
@@ -275,6 +285,11 @@ function Workspace({
                 </div>
               </dl>
             </section>
+          )}
+          {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (
+            <React.Suspense fallback={<section role="status" className="rounded-2xl bg-white p-6 text-sm text-slate-500">Loading Knowledge Graph…</section>}>
+              <KnowledgeGraphView patients={patients} patientId={selectedId} onSelectPatient={setSelectedId} onPreviewPatientView={() => openPatient(selectedId)} />
+            </React.Suspense>
           )}
           {patient && (
             <>

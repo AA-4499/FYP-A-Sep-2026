@@ -7,6 +7,7 @@ import type { PatientDashboardData } from "../lib/patientDashboard";
 import type { NavigationModule } from "../types";
 import { Sidebar } from "./Sidebar";
 import { FontSizeSettings } from "./FontSizeSettings";
+import { LabResultsView } from "./LabResultsView";
 import {
   RecordedMonitoring,
   OrganEvidence,
@@ -26,6 +27,7 @@ const pages = new Set<NavigationModule>([
   "patient_digital_twin",
   "patient_recommendations",
   "patient_reports",
+  "patient_lab_results",
   "patient_settings",
 ]);
 
@@ -245,6 +247,7 @@ export function PatientWorkspace({
                     your care team.
                   </section>
                 )}
+                {page === "patient_lab_results" && <LabResultsView patient={patient} />}
                 {page === "patient_settings" && <FontSizeSettings />}
                 {page === "patient_home" && (
                   <PatientHomeView patient={patient} onNavigate={navigate} />

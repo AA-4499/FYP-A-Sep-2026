@@ -37,6 +37,7 @@ export type PatientModule =
   | "patient_recommendations"
   | "patient_reports"
   | "patient_knowledge_graph"
+  | "patient_lab_results"
   | "patient_settings";
 
 export type NavigationModule = PatientModule | AdminModule | DoctorModule;

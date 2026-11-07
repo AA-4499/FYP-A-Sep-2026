@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { FontSizeSettings } from "./components/FontSizeSettings";
+import { LabResultsView } from "./components/LabResultsView";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
 import { AdminWorkspace } from "./components/admin/AdminWorkspace";
@@ -345,6 +346,7 @@ function Workspace({
                     }
                   />
                 )}
+              {page === "patient_lab_results" && <LabResultsView patient={patient} />}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
                   recommendations={[]}

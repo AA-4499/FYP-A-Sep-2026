@@ -100,16 +100,33 @@ test('Patient sidebar retains the original navigation without a care-team switch
 });
 
 
-test('Doctor can retain prediction navigation while viewing a patient record', async () => {
+test('Doctor viewing a patient record uses the finalized patient navigation shell', async () => {
   const { Sidebar } = await componentModule('Sidebar');
-  const html = renderToStaticMarkup(React.createElement(Sidebar, {mode:'patient',activeModule:'patient_home',canViewPredictions:true,onSelectModule(){}}));
-  assert.match(html, /Risk prediction &amp; what-if/);
+  const html = renderToStaticMarkup(React.createElement(Sidebar, {
+    mode: 'patient',
+    activeModule: 'patient_home',
+    canViewPredictions: true,
+    onSelectModule() {},
+  }));
+  for (const label of ['Home', 'My profile', 'My health', 'My digital twin', 'My recommendations', 'Reports']) {
+    assert.ok(html.includes(label), label);
+  }
+  // The finalized UI exposes prediction entry points from the appropriate
+  // Doctor workspace actions, not as a Patient-sidebar navigation item.
+  assert.doesNotMatch(html, /Risk prediction|Prediction lab/);
 });
 
-test('Doctor prediction navigation is denied by default, including anonymous previews', async () => {
+test('Finalized Doctor sidebar omits the legacy Prediction lab menu item', async () => {
   const { Sidebar } = await componentModule('Sidebar');
-  const hidden = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',onSelectModule(){}}));
-  const doctor = renderToStaticMarkup(React.createElement(Sidebar, {mode:'doctor',activeModule:'doctor_overview',canViewPredictions:true,onSelectModule(){}}));
-  assert.doesNotMatch(hidden, /Prediction lab/);
-  assert.match(doctor, /Prediction lab/);
+  const html = renderToStaticMarkup(React.createElement(Sidebar, {
+    mode: 'doctor',
+    activeModule: 'doctor_overview',
+    canViewPredictions: true,
+    canViewKnowledgeGraph: true,
+    onSelectModule() {},
+  }));
+  for (const label of ['Overview', 'Patient management', 'Knowledge graph', 'Reports', 'Settings']) {
+    assert.ok(html.includes(label), label);
+  }
+  assert.doesNotMatch(html, /Prediction lab/);
 });

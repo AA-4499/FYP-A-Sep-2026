@@ -32,7 +32,7 @@ REFERENCE_FIELDS = (
     "projectCitationAsSupplied",
     "firstPublishedOnlineYear",
 )
-REFERENCE_ID = re.compile(r"^\\[\\d+\\]$")
+REFERENCE_ID = re.compile(r"^\[\d+\]$")
 
 
 class ClinicalKnowledgeSourcesUnavailableError(RuntimeError):

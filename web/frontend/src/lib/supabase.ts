@@ -63,7 +63,13 @@ export function getSupabaseClient(): SupabaseClient | null {
 
   try {
     cachedClient = createClient(url, anonKey, {
-      auth: { persistSession: false },
+      auth: {
+        // Keep the authenticated workspace across reloads and let Supabase
+        // refresh access tokens without treating a refresh as a new login.
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     });
     lastClientKey = clientKey;
     return cachedClient;

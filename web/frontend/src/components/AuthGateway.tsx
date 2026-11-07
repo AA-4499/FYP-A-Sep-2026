@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { CheckCircle2, LogOut, RefreshCw } from "lucide-react";
 import { getSupabaseClient, clearSupabasePatientCache } from "../lib/supabase";
-import { authErrorMessage, trustedRole } from "../lib/accountAuth";
+import { authErrorMessage, authSessionEventAction, trustedRole } from "../lib/accountAuth";
 import type { UserRole } from "../types";
 import { AccountAuthView } from "./AccountAuthView";
 import { PatientWorkspace } from "./PatientWorkspace";
@@ -19,7 +19,8 @@ export function AuthGateway({ renderWorkspace }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const acceptedUserId = useRef<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [checking, setChecking] = useState(false);
+  // Wait for Supabase INITIAL_SESSION before deciding whether to show login or restore a workspace.
+  const [checking, setChecking] = useState(true);
   const [demo, setDemo] = useState(false);
   const [recovery, setRecovery] = useState(
     () =>
@@ -41,16 +42,24 @@ export function AuthGateway({ renderWorkspace }: Props) {
       return;
     }
     const { data } = client.auth.onAuthStateChange((event, nextSession) => {
-      if (event === "PASSWORD_RECOVERY") {
+      const action = authSessionEventAction(
+        event,
+        nextSession?.user?.id ?? null,
+        acceptedUserId.current,
+      );
+
+      if (action === "recover") {
         acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
         setDemo(false);
         setRecovery(true);
+        setChecking(true);
         setSession(nextSession);
         return;
       }
-      if (event === "SIGNED_OUT") {
+
+      if (action === "clear") {
         acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
@@ -59,21 +68,29 @@ export function AuthGateway({ renderWorkspace }: Props) {
         setChecking(false);
         return;
       }
-      if (event === "INITIAL_SESSION") return;
-      // A restored session or background SIGNED_IN event must not skip the login form.
-      // Only this page's successful password submission accepts an account.
-      if (!acceptedUserId.current) return;
-      if (nextSession?.user.id === acceptedUserId.current) {
-        setDemo(false);
-        setSession(nextSession);
-      } else {
-        acceptedUserId.current = null;
+
+      if (action === "restore" && nextSession) {
+        // Supabase restored a persisted session from this browser. It is only a
+        // candidate: the effect below verifies the user with the Auth server.
+        acceptedUserId.current = nextSession.user.id;
         clearSupabasePatientCache();
         setUser(null);
-        setSession(null);
         setDemo(false);
-        setChecking(false);
+        setError("");
+        setChecking(true);
+        setSession(nextSession);
+        return;
       }
+
+      if (action === "refresh" && nextSession) {
+        // A token refresh must not set session state or trigger the getUser()
+        // effect: doing so unmounts Workspace and resets the selected page.
+        // Updating the user object keeps refreshed trusted claims current.
+        setDemo(false);
+        setUser(nextSession.user);
+      }
+      // "ignore" covers unrelated auth events and background sign-ins for a
+      // different, not-yet-accepted identity.
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -91,11 +108,17 @@ export function AuthGateway({ renderWorkspace }: Props) {
       .auth.getUser()
       .then(({ data, error: failure }) => {
         if (cancelled) return;
-        if (failure || !data.user)
+        if (failure || !data.user) {
           setError(
             failure ? authErrorMessage(failure) : "Please sign in again.",
           );
-        else {
+        } else if (data.user.id !== acceptedUserId.current) {
+          acceptedUserId.current = null;
+          clearSupabasePatientCache();
+          setSession(null);
+          setUser(null);
+          setError("The restored account did not match the active session. Please sign in again.");
+        } else {
           setUser(data.user);
           setError("");
         }

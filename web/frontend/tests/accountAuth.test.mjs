@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/lib/accountAuth.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } });
-const { trustedRole, registerPatient, confirmationUrl, authErrorMessage } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { trustedRole, registerPatient, confirmationUrl, authErrorMessage, authSessionEventAction } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 const input = { name: ' Test Patient ', identityNumber: ' 001122-33-4455 ', email: ' test@example.com ', password: 'test-password-123', confirm: 'test-password-123' };
 
 test('signup submits only profile metadata; role and record access are never client-assigned', async () => {
@@ -66,4 +66,26 @@ test('rate limits, unconfirmed accounts, and network failures produce usable err
   assert.match(authErrorMessage({ code: 'over_email_send_rate_limit' }), /wait/);
   assert.match(authErrorMessage({ code: 'email_not_confirmed' }), /confirm your email/);
   assert.match(authErrorMessage(null), /try again/);
+});
+
+
+test('persisted initial session is restored and still requires server user verification', () => {
+  assert.equal(authSessionEventAction('INITIAL_SESSION', 'restored-user', null), 'restore');
+  assert.equal(authSessionEventAction('INITIAL_SESSION', null, null), 'clear');
+});
+
+test('token refresh updates the accepted user without restarting session verification', () => {
+  assert.equal(authSessionEventAction('TOKEN_REFRESHED', 'same-user', 'same-user'), 'refresh');
+  assert.equal(authSessionEventAction('USER_UPDATED', 'same-user', 'same-user'), 'refresh');
+  assert.equal(authSessionEventAction('SIGNED_IN', 'same-user', 'same-user'), 'refresh');
+});
+
+test('identity changes and explicit sign-out clear the accepted workspace', () => {
+  assert.equal(authSessionEventAction('TOKEN_REFRESHED', 'different-user', 'same-user'), 'clear');
+  assert.equal(authSessionEventAction('TOKEN_REFRESHED', null, 'same-user'), 'clear');
+  assert.equal(authSessionEventAction('SIGNED_OUT', null, 'same-user'), 'clear');
+});
+
+test('unaccepted background sign-ins cannot silently open another account', () => {
+  assert.equal(authSessionEventAction('SIGNED_IN', 'other-user', null), 'ignore');
 });

@@ -70,3 +70,29 @@ The endpoint is Doctor-authenticated and validates the bibliography before retur
 ## Verification status
 
 The backend source-registry service and endpoint tests are included in CI. The frontend changes are covered by the repository's TypeScript check, test suite and production build. The outcome of the new CI run should be recorded against the resulting commit before treating the feature as deployment-ready.
+
+
+## Cross-branch authentication/session audit — 8 November 2026
+
+The frontend authentication implementation was compared across all six remote branches:
+
+| Branch | Session persistence | Initial restored session accepted? | Finding |
+|---|---|---|---|
+| `KnowledgeGraph` | `persistSession: false` | No | No persistent login restoration. |
+| `TrainingModel` | `persistSession: false` | No | Same restore limitation; also has database access-state checks. |
+| `main` | `persistSession: false` | No | Same restore limitation. |
+| `AndyTest` | `persistSession: false` | No | Same restore limitation. |
+| `Boon` | `persistSession: false` | No | Contains an additional password-recovery session handling path, but does not restore a normal persisted login. |
+| `JodyTesting` | `persistSession: false` | No | Same restore limitation. |
+
+The common `AuthGateway` pattern also treated same-user token-refresh events as a new session state change. Its `[session, retry]` verification effect then cleared the current user, showed the checking screen and unmounted the workspace. When verification completed, the workspace could mount again at its default page. This is a credible cause of the page-reset behaviour reported by the team.
+
+### Fix applied on KnowledgeGraph
+
+- Supabase auth now persists sessions in the browser and enables automatic token refresh.
+- `INITIAL_SESSION` restores a saved session candidate after reload; `auth.getUser()` still verifies it before any workspace is displayed.
+- Same-user `TOKEN_REFRESHED` / `USER_UPDATED` events update current user claims without changing the session state that triggers the verification effect. This keeps the current workspace mounted during normal refresh.
+- Explicit sign-out, a mismatched user identity and password-recovery events retain their separate handling.
+- Unit tests cover initial restoration, token refresh, identity mismatch and sign-out.
+
+The fix is committed to `KnowledgeGraph` only. Other branches were inspected but not modified or merged. Browser local storage now contains the Supabase-managed persisted session; protect accounts and devices as usual, and use explicit sign-out on shared computers.

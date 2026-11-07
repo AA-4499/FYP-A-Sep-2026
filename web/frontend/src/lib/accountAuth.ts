@@ -39,3 +39,27 @@ export function authErrorMessage(error: unknown): string {
   if (value?.code === 'email_not_confirmed') return 'Please confirm your email before signing in. You can request another confirmation link below.';
   return value?.message || 'Unable to contact the sign-in service. Please try again.';
 }
+
+
+export type AuthSessionEventAction = 'restore' | 'clear' | 'recover' | 'refresh' | 'ignore';
+
+/**
+ * Classify Supabase auth events without causing a workspace remount on token
+ * refresh. A persisted INITIAL_SESSION is accepted only as a candidate session;
+ * AuthGateway still verifies it with auth.getUser() before opening a workspace.
+ */
+export function authSessionEventAction(
+  event: string,
+  nextUserId: string | null,
+  acceptedUserId: string | null,
+): AuthSessionEventAction {
+  if (event === 'PASSWORD_RECOVERY') return 'recover';
+  if (event === 'SIGNED_OUT') return 'clear';
+  if (event === 'INITIAL_SESSION') return nextUserId ? 'restore' : 'clear';
+  if (!acceptedUserId) return 'ignore';
+  if (!nextUserId || nextUserId !== acceptedUserId) return 'clear';
+  if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+    return 'refresh';
+  }
+  return 'ignore';
+}

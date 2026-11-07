@@ -28,8 +28,10 @@ export async function fetchDoctorAssignedPatientIds(): Promise<string[]> {
   if (!Array.isArray(payload.patient_ids)) {
     throw new Error("The backend returned an invalid Doctor assignment list.");
   }
-  const ids = payload.patient_ids
-    .map((value: unknown) => String(value).trim())
-    .filter(Boolean);
-  return [...new Set(ids)];
+  const ids: string[] = [];
+  for (const value of payload.patient_ids as unknown[]) {
+    const id = String(value).trim();
+    if (id) ids.push(id);
+  }
+  return Array.from(new Set<string>(ids));
 }

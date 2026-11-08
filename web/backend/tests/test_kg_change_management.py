@@ -33,6 +33,17 @@ class KGProposalValidationTests(unittest.TestCase):
                 with self.assertRaises(kg_changes.KGProposalValidationError):
                     kg_changes.validate_proposal("relationship", "update", "edge-key", invalid, "Reason.")
 
+    def test_relationship_changes_require_sources_and_an_evidence_note(self):
+        base = {"from": "Obesity", "relationship": "RISK_FACTOR_FOR", "to": "Type 2 Diabetes"}
+        for payload in (
+            {**base, "sourceRefs": [], "evidenceNote": "A note without a citation."},
+            {**base, "sourceRefs": ["[17]"], "evidenceNote": ""},
+            {**base, "sourceRefs": ["17"], "evidenceNote": "A note."},
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(kg_changes.KGProposalValidationError):
+                    kg_changes.validate_proposal("relationship", "create", "edge-key", payload, "Reason.")
+
     def test_retirement_is_soft_and_cannot_carry_deletion_payload(self):
         self.assertEqual({}, kg_changes.validate_proposal("concept", "retire", "Obsolete Concept", {}, "No longer in scope."))
         with self.assertRaises(kg_changes.KGProposalValidationError):

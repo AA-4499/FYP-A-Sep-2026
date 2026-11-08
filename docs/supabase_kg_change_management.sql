@@ -127,17 +127,20 @@ as $$
 declare affected integer := 0;
 begin
   if p_admin_id is null or not exists (
-    select 1 from auth.users
-    where id = p_admin_id and raw_app_meta_data ->> 'role' = 'admin'
+    select 1 from public.profiles
+    where id = p_admin_id
+      and role::text = 'admin'
+      and status::text = 'active'
   ) then
-    raise exception 'Platform Admin role required to manage KG permissions';
+    raise exception 'An active Platform Admin profile is required to manage KG permissions';
   end if;
   if p_user_id is null or not exists (
-    select 1 from auth.users
+    select 1 from public.profiles
     where id = p_user_id
-      and coalesce(raw_app_meta_data ->> 'role', '') in ('admin', 'doctor', 'clinician')
+      and role::text in ('admin', 'doctor')
+      and status::text = 'active'
   ) then
-    raise exception 'KG permissions can only be granted to Admin or clinical accounts';
+    raise exception 'KG permissions can only be granted to active Admin or Doctor accounts';
   end if;
   if p_enabled is null or p_permission not in ('kg_reviewer', 'kg_curator')
     or length(trim(coalesce(p_reason, ''))) = 0 then

@@ -51,10 +51,10 @@ alter table public.kg_change_events enable row level security;
 revoke all on public.kg_user_permissions from public, anon, authenticated;
 revoke all on public.kg_change_proposals from public, anon, authenticated;
 revoke all on public.kg_change_events from public, anon, authenticated;
-grant select, insert, update, delete on public.kg_user_permissions to service_role;
-grant select, insert, update, delete on public.kg_change_proposals to service_role;
-grant select, insert, update, delete on public.kg_change_events to service_role;
-grant usage, select on sequence public.kg_change_events_id_seq to service_role;
+-- The API reads these tables; all writes are performed only by the narrow SECURITY DEFINER RPC functions below.
+grant select on public.kg_user_permissions to service_role;
+grant select on public.kg_change_proposals to service_role;
+grant select on public.kg_change_events to service_role;
 
 create or replace function public.kg_submit_change_proposal(
   p_submitted_by uuid, p_target_type text, p_operation text, p_target_key text,

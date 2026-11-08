@@ -6,6 +6,7 @@ import {
   BrainCircuit,
   BookOpen,
   CheckCircle2,
+  ClipboardList,
   ExternalLink,
   Info,
   Network,
@@ -18,6 +19,7 @@ import {
 import type { Patient } from "../types";
 import { getSupabaseClient } from "../lib/supabase";
 import { getForecastApiUrl } from "../lib/forecast";
+import { KnowledgeGraphChangesView } from "./KnowledgeGraphChangesView";
 
 interface Props {
   patients: Patient[];
@@ -26,7 +28,7 @@ interface Props {
   onPreviewPatientView: (patientId: string) => void;
 }
 
-type TabId = "patient" | "clinical" | "analysis" | "sources";
+type TabId = "patient" | "clinical" | "analysis" | "sources" | "changes";
 type NodeRecord = {
   id: string;
   label: string;
@@ -550,10 +552,10 @@ export const KnowledgeGraphView: React.FC<Props> = ({
     return result;
   }, [sources, clinicalGraph]);
 
-  const currentLoading = activeTab === "patient" ? patientGraphLoading : activeTab === "clinical" ? clinicalGraphLoading : activeTab === "sources" ? sourcesLoading : analysisLoading;
-  const currentError = activeTab === "patient" ? patientGraphError : activeTab === "clinical" ? clinicalGraphError : activeTab === "sources" ? sourcesError : analysisError;
-  const nodeCount = activeTab === "sources" ? sources?.totalReferences ?? 0 : activeTab === "patient" ? patientGraph?.stats.total_nodes ?? 0 : clinicalGraph?.stats.totalNodes ?? 0;
-  const edgeCount = activeTab === "sources" ? 0 : activeTab === "patient" ? patientGraph?.stats.total_edges ?? 0 : clinicalGraph?.stats.totalEdges ?? 0;
+  const currentLoading = activeTab === "changes" ? false : activeTab === "patient" ? patientGraphLoading : activeTab === "clinical" ? clinicalGraphLoading : activeTab === "sources" ? sourcesLoading : analysisLoading;
+  const currentError = activeTab === "changes" ? "" : activeTab === "patient" ? patientGraphError : activeTab === "clinical" ? clinicalGraphError : activeTab === "sources" ? sourcesError : analysisError;
+  const nodeCount = activeTab === "changes" ? "—" : activeTab === "sources" ? sources?.totalReferences ?? 0 : activeTab === "patient" ? patientGraph?.stats.total_nodes ?? 0 : clinicalGraph?.stats.totalNodes ?? 0;
+  const edgeCount = activeTab === "changes" ? "—" : activeTab === "sources" ? 0 : activeTab === "patient" ? patientGraph?.stats.total_edges ?? 0 : clinicalGraph?.stats.totalEdges ?? 0;
 
   return (
     <section className="space-y-5">
@@ -616,12 +618,12 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Graph nodes</span>
             <p className="mt-2 text-2xl font-bold text-slate-900">{nodeCount}</p>
-            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "sources" ? "Bibliography entries" : activeTab === "patient" ? "Patient and recorded conditions" : "Shared medical concepts"}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "changes" ? "Proposal queue" : activeTab === "sources" ? "Bibliography entries" : activeTab === "patient" ? "Patient and recorded conditions" : "Shared medical concepts"}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Relationships</span>
             <p className="mt-2 text-2xl font-bold text-slate-900">{edgeCount}</p>
-            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "sources" ? "Source registry" : activeTab === "clinical" ? (clinicalGraph?.stats.reviewedEdges ?? 0) + " reviewed · " + (clinicalGraph?.stats.candidateEdges ?? 0) + " candidates" : "Recorded graph relationships"}</p>
+            <p className="mt-1 text-[11px] text-slate-500">{activeTab === "changes" ? "Separate from published Aura graph" : activeTab === "sources" ? "Source registry" : activeTab === "clinical" ? (clinicalGraph?.stats.reviewedEdges ?? 0) + " reviewed · " + (clinicalGraph?.stats.candidateEdges ?? 0) + " candidates" : "Recorded graph relationships"}</p>
           </div>
         </div>
       </div>
@@ -643,6 +645,10 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           <BookOpen className="h-4 w-4" />
           Literature sources
         </button>
+        <button type="button" onClick={() => setActiveTab("changes")} className={"inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold " + (activeTab === "changes" ? "border-teal-600 text-teal-800" : "border-transparent text-slate-500 hover:text-slate-800")}>
+          <ClipboardList className="h-4 w-4" />
+          Change proposals
+        </button>
       </div>
 
       {currentError && (
@@ -651,7 +657,9 @@ export const KnowledgeGraphView: React.FC<Props> = ({
         </div>
       )}
 
-      {activeTab === "sources" ? (
+      {activeTab === "changes" ? (
+        <KnowledgeGraphChangesView />
+      ) : activeTab === "sources" ? (
         <div className="space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">

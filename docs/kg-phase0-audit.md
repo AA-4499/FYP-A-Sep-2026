@@ -96,3 +96,18 @@ The common `AuthGateway` pattern also treated same-user token-refresh events as 
 - Unit tests cover initial restoration, token refresh, identity mismatch and sign-out.
 
 The fix is committed to `KnowledgeGraph` only. Other branches were inspected but not modified or merged. Browser local storage now contains the Supabase-managed persisted session; protect accounts and devices as usual, and use explicit sign-out on shared computers.
+
+
+## Phase 2 — controlled proposal and review workflow
+
+The Doctor workspace adds a \`Change proposals\` tab. Doctors can submit structured proposals to create, update or softly retire a concept, relationship or literature-source entry. A proposal records the intended target, proposed fields and change reason.
+
+A separately granted \`kg_reviewer\` can inspect the shared queue and record \`under_review\`, \`changes_requested\`, \`approved\` or \`rejected\` decisions with a mandatory review note. The proposing Doctor cannot review their own proposal. Approval means eligible for a later curator-controlled release; it is not publication and does not change Aura.
+
+The Admin workspace adds a live \`KG reviewer access\` page. Platform Admins can explicitly grant or revoke \`kg_reviewer\` and \`kg_curator\` permissions by Supabase user UUID and provide a reason. Platform Admin role alone does not make a person a clinical reviewer.
+
+Backend allow-lists prevent arbitrary properties, Cypher, evidence-status changes or publication flags from entering proposals. Retirement is a soft proposal with no deletion payload. The backend stores proposals, permissions and audit events in Supabase through server-only credentials. Browser users receive no direct table or Aura write access.
+
+**Database prerequisite:** apply \`docs/supabase_kg_change_management.sql\` manually in the intended Supabase project before using these screens. This migration has not been applied by this code change. If the tables are missing, the backend returns a clear 503 response and the frontend remains unable to submit or review proposals.
+
+**Not implemented yet:** publishing an approved proposal to Aura, versioned graph releases, graph backup/restore, rollback UI and curator release approval. Those remain a separate phase and must be completed before any web workflow changes the published graph.

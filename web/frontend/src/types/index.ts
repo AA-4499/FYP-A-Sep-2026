@@ -10,7 +10,8 @@ export type AdminModule =
   | "admin_users"
   | "admin_approvals"
   | "admin_assignments"
-  | "admin_activity";
+  | "admin_activity"
+  | "admin_kg_access";
 
 export type DoctorModule =
   | "doctor_overview"

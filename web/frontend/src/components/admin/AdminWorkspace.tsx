@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Activity, ArrowLeft, CheckCircle2, ChevronRight, FlaskConical, LayoutDashboard, Link2, RotateCcw, ShieldCheck, Users, X } from 'lucide-react';
+import { Activity, ArrowLeft, CheckCircle2, ChevronRight, FlaskConical, LayoutDashboard, Link2, Network, RotateCcw, ShieldCheck, Users, X } from 'lucide-react';
 import { ADMIN_STORAGE_KEY, applyAdminCommand, createAdminDemo, parseAdminState } from '../../lib/adminDemo';
 import type { AdminCommand } from '../../lib/adminDemo';
 import type { AdminModule } from '../../types';
 import { AddAccountModal, AdminAccountsPage, AdminActivityPage, AdminApprovalsPage, AdminAssignmentsPage, AdminOverviewPage } from './AdminPages';
 import { Modal, primaryButton, secondaryButton } from './AdminUI';
+import { KGPermissionAdminView } from './KGPermissionAdminView';
 
 const pages = [
   { id: 'admin_overview', label: 'Overview', icon: LayoutDashboard },
@@ -12,6 +13,7 @@ const pages = [
   { id: 'admin_approvals', label: 'Doctor approvals', icon: ShieldCheck },
   { id: 'admin_assignments', label: 'Patient assignments', icon: Link2 },
   { id: 'admin_activity', label: 'Activity history', icon: Activity },
+  { id: 'admin_kg_access', label: 'KG reviewer access', icon: Network },
 ] as const;
 
 function loadDemo() {
@@ -67,7 +69,7 @@ export function AdminWorkspace({ onExit }: { onExit: () => void }) {
     </aside>
     <div className="min-w-0 flex-1"><header className="flex min-h-20 items-center justify-between gap-4 border-b border-slate-200/70 bg-white px-5 sm:px-8 xl:px-10"><div className="flex items-center gap-2 text-xs"><span className="hidden text-slate-400 sm:inline">Administration</span><ChevronRight className="hidden h-3 w-3 text-slate-300 sm:block" /><span className="font-semibold text-slate-700">{pages.find((item) => item.id === page)?.label}</span></div><div className="flex items-center gap-3"><button onClick={() => navigate('admin_approvals')} aria-label={`${pending} doctor applications awaiting approval`} className="relative rounded-xl border border-slate-200 p-2.5 text-slate-500 hover:bg-slate-50"><ShieldCheck className="h-4 w-4" />{pending > 0 && <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold text-amber-950">{pending}</span>}</button><div className="hidden h-7 w-px bg-slate-100 sm:block" /><span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">AD</span><div className="hidden sm:block"><p className="text-xs font-bold">Demo admin</p><p className="mt-0.5 text-[10px] text-slate-400">Platform administrator</p></div><button onClick={onExit} aria-label="Back to sign in" className="rounded-lg p-2 text-slate-500 lg:hidden"><ArrowLeft className="h-4 w-4" /></button></div></header>
       <main id="admin-content" tabIndex={-1} className="mx-auto max-w-[1500px] space-y-6 px-5 py-6 outline-none sm:px-8 sm:py-8 xl:px-10">
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3"><FlaskConical className="h-4 w-4 shrink-0 text-indigo-500" /><p className="min-w-0 flex-1 text-[11px] leading-relaxed text-indigo-800"><strong className="font-bold">Demo workspace.</strong> Sample accounts only. Changes are saved in this browser and do not affect live accounts.</p><button onClick={() => setShowReset(true)} className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-semibold text-indigo-600 hover:bg-indigo-100"><RotateCcw className="h-3 w-3" />Reset demo</button></div>
+        {page !== 'admin_kg_access' && (<div className="flex flex-wrap items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3"><FlaskConical className="h-4 w-4 shrink-0 text-indigo-500" /><p className="min-w-0 flex-1 text-[11px] leading-relaxed text-indigo-800"><strong className="font-bold">Demo workspace.</strong> Sample accounts only. Changes are saved in this browser and do not affect live accounts.</p><button onClick={() => setShowReset(true)} className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-semibold text-indigo-600 hover:bg-indigo-100"><RotateCcw className="h-3 w-3" />Reset demo</button></div>)}
         {warning && <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">{warning}</p>}
         {notice && <div role="status" className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-800"><CheckCircle2 className="h-4 w-4 shrink-0" /><span className="flex-1">{notice}</span><button onClick={() => setNotice('')} aria-label="Dismiss notification" className="rounded p-1 hover:bg-emerald-100"><X className="h-4 w-4" /></button></div>}
         {page === 'admin_overview' && <AdminOverviewPage state={state} navigate={navigate} onAdd={() => setShowAdd(true)} />}
@@ -75,7 +77,8 @@ export function AdminWorkspace({ onExit }: { onExit: () => void }) {
         {page === 'admin_approvals' && <AdminApprovalsPage state={state} run={run} reviewId={reviewId} onReview={setReviewId} />}
         {page === 'admin_assignments' && <AdminAssignmentsPage state={state} run={run} />}
         {page === 'admin_activity' && <AdminActivityPage state={state} />}
-        <footer className="flex flex-wrap justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-400"><span>DiaTwin · Smart Diabetes Digital Twin</span><span>Admin workspace · Browser demo</span></footer>
+        {page === 'admin_kg_access' && <KGPermissionAdminView />}
+        <footer className="flex flex-wrap justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-400"><span>DiaTwin · Smart Diabetes Digital Twin</span>{page === 'admin_kg_access' ? <span>KG access controls · Live API</span> : <span>Admin workspace · Browser demo</span>}</footer>
       </main>
     </div>
     {showAdd && <AddAccountModal run={run} onClose={() => setShowAdd(false)} />}

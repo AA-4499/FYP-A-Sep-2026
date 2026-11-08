@@ -45,3 +45,10 @@ One person may hold more than one role in a small student project, but the permi
 6. Keep all 42 existing package relationships as `candidate_for_review` until their evidence has been individually checked. Do not bulk-approve them.
 
 This is a proposed permission model for team agreement, not a claim that these permissions or tables already exist.
+
+
+## Phase 2 implementation boundary
+
+The first implementation stores structured draft proposals, review decisions, permission grants and audit events in Supabase. It does not modify the source bibliography JSON or the active Aura graph. An approved proposal is marked as approved for future release only. Publishing remains unavailable until versioned graph releases, verified backups and rollback are implemented.
+
+The Admin UI can grant/revoke the independent \`kg_reviewer\` and \`kg_curator\` capabilities. Granting \`kg_reviewer\` is the explicit step that enables the review queue. The proposal API checks this permission, and the database review function also checks it and prevents self-review.

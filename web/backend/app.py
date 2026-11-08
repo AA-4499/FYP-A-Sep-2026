@@ -276,7 +276,7 @@ def doctor_list_kg_change_proposals():
         permissions = get_kg_user_permissions(user_id)
         can_review = "kg_reviewer" in permissions
         proposals = list_kg_change_proposals(user_id, can_review=can_review)
-        return jsonify({"proposals": proposals, "canReview": can_review})
+        return jsonify({"proposals": proposals, "canReview": can_review, "userId": user_id})
     except KGChangeManagementUnavailableError as exc:
         app.logger.warning("KG proposal list unavailable: %s", type(exc).__name__)
         return jsonify({"error": str(exc)}), 503
@@ -341,12 +341,15 @@ def admin_list_kg_permissions():
 def admin_set_kg_permission():
     user = getattr(g, "current_user", {}) or {}
     payload = request.get_json(silent=True) or {}
+    enabled = payload.get("enabled")
+    if not isinstance(enabled, bool):
+        return jsonify({"error": "Choose whether to grant or revoke the permission."}), 400
     try:
         result = set_kg_permission(
             str(user.get("id") or ""),
             payload.get("userId"),
             payload.get("permission"),
-            payload.get("enabled") is True,
+            enabled,
             payload.get("reason"),
         )
         return jsonify(result)

@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { CheckCircle2, LogOut, RefreshCw } from "lucide-react";
 import { getSupabaseClient, clearSupabasePatientCache } from "../lib/supabase";
-import { authErrorMessage, authSessionEventAction, trustedRole } from "../lib/accountAuth";
+import { accessErrorMessage, authErrorMessage, authSessionEventAction, fetchAccessState } from "../lib/accountAuth";
+import type { AccessState } from "../lib/accountAuth";
 import type { UserRole } from "../types";
 import { AccountAuthView } from "./AccountAuthView";
 import { PatientWorkspace } from "./PatientWorkspace";
+import { AdminWorkspace } from "./admin/AdminWorkspace";
 
 interface Props {
   renderWorkspace: (
@@ -19,7 +21,6 @@ export function AuthGateway({ renderWorkspace }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const acceptedUserId = useRef<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  // Wait for Supabase INITIAL_SESSION before deciding whether to show login or restore a workspace.
   const [checking, setChecking] = useState(true);
   const [demo, setDemo] = useState(false);
   const [recovery, setRecovery] = useState(
@@ -33,6 +34,10 @@ export function AuthGateway({ renderWorkspace }: Props) {
       ) || "",
   );
   const [retry, setRetry] = useState(0);
+  const [access, setAccess] = useState<AccessState | null>(null);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState("");
+  const [accessRetry, setAccessRetry] = useState(0);
   useEffect(() => {
     const client = getSupabaseClient();
     if (!client) {
@@ -47,50 +52,47 @@ export function AuthGateway({ renderWorkspace }: Props) {
         nextSession?.user?.id ?? null,
         acceptedUserId.current,
       );
-
       if (action === "recover") {
-        acceptedUserId.current = null;
+        acceptedUserId.current = nextSession?.user?.id ?? null;
         clearSupabasePatientCache();
         setUser(null);
+        setAccess(null);
+        setAccessError("");
+        setAccessLoading(false);
         setDemo(false);
         setRecovery(true);
         setChecking(true);
         setSession(nextSession);
         return;
       }
-
       if (action === "clear") {
         acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
         setSession(null);
+        setAccess(null);
+        setAccessError("");
+        setAccessLoading(false);
         setDemo(false);
         setChecking(false);
         return;
       }
-
       if (action === "restore" && nextSession) {
-        // Supabase restored a persisted session from this browser. It is only a
-        // candidate: the effect below verifies the user with the Auth server.
         acceptedUserId.current = nextSession.user.id;
         clearSupabasePatientCache();
         setUser(null);
+        setAccess(null);
+        setAccessError("");
         setDemo(false);
+        setRecovery(false);
         setError("");
         setChecking(true);
         setSession(nextSession);
         return;
       }
-
-      if (action === "refresh" && nextSession) {
-        // A token refresh must not set session state or trigger the getUser()
-        // effect: doing so unmounts Workspace and resets the selected page.
-        // Updating the user object keeps refreshed trusted claims current.
-        setDemo(false);
-        setUser(nextSession.user);
+      if (action === "refresh") {
+        // Avoid rerunning user/access verification on token refresh: that remounts the workspace.
       }
-      // "ignore" covers unrelated auth events and background sign-ins for a
-      // different, not-yet-accepted identity.
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -115,8 +117,9 @@ export function AuthGateway({ renderWorkspace }: Props) {
         } else if (data.user.id !== acceptedUserId.current) {
           acceptedUserId.current = null;
           clearSupabasePatientCache();
-          setSession(null);
           setUser(null);
+          setSession(null);
+          setAccess(null);
           setError("The restored account did not match the active session. Please sign in again.");
         } else {
           setUser(data.user);
@@ -134,6 +137,40 @@ export function AuthGateway({ renderWorkspace }: Props) {
       cancelled = true;
     };
   }, [session, retry]);
+  // Role, suspension and Doctor-application state are read from the database so
+  // administrator changes take effect without trusting a stale client claim.
+  useEffect(() => {
+    if (!user) {
+      setAccess(null);
+      setAccessError("");
+      setAccessLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setAccessLoading(true);
+    setAccess(null);
+    setAccessError("");
+    const client = getSupabaseClient();
+    if (!client) {
+      setAccessError("Supabase is not configured.");
+      setAccessLoading(false);
+      return;
+    }
+    fetchAccessState(client)
+      .then((state) => {
+        if (cancelled) return;
+        setAccess(state);
+        setAccessLoading(false);
+      })
+      .catch((failure) => {
+        if (cancelled) return;
+        setAccessError(accessErrorMessage(failure));
+        setAccessLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, accessRetry]);
   const signOut = async () => {
     try {
       const { error: failure } = await getSupabaseClient()!.auth.signOut({
@@ -146,13 +183,16 @@ export function AuthGateway({ renderWorkspace }: Props) {
       setDemo(false);
       setUser(null);
       setSession(null);
+      setAccess(null);
+      setAccessError("");
+      setAccessLoading(false);
       clearSupabasePatientCache();
       window.history.replaceState(null, "", window.location.pathname);
     } catch (failure) {
       setError(authErrorMessage(failure));
     }
   };
-  if (checking)
+  if (checking || (user && accessLoading))
     return (
       <div
         className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500"
@@ -207,21 +247,70 @@ export function AuthGateway({ renderWorkspace }: Props) {
         onExit={signOut}
       />
     );
-  const role = trustedRole(user);
-  if (!role)
+  if (accessError)
+    return (
+      <AccountStatus
+        title="We couldn’t verify your account"
+        message={accessError}
+        onExit={signOut}
+        onRetry={() => setAccessRetry((value) => value + 1)}
+      />
+    );
+  if (!access)
     return (
       <AccountStatus
         title="Account access needs review"
-        message="Your account does not have a recognized platform role. Contact your administrator."
+        message="Your account does not have a platform profile yet. Contact your administrator."
+        onExit={signOut}
+        onRetry={() => setAccessRetry((value) => value + 1)}
+      />
+    );
+  if (access.status === "suspended")
+    return (
+      <AccountStatus
+        title="Account suspended"
+        message="This account has been suspended by a platform administrator. Contact your administrator if you believe this is a mistake."
         onExit={signOut}
       />
     );
-  if (role === "patient")
+  if (access.role === "patient" && access.application?.status === "pending")
+    return (
+      <AccountStatus
+        title="Doctor application under review"
+        message="Your application has been received. An administrator will verify your professional registration; once approved, sign in again to open your Doctor workspace."
+        onExit={signOut}
+      />
+    );
+  if (access.role === "patient" && access.application?.status === "rejected")
+    return (
+      <AccountStatus
+        title="Doctor application declined"
+        message={
+          access.application.review_note
+            ? `Your application was declined: ${access.application.review_note}`
+            : "Your application was declined by a platform administrator. Contact the administrator for details."
+        }
+        onExit={signOut}
+      />
+    );
+  if (access.role === "patient")
     return (
       <PatientWorkspace
         key={user.id}
         user={user}
         error={error}
+        onExit={signOut}
+      />
+    );
+  if (access.role === "admin")
+    return (
+      <AdminWorkspace
+        key={user.id}
+        admin={{
+          id: user.id,
+          full_name: access.full_name || user.email || "Administrator",
+          email: user.email || "",
+        }}
         onExit={signOut}
       />
     );
@@ -232,7 +321,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
           {error}
         </p>
       )}
-      {renderWorkspace(role, false, signOut)}
+      {renderWorkspace(access.role, false, signOut)}
     </>
   );
 }

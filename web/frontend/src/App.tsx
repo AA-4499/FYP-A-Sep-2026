@@ -5,7 +5,6 @@ import { FontSizeSettings } from "./components/FontSizeSettings";
 import { LabResultsView } from "./components/LabResultsView";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
-import { AdminWorkspace } from "./components/admin/AdminWorkspace";
 import { SupabaseConfigModal } from "./components/SupabaseConfigModal";
 import { PatientRecommendationsView } from "./components/PatientRecommendationsView";
 import { RiskSimulationView } from "./components/RiskSimulationView";
@@ -26,14 +25,16 @@ const KnowledgeGraphView = React.lazy(async () => ({
 
 export const App: React.FC = () => (
   <AuthGateway
-    renderWorkspace={(role, preview, onExit) => (
-      <Workspace
-        key={`${role}-${preview}`}
-        initialRole={role}
-        isPreview={preview}
-        onExit={onExit}
-      />
-    )}
+    renderWorkspace={(role, preview, onExit) =>
+      role === "doctor" || role === "patient" ? (
+        <Workspace
+          key={`${role}-${preview}`}
+          initialRole={role}
+          isPreview={preview}
+          onExit={onExit}
+        />
+      ) : null
+    }
   />
 );
 
@@ -42,11 +43,11 @@ function Workspace({
   isPreview,
   onExit,
 }: {
-  initialRole: UserRole;
+  initialRole: Exclude<UserRole, "admin">;
   isPreview: boolean;
   onExit: () => void;
 }) {
-  const [mode, setMode] = useState<UserRole>(initialRole);
+  const [mode, setMode] = useState<Exclude<UserRole, "admin">>(initialRole);
   // initialRole is verified by AuthGateway; changing the displayed workspace grants no role.
   const canViewPredictions = !isPreview && initialRole === "doctor";
   const canViewKnowledgeGraph = !isPreview && initialRole === "doctor";
@@ -123,7 +124,6 @@ function Workspace({
     setMode("doctor");
     setDoctorPage("doctor_overview");
   };
-  if (mode === "admin") return <AdminWorkspace onExit={onExit} />;
   const page = mode === "doctor" ? doctorPage : patientPage;
   const settings = page === "doctor_settings" || page === "patient_settings";
   const overview = page === "doctor_overview";

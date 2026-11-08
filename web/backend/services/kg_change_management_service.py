@@ -237,7 +237,13 @@ def set_permission(admin_id: str, user_id: str, permission: str, enabled: bool, 
     if permission not in PERMISSIONS:
         raise KGProposalValidationError("Permission must be kg_reviewer or kg_curator.")
     _validate_text(user_id, "Supabase user ID", required=True, maximum=64)
+    try:
+        uuid.UUID(user_id.strip())
+    except (ValueError, AttributeError, TypeError):
+        raise KGProposalValidationError("Enter a valid Supabase user UUID.") from None
     _validate_text(reason, "Permission reason", required=True, maximum=1000)
+    if not isinstance(enabled, bool):
+        raise KGProposalValidationError("Choose whether to grant or revoke the permission.")
     result = _rpc("kg_manage_user_permission", {
         "p_admin_id": admin_id, "p_user_id": user_id.strip(),
         "p_permission": permission, "p_enabled": enabled, "p_reason": reason.strip(),

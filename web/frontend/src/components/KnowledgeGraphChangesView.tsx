@@ -259,8 +259,8 @@ export function KnowledgeGraphChangesView() {
               <label className={labelClass}>From concept<input className={inputClass} value={relationship.from} onChange={e => setRelationship(v => ({ ...v, from: e.target.value }))} /></label>
               <label className={labelClass}>Relationship predicate<input className={inputClass} value={relationship.predicate} onChange={e => setRelationship(v => ({ ...v, predicate: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") }))} /></label>
               <label className={labelClass}>To concept<input className={inputClass} value={relationship.to} onChange={e => setRelationship(v => ({ ...v, to: e.target.value }))} /></label>
-              <label className={labelClass}>Source IDs, comma separated<input className={inputClass} value={relationship.sourceRefs} onChange={e => setRelationship(v => ({ ...v, sourceRefs: e.target.value }))} placeholder="[1], [17]" /></label>
-              <label className={labelClass + " sm:col-span-2"}>Evidence note<textarea className={inputClass} rows={3} value={relationship.evidenceNote} onChange={e => setRelationship(v => ({ ...v, evidenceNote: e.target.value }))} /></label>
+              <label className={labelClass}>Source IDs, comma separated<input className={inputClass} required value={relationship.sourceRefs} onChange={e => setRelationship(v => ({ ...v, sourceRefs: e.target.value }))} placeholder="[1], [17]" /></label>
+              <label className={labelClass + " sm:col-span-2"}>Evidence note<textarea className={inputClass} required rows={3} value={relationship.evidenceNote} onChange={e => setRelationship(v => ({ ...v, evidenceNote: e.target.value }))} /></label>
             </div>
           )}
 

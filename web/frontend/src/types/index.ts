@@ -11,6 +11,7 @@ export type AdminModule =
   | "admin_approvals"
   | "admin_assignments"
   | "admin_activity"
+  | "admin_settings"
   | "admin_kg_access";
 
 export type DoctorModule =

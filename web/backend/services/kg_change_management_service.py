@@ -5,6 +5,7 @@ This service stores proposals and decisions in Supabase. It never writes to Neo4
 from __future__ import annotations
 
 import re
+import uuid
 from typing import Any, Dict, List
 from urllib.parse import urlsplit
 
@@ -200,6 +201,17 @@ def review_proposal(reviewer_id: str, proposal_id: str, decision: str, note: str
     if decision not in DECISIONS:
         raise KGProposalValidationError("Choose under review, approve, reject or request changes.")
     _validate_text(note, "Review note", required=True, maximum=2000)
+    proposal_rows = _request("GET", "kg_change_proposals", params={
+        "select": "id,submitted_by,status",
+        "id": f"eq.{proposal_id}",
+        "limit": "1",
+    })
+    if not isinstance(proposal_rows, list) or not proposal_rows:
+        raise KGProposalValidationError("The proposal could not be found.")
+    if str(proposal_rows[0].get("submitted_by") or "") == reviewer_id:
+        raise PermissionError("You cannot review your own proposal.")
+    if proposal_rows[0].get("status") not in {"submitted", "under_review", "changes_requested"}:
+        raise KGProposalValidationError("This proposal already has a final decision.")
     if "kg_reviewer" not in get_user_permissions(reviewer_id):
         raise PermissionError("A KG reviewer permission is required to review proposals.")
     result = _rpc("kg_review_change_proposal", {

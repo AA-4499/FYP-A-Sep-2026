@@ -5,14 +5,14 @@ import { getSupabaseClient } from "../lib/supabase";
 import { loadPatientDashboard } from "../lib/patientDashboard";
 import type { PatientDashboardData } from "../lib/patientDashboard";
 import type { NavigationModule } from "../types";
-import { Sidebar } from "./Sidebar";
-import { FontSizeSettings } from "./FontSizeSettings";
 import { LabResultsView } from "./LabResultsView";
+import { FontSizeSettings } from "./FontSizeSettings";
+import { Sidebar } from "./Sidebar";
 import {
   RecordedMonitoring,
-  OrganEvidence,
   RecordedReport,
 } from "./ClinicalWorkspace";
+import { RiskSimulationView } from "./RiskSimulationView";
 import { mapClinicalRecord } from "../lib/clinicalData";
 import { readClinicalRows } from "../lib/supabaseRows";
 import { PatientRecommendationsView } from "./PatientRecommendationsView";
@@ -27,8 +27,8 @@ const pages = new Set<NavigationModule>([
   "patient_digital_twin",
   "patient_recommendations",
   "patient_reports",
-  "patient_lab_results",
   "patient_settings",
+  "patient_lab_results",
 ]);
 
 export function PatientWorkspace({
@@ -206,6 +206,7 @@ export function PatientWorkspace({
               </details>
             </div>
           </header>
+          {page === "patient_settings" && <FontSizeSettings />}
           {authError && (
             <p
               role="alert"
@@ -247,8 +248,6 @@ export function PatientWorkspace({
                     your care team.
                   </section>
                 )}
-                {page === "patient_lab_results" && <LabResultsView patient={patient} />}
-                {page === "patient_settings" && <FontSizeSettings />}
                 {page === "patient_home" && (
                   <PatientHomeView patient={patient} onNavigate={navigate} />
                 )}
@@ -262,6 +261,14 @@ export function PatientWorkspace({
                         ["Role", "Patient"],
                         ["Email status", "Confirmed"],
                         ["Patient Number", recordId || "Being set up"],
+                        [
+                          "Care team doctor",
+                          data.assigned_doctor?.full_name?.trim() ||
+                            (data.assigned_doctor?.id
+                              ? `Doctor account ${data.assigned_doctor.id}`
+                              : null) ||
+                            "Not assigned",
+                        ],
                       ].map(([label, value]) => (
                         <div key={label}>
                           <dt className="text-slate-500">{label}</dt>
@@ -280,6 +287,7 @@ export function PatientWorkspace({
                     allowPatientSelection={false}
                   />
                 )}
+                {page === "patient_lab_results" && <LabResultsView patient={patient} />}
                 {page === "patient_reports" && (
                   <RecordedReport patient={patient} />
                 )}
@@ -287,7 +295,11 @@ export function PatientWorkspace({
                   <PatientRecommendationsView recommendations={[]} />
                 )}
                 {page === "patient_digital_twin" && (
-                  <OrganEvidence patient={patient} />
+                  <RiskSimulationView
+                    key={patient.id}
+                    patient={patient}
+                    onNavigate={navigate}
+                  />
                 )}
               </>
             )

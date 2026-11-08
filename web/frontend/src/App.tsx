@@ -14,7 +14,6 @@ import {
   CohortOverview,
   PatientRegistry,
   RecordedMonitoring,
-  OrganEvidence,
   RecordedReport,
 } from "./components/ClinicalWorkspace";
 import { fetchSupabasePatients, getSupabaseClient, clearSupabasePatientCache } from "./lib/supabase";
@@ -233,12 +232,7 @@ function Workspace({
             </section>
           )}
           {overview && (
-            <CohortOverview
-              patients={patients}
-              onOpen={openPatient}
-              onRegistry={() => setDoctorPage("doctor_patients")}
-              onMonitor={() => setDoctorPage("doctor_monitoring")}
-            />
+            <CohortOverview patients={patients} onOpen={openPatient} />
           )}
           {page === "doctor_knowledge_graph" && (
             <React.Suspense
@@ -299,7 +293,7 @@ function Workspace({
                   patients={patients}
                   currentPatient={patient}
                   onSelectPatient={setSelectedId}
-                  onOpenDigitalTwin={openPatient}
+                  onOpenRecord={openPatient}
                 />
               )}
               {["patient_dashboard", "patient_home"].includes(page) && (
@@ -328,7 +322,15 @@ function Workspace({
                 "doctor_digital_twin",
                 "patient_digital_twin",
                 "digital_twin",
-              ].includes(page) && <OrganEvidence patient={patient} />}
+              ].includes(page) && (
+                <RiskSimulationView
+                  key={patient.id}
+                  patient={patient}
+                  onNavigate={navigate}
+                  patients={mode === "doctor" ? patients : undefined}
+                  onSelectPatient={mode === "doctor" ? setSelectedId : undefined}
+                />
+              )}
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,
               ) && <RecordedReport patient={patient} />}

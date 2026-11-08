@@ -4,7 +4,6 @@
  * - Patient vitals header (HbA1c, Fasting glucose, BMI, Risk)
  * - Key Ambulatory Glucose Profile (AGP) metrics (TIR 70-180 mg/dL, TAR >180, TBR <70, Mean Glucose, CV%)
  * - Longitudinal Continuous CGM Sensor Waveform (14 Days, 1,000+ points)
- * - Actual Daily Glycemic Distribution (Day 1 - Day 14) with real TIR% breakdown
  * - Clean clinical notice for patients without continuous sensor telemetry
  */
 import React, { useMemo, useState } from 'react';
@@ -32,7 +31,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
   onNavigate,
   allowPatientSelection = true,
 }) => {
-  const [selectedDayRange, setSelectedDayRange] = useState('All available days');
   const hasCGM = Boolean(patient.hasContinuousCGM && patient.cgmReadings && patient.cgmReadings.length > 0);
   const cgmSummary = patient.cgmSummary;
   const [selectedAgpRange, setSelectedAgpRange] = useState('14');
@@ -131,15 +129,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
       setSelectedAgpRange('all');
     }
   }, [patient.cgmReadings, selectedAgpRange, availableDayCount]);
-
-  // Profiles to display
-  const allProfiles = cgmSummary?.dailyProfiles || [];
-  const displayProfiles =
-    selectedDayRange === 'First 7 days'
-      ? allProfiles.slice(0, 7)
-      : selectedDayRange === 'Last 7 days'
-      ? allProfiles.slice(-7)
-      : allProfiles;
 
   const filteredAgpReadings = useMemo(() => {
     if (validAgpReadings.length === 0) {
@@ -2142,96 +2131,6 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
         )}
       </div>
 
-      {/* 5. Daily Glycemic Distribution Bar Chart (Day 1 - Day 14) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">
-              Daily Glycemic Distribution (Day-by-Day Profiles)
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {hasCGM ? 'Daily mean glucose levels and Time-in-Range percentages across each 24-hour cycle' : 'Daily glucose logs'}
-            </p>
-          </div>
-
-          {hasCGM && (
-            <div className="relative">
-              <select
-                value={selectedDayRange}
-                onChange={(e) => setSelectedDayRange(e.target.value)}
-                className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 pr-6 appearance-none focus:outline-hidden cursor-pointer"
-              >
-                <option>All available days</option>
-                <option>First 7 days</option>
-                <option>Last 7 days</option>
-              </select>
-              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-2 pointer-events-none" />
-            </div>
-          )}
-        </div>
-
-        {hasCGM && displayProfiles.length > 0 ? (
-          <div className="h-64 flex items-end justify-between gap-2 pt-6 px-2 overflow-x-auto">
-            {displayProfiles.map((item) => {
-              // Scale bar based on max 250 mg/dL
-              const barHeightPct = Math.min(100, Math.max(15, (item.mean / 260) * 100));
-              const isOptimal = item.tir >= 70;
-              const isModerate = item.tir >= 50 && item.tir < 70;
-
-              return (
-                <div key={item.dayLabel} className="flex-1 min-w-[40px] flex flex-col items-center gap-1.5 h-full justify-end group">
-                  <span className="text-[10px] font-bold text-slate-700">
-                    {clinicalValue(item.mean)}
-                  </span>
-                  <div className="w-full max-w-[34px] bg-slate-100 rounded-t-lg h-full max-h-40 flex items-end overflow-hidden">
-                    <div
-                      className={`w-full rounded-t-lg transition-all duration-500 cursor-pointer ${
-                        isOptimal
-                          ? 'bg-emerald-500 hover:bg-emerald-600'
-                          : isModerate
-                          ? 'bg-blue-600 hover:bg-blue-700'
-                          : 'bg-rose-500 hover:bg-rose-600'
-                      }`}
-                      style={{ height: `${barHeightPct}%` }}
-                      title={`${item.dayLabel}: Mean ${item.mean} mg/dL, TIR ${clinicalValue(item.tir, '%')}`}
-                    />
-                  </div>
-                  <span className="text-[9px] text-slate-500 font-semibold truncate max-w-[50px] text-center">
-                    D{item.dayNumber}
-                  </span>
-                  <span className={`text-[9px] font-bold ${isOptimal ? 'text-emerald-600' : isModerate ? 'text-blue-600' : 'text-rose-600'}`}>
-                    {clinicalValue(item.tir, '%')}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="py-8 text-center text-xs text-slate-400">
-            No daily continuous CGM profiles recorded for this patient.
-          </div>
-        )}
-
-        {hasCGM && (
-          <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-3 items-center justify-between text-xs text-slate-500">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500" />
-                <span>TIR &ge; 70% (Optimal)</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-xs bg-blue-600" />
-                <span>TIR 50–70% (Moderate)</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-xs bg-rose-500" />
-                <span>TIR &lt; 50% (High Variance)</span>
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-400">Values on top of bars: Daily Mean Glucose (mg/dL)</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

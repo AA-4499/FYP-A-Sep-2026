@@ -159,6 +159,11 @@ def validate_proposal(target_type: str, operation: str, target_key: str,
             _validate_text(value, field, required=True, maximum=180)
         else:
             _validate_text(value, field, maximum=4000)
+    if target_type == "relationship":
+        source_refs = proposed_payload.get("sourceRefs")
+        if not isinstance(source_refs, list) or not source_refs:
+            raise KGProposalValidationError("A relationship proposal must include at least one bibliography source ID.")
+        _validate_text(proposed_payload.get("evidenceNote"), "evidenceNote", required=True, maximum=4000)
     return proposed_payload
 
 

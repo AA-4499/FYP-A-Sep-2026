@@ -261,14 +261,6 @@ export function PatientWorkspace({
                         ["Role", "Patient"],
                         ["Email status", "Confirmed"],
                         ["Patient Number", recordId || "Being set up"],
-                        [
-                          "Care team doctor",
-                          data.assigned_doctor?.full_name?.trim() ||
-                            (data.assigned_doctor?.id
-                              ? `Doctor account ${data.assigned_doctor.id}`
-                              : null) ||
-                            "Not assigned",
-                        ],
                       ].map(([label, value]) => (
                         <div key={label}>
                           <dt className="text-slate-500">{label}</dt>

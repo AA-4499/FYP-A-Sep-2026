@@ -81,13 +81,17 @@ async function componentModule(name) {
   const source = readFileSync(new URL(`../src/components/${name}.tsx`, import.meta.url), 'utf8');
   let { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.React } });
   outputText = outputText.replace(/from (['"])(react|lucide-react)\1/g, (_, quote, specifier) => `from ${JSON.stringify(import.meta.resolve(specifier))}`);
+  // The finalized DashboardView imports Recharts. Stub chart primitives in this SSR content test.
+  const rechartsStub = `export const CartesianGrid = () => null; export const Line = () => null; export const LineChart = () => null; export const ReferenceArea = () => null; export const ReferenceLine = () => null; export const ResponsiveContainer = () => null; export const Tooltip = () => null; export const XAxis = () => null; export const YAxis = () => null;`;
+  const rechartsUrl = `data:text/javascript;base64,${Buffer.from(rechartsStub).toString('base64')}`;
+  outputText = outputText.replace(/from (['"])recharts\\1/g, `from "${rechartsUrl}"`);
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 
 test('Patient Home retains recorded information and hides Doctor-only simulation', async () => {
   const { DashboardView } = await componentModule('DashboardView');
   const html = renderToStaticMarkup(React.createElement(DashboardView, { patient: toDashboardPatient(unlinked), selfService: true, onNavigate() {} }));
-  for (const title of ['Continuous CGM Waveform', 'Why this risk? Key factors', 'Your health at a glance']) assert.ok(html.includes(title), title);
+  for (const title of ['Last recorded glucose', 'Glucose trend', 'Glucose range', 'Other health results']) assert.ok(html.includes(title), title);
   assert.doesNotMatch(html, /NaN|62%|Patient 2000|Patients 2000|Prototype:/);
   assert.doesNotMatch(html, /What-if simulation|Open prediction and what-if|Simulated HbA1c/);
 });

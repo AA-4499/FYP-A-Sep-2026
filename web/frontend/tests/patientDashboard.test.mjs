@@ -84,7 +84,7 @@ async function componentModule(name) {
   // The finalized DashboardView imports Recharts. Stub chart primitives in this SSR content test.
   const rechartsStub = `export const CartesianGrid = () => null; export const Line = () => null; export const LineChart = () => null; export const ReferenceArea = () => null; export const ReferenceLine = () => null; export const ResponsiveContainer = () => null; export const Tooltip = () => null; export const XAxis = () => null; export const YAxis = () => null;`;
   const rechartsUrl = `data:text/javascript;base64,${Buffer.from(rechartsStub).toString('base64')}`;
-  outputText = outputText.replace(/from (['"])recharts\\1/g, `from "${rechartsUrl}"`);
+  outputText = outputText.replace(/from (['"])recharts\1/g, 'from "' + rechartsUrl + '"');
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 

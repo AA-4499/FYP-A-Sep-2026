@@ -21,7 +21,7 @@ type Proposal = {
   created_at: string;
 };
 
-type ProposalsResponse = { proposals: Proposal[]; canReview: boolean };
+type ProposalsResponse = { proposals: Proposal[]; canReview: boolean; userId: string };
 
 const inputClass = "mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-teal-500";
 const labelClass = "block text-xs font-semibold text-slate-600";
@@ -75,6 +75,7 @@ export function KnowledgeGraphChangesView() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [canReview, setCanReview] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState("");
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
 
@@ -89,6 +90,7 @@ export function KnowledgeGraphChangesView() {
       const result = await requestApi<ProposalsResponse>("/api/doctor/knowledge-graph/proposals");
       setProposals(Array.isArray(result.proposals) ? result.proposals : []);
       setCanReview(result.canReview === true);
+      setCurrentUserId(result.userId || "");
     } catch (failure) {
       setProposals([]);
       setError(failure instanceof Error ? failure.message : "Proposals could not be loaded.");
@@ -309,7 +311,7 @@ export function KnowledgeGraphChangesView() {
             <p className="mt-3 text-xs leading-5 text-slate-600">{proposal.change_reason}</p>
             {Object.keys(proposal.proposed_payload || {}).length > 0 && <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-700">{JSON.stringify(proposal.proposed_payload, null, 2)}</pre>}
             {proposal.review_note && <p className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700"><strong>Reviewer note:</strong> {proposal.review_note}</p>}
-            {canReview && ["submitted", "under_review", "changes_requested"].includes(proposal.status) && (
+            {canReview && proposal.submitted_by !== currentUserId && ["submitted", "under_review", "changes_requested"].includes(proposal.status) && (
               <div className="mt-4 border-t border-slate-100 pt-4">
                 <label className={labelClass}>Review decision note<textarea className={inputClass} rows={2} value={reviewNotes[proposal.id] || ""} onChange={e => setReviewNotes(v => ({ ...v, [proposal.id]: e.target.value }))} placeholder="Explain the evidence check and reason for your decision." /></label>
                 <div className="mt-3 flex flex-wrap gap-2">

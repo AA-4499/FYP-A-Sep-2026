@@ -126,9 +126,22 @@ language plpgsql security definer set search_path = public, pg_temp
 as $$
 declare affected integer := 0;
 begin
-  if p_permission not in ('kg_reviewer', 'kg_curator')
+  if p_admin_id is null or not exists (
+    select 1 from auth.users
+    where id = p_admin_id and raw_app_meta_data ->> 'role' = 'admin'
+  ) then
+    raise exception 'Platform Admin role required to manage KG permissions';
+  end if;
+  if p_user_id is null or not exists (
+    select 1 from auth.users
+    where id = p_user_id
+      and coalesce(raw_app_meta_data ->> 'role', '') in ('admin', 'doctor', 'clinician')
+  ) then
+    raise exception 'KG permissions can only be granted to Admin or clinical accounts';
+  end if;
+  if p_enabled is null or p_permission not in ('kg_reviewer', 'kg_curator')
     or length(trim(coalesce(p_reason, ''))) = 0 then
-    raise exception 'A valid permission and reason are required';
+    raise exception 'A valid permission, action and reason are required';
   end if;
   if p_enabled then
     insert into public.kg_user_permissions (user_id, permission, granted_by, reason)

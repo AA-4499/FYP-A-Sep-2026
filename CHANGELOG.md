@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-08 — Finalized Admin workspace alignment
+
+- Replaced the old browser-demo Admin shell with the live Supabase-backed Admin console from `main` / `TrainingModel`.
+- Added live account management, Doctor application approvals, patient assignments, activity history, overview and settings.
+- Routed Admin accounts directly to the console after Supabase Auth and database-backed `get_my_access_state` verification.
+- Added the Doctor application flow and pending/rejected application states.
+- Kept the KG reviewer-access page and separate `kg_reviewer` / `kg_curator` permissions.
+- Omitted model retraining because its runtime is part of TrainingModel and is not yet ported.
+- Added the existing Admin schema SQL as a reference; it is already provisioned in the connected project and must not be reapplied without review.
+
+
 ## 2026-11-08 — Controlled KG change proposals and role permissions
 
 - Added a Doctor-facing Change proposals tab for structured concept, relationship and literature-source proposals.

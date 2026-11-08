@@ -111,3 +111,14 @@ Backend allow-lists prevent arbitrary properties, Cypher, evidence-status change
 **Database prerequisite:** apply \`docs/supabase_kg_change_management.sql\` manually in the intended Supabase project before using these screens. This migration has not been applied by this code change. If the tables are missing, the backend returns a clear 503 response and the frontend remains unable to submit or review proposals.
 
 **Not implemented yet:** publishing an approved proposal to Aura, versioned graph releases, graph backup/restore, rollback UI and curator release approval. Those remain a separate phase and must be completed before any web workflow changes the published graph.
+
+
+## Finalized Admin console alignment — 8 November 2026
+
+The connected FYP Supabase project was inspected read-only. The Admin workspace schema is already present, including `profiles`, `doctor_applications`, `admin_audit_logs`, `clinician_patient_assignments` and the Admin access-state, overview, account, application, assignment and activity RPCs. The live Admin console from `main` / `TrainingModel` has been ported to KnowledgeGraph. Admin accounts are routed directly to it only after Supabase Auth and the database-backed `get_my_access_state` check. The Doctor application flow is included.
+
+The KG reviewer-access page remains part of the Admin console. It manages the separate `kg_reviewer` / `kg_curator` capabilities. The model-retraining Admin page is intentionally omitted until the TrainingModel runtime is selectively integrated.
+
+The Admin schema SQL is included as `docs/supabase_admin_workspace.sql` for reproducibility. It corresponds to the schema/functions already present in the connected project. **Do not re-run it blindly against the existing project**: review its triggers, account-status operations, assignment changes and RLS policy definitions first. No Admin migration was applied and no live records were modified during this UI port.
+
+The separate `docs/supabase_kg_change_management.sql` remains an unapplied prerequisite for proposal/review tables and KG permissions. It does not modify Aura.

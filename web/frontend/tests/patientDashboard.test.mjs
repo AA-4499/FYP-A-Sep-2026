@@ -85,6 +85,12 @@ async function componentModule(name) {
   const rechartsStub = `export const CartesianGrid = () => null; export const Line = () => null; export const LineChart = () => null; export const ReferenceArea = () => null; export const ReferenceLine = () => null; export const ResponsiveContainer = () => null; export const Tooltip = () => null; export const XAxis = () => null; export const YAxis = () => null;`;
   const rechartsUrl = `data:text/javascript;base64,${Buffer.from(rechartsStub).toString('base64')}`;
   outputText = outputText.replace(/from (['"])recharts\1/g, 'from "' + rechartsUrl + '"');
+  const clinicalDataStub = `export const clinicalValue = (value, unit = "") => Number.isFinite(value) ? String(value) + (unit ? " " + unit : "") : "Not recorded";`;
+  const clinicalDataUrl = `data:text/javascript;base64,${Buffer.from(clinicalDataStub).toString('base64')}`;
+  outputText = outputText.replace(/from (['"])\.\.\/lib\/clinicalData\1/g, 'from "' + clinicalDataUrl + '"');
+  const dashboardOverviewStub = `export const dashboardDate = () => "Recorded date"; export const glucoseOverview = (rows = []) => ({ rows, recent: rows, latest: rows.length ? rows[rows.length - 1] : null, low: 0, inRange: 0, high: 0, mean: NaN });`;
+  const dashboardOverviewUrl = `data:text/javascript;base64,${Buffer.from(dashboardOverviewStub).toString('base64')}`;
+  outputText = outputText.replace(/from (['"])\.\.\/lib\/dashboardOverview\1/g, 'from "' + dashboardOverviewUrl + '"');
   return import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 }
 

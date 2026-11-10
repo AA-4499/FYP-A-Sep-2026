@@ -6,16 +6,20 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ClipboardCheck,
   ExternalLink,
-  Heart,
+  Filter,
   Info,
   Lightbulb,
   Maximize2,
   Minimize2,
+  PanelRightClose,
   RotateCcw,
+  Search,
   Share2,
   ShieldCheck,
   Sparkles,
+  UserCheck,
   X,
   ZoomIn,
   ZoomOut,
@@ -29,6 +33,7 @@ interface PatientRightSidebarProps {
   patient: Patient | null;
   patientId?: string;
   recommendations?: ClinicalRecommendation[];
+  canViewKnowledgeGraph?: boolean;
   onNavigate?: (module: NavigationModule) => void;
   isOpen?: boolean;
   onClose?: () => void;
@@ -80,19 +85,35 @@ export function PatientRightSidebar({
   patient,
   patientId,
   recommendations: suppliedRecommendations = [],
+  canViewKnowledgeGraph = false,
   onNavigate,
   isOpen = true,
   onClose,
   defaultTab = "recommendations",
 }: PatientRightSidebarProps) {
-  const [activeTab, setActiveTab] = useState<SidebarTab>(defaultTab);
+  // If canViewKnowledgeGraph is false, active tab is strictly "recommendations"
+  const [activeTab, setActiveTab] = useState<SidebarTab>(
+    canViewKnowledgeGraph && defaultTab === "knowledge_graph"
+      ? "knowledge_graph"
+      : "recommendations",
+  );
+  const [isExtended, setIsExtended] = useState<boolean>(false);
   const recommendations = suppliedRecommendations.filter(rec => rec.status === "published" && rec.patientId === patient?.id && (!patientId || rec.patientId === patientId));
   const [expandedRecs, setExpandedRecs] = useState<Record<string, boolean>>({});
+  const [recCategoryFilter, setRecCategoryFilter] = useState<string>("all");
+  const [recSearch, setRecSearch] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedNodeId, setSelectedNodeId] = useState<string>("patient_core");
 
   const cyContainerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
+
+  // If canViewKnowledgeGraph changes to false, force back to recommendations
+  useEffect(() => {
+    if (!canViewKnowledgeGraph && activeTab === "knowledge_graph") {
+      setActiveTab("recommendations");
+    }
+  }, [canViewKnowledgeGraph, activeTab]);
 
   const graphData = useMemo(() => {
     return generatePatientGraph(patient, patientId);
@@ -138,9 +159,33 @@ export function PatientRightSidebar({
     );
   }, [graphData.nodes, selectedNodeId]);
 
+  // Filter recommendations by search and category
+  const filteredRecommendations = useMemo(() => {
+    return recommendations.filter((item) => {
+      const matchesCategory =
+        recCategoryFilter === "all" ||
+        item.category.toLowerCase().includes(recCategoryFilter.toLowerCase());
+      const query = recSearch.trim().toLowerCase();
+      const matchesSearch =
+        !query ||
+        item.title.toLowerCase().includes(query) ||
+        item.patientMessage.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query);
+      return matchesCategory && matchesSearch;
+    });
+  }, [recommendations, recCategoryFilter, recSearch]);
+
+  const recCategories = useMemo(() => {
+    const set = new Set<string>();
+    recommendations.forEach((r) => {
+      if (r.category) set.add(r.category);
+    });
+    return Array.from(set);
+  }, [recommendations]);
+
   // Initialize and update Cytoscape canvas when Knowledge Graph tab is active
   useEffect(() => {
-    if (activeTab !== "knowledge_graph" || !cyContainerRef.current) {
+    if (activeTab !== "knowledge_graph" || !canViewKnowledgeGraph || !cyContainerRef.current) {
       if (cyRef.current) {
         cyRef.current.destroy();
         cyRef.current = null;
@@ -294,7 +339,18 @@ export function PatientRightSidebar({
       cy.destroy();
       cyRef.current = null;
     };
-  }, [activeTab, filteredNodes, visibleEdges]);
+  }, [activeTab, canViewKnowledgeGraph, filteredNodes, visibleEdges]);
+
+  // When sidebar width extends or restores, resize cytoscape
+  useEffect(() => {
+    if (cyRef.current && activeTab === "knowledge_graph") {
+      const timer = setTimeout(() => {
+        cyRef.current?.resize();
+        cyRef.current?.fit(undefined, 24);
+      }, 320);
+      return () => clearTimeout(timer);
+    }
+  }, [isExtended, activeTab]);
 
   // Synchronize selected node class
   useEffect(() => {
@@ -337,84 +393,184 @@ export function PatientRightSidebar({
   return (
     <aside
       data-testid="patient-right-sidebar"
-      aria-label="Care recommendations and knowledge graph sidebar"
-      className="w-full shrink-0 lg:w-[350px] xl:w-[380px] lg:sticky lg:top-5"
+      aria-label="Care recommendations and clinical sidebar"
+      className={`w-full shrink-0 transition-all duration-300 ease-in-out lg:sticky lg:top-5 ${
+        isExtended
+          ? "lg:w-[540px] xl:w-[600px]"
+          : "lg:w-[350px] xl:w-[380px]"
+      }`}
     >
       <div className="flex flex-col rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
-              <Sparkles className="h-4 w-4" />
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-teal-700 shrink-0">
+              {activeTab === "knowledge_graph" ? (
+                <Share2 className="h-4 w-4 text-purple-700" />
+              ) : (
+                <Lightbulb className="h-4 w-4 text-teal-700" />
+              )}
             </span>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">Health Insights</h2>
-              <p className="text-[10px] font-medium text-slate-500">
-                Care Team Guidance & Network
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-slate-900 truncate">
+                {!canViewKnowledgeGraph
+                  ? "My Recommendations"
+                  : activeTab === "knowledge_graph"
+                  ? "Clinical Knowledge Graph"
+                  : "Patient Recommendations"}
+              </h2>
+              <p className="text-[10px] font-medium text-slate-500 truncate">
+                {!canViewKnowledgeGraph
+                  ? "Doctor-Approved Guidance"
+                  : "Clinician & Patient Workspace"}
               </p>
             </div>
           </div>
-          {onClose && (
+
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Extend / Standard width toggle button */}
             <button
               type="button"
-              onClick={onClose}
-              aria-label="Close right sidebar"
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              onClick={() => setIsExtended((prev) => !prev)}
+              aria-label={isExtended ? "Standard width" : "Extend sidebar width"}
+              title={isExtended ? "Standard width" : "Extend sidebar width"}
+              className="hidden lg:flex items-center gap-1 rounded-lg border border-slate-200/80 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition text-[11px]"
             >
-              <X className="h-4 w-4" />
+              {isExtended ? (
+                <>
+                  <Minimize2 className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-semibold pr-1">Standard</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-semibold pr-1">Extend</span>
+                </>
+              )}
             </button>
-          )}
-        </div>
 
-        {/* Tab Switcher - Recommendations is default */}
-        <div className="mt-3.5 flex rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-600">
-          <button
-            type="button"
-            onClick={() => setActiveTab("recommendations")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
-              activeTab === "recommendations"
-                ? "bg-white text-teal-800 shadow-xs font-bold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Lightbulb className="h-3.5 w-3.5 text-teal-600" />
-            <span>Recommendations</span>
-            {recommendations.length > 0 && (
-              <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-bold text-teal-800">
-                {recommendations.length}
-              </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close right sidebar"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
             )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("knowledge_graph")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
-              activeTab === "knowledge_graph"
-                ? "bg-white text-purple-800 shadow-xs font-bold"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Share2 className="h-3.5 w-3.5 text-purple-600" />
-            <span>Knowledge Graph</span>
-          </button>
+          </div>
         </div>
 
-        {/* TAB 1: RECOMMENDATIONS (DEFAULT) */}
+        {/* Tab Switcher: Only displayed when doctor has permission to view knowledge graph */}
+        {canViewKnowledgeGraph && (
+          <div className="mt-3.5 flex rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-600">
+            <button
+              type="button"
+              onClick={() => setActiveTab("recommendations")}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                activeTab === "recommendations"
+                  ? "bg-white text-teal-800 shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Lightbulb className="h-3.5 w-3.5 text-teal-600" />
+              <span>Recommendations</span>
+              {recommendations.length > 0 && (
+                <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[9px] font-bold text-teal-800">
+                  {recommendations.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("knowledge_graph")}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 transition ${
+                activeTab === "knowledge_graph"
+                  ? "bg-white text-purple-800 shadow-xs font-bold"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Share2 className="h-3.5 w-3.5 text-purple-600" />
+              <span>Knowledge Graph</span>
+            </button>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 1: RECOMMENDATIONS (DEFAULT & ONLY VIEW FOR PATIENT) */}
+        {/* ============================================================== */}
         {activeTab === "recommendations" && (
           <div className="mt-4 space-y-3.5">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
-                <ShieldCheck className="h-3.5 w-3.5 text-teal-600" />
-                Approved by your care team
-              </span>
-              <span className="text-[11px] font-medium text-slate-400">
-                {recommendations.length} shared
-              </span>
+            {/* Header / Filter bar */}
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                  <ShieldCheck className="h-3.5 w-3.5 text-teal-600" />
+                  Approved by Care Team
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">
+                  {filteredRecommendations.length} of {recommendations.length} {recommendations.length === 1 ? "item" : "items"}
+                </span>
+              </div>
+
+              {/* Search input if multiple recommendations */}
+              {recommendations.length > 2 && (
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={recSearch}
+                    onChange={(e) => setRecSearch(e.target.value)}
+                    placeholder="Search recommendations…"
+                    aria-label="Search recommendations"
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl placeholder-slate-400 text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-teal-500 focus:bg-white transition"
+                  />
+                </div>
+              )}
+
+              {/* Category Filter Chips */}
+              {recCategories.length > 1 && (
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setRecCategoryFilter("all")}
+                    className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition ${
+                      recCategoryFilter === "all"
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {recCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setRecCategoryFilter(cat)}
+                      className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold transition ${
+                        recCategoryFilter === cat
+                          ? "bg-teal-700 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {recommendations.length > 0 ? (
-              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-                {recommendations.map((rec) => {
+            {/* Recommendations List */}
+            {filteredRecommendations.length > 0 ? (
+              <div
+                className={`space-y-3 overflow-y-auto pr-1 ${
+                  isExtended
+                    ? "max-h-[640px] grid grid-cols-1 md:grid-cols-2 gap-3 space-y-0"
+                    : "max-h-[520px]"
+                }`}
+              >
+                {filteredRecommendations.map((rec) => {
                   const isExpanded = !!expandedRecs[rec.id];
                   return (
                     <article
@@ -451,7 +607,7 @@ export function PatientRightSidebar({
                       )}
 
                       <div className="mt-3 flex items-center justify-between border-t border-teal-100/60 pt-2 text-[10px] text-slate-400">
-                        <span>Shared with patient</span>
+                        <span>Shared by your care team</span>
                         <button
                           type="button"
                           onClick={() => toggleRecExpand(rec.id)}
@@ -483,21 +639,19 @@ export function PatientRightSidebar({
               </div>
             )}
 
-            {onNavigate && (
-              <button
-                type="button"
-                onClick={() => onNavigate("patient_recommendations")}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-              >
-                <span>Open full recommendations view</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            )}
+            <div className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-[10px] leading-relaxed text-slate-500 flex items-start gap-2">
+              <Info className="h-3.5 w-3.5 text-teal-600 shrink-0 mt-0.5" />
+              <span>
+                These items are agreed upon with your clinician to support daily lifestyle and glucose monitoring.
+              </span>
+            </div>
           </div>
         )}
 
-        {/* TAB 2: KNOWLEDGE GRAPH */}
-        {activeTab === "knowledge_graph" && (
+        {/* ============================================================== */}
+        {/* TAB 2: KNOWLEDGE GRAPH (DOCTOR-ONLY) */}
+        {/* ============================================================== */}
+        {activeTab === "knowledge_graph" && canViewKnowledgeGraph && (
           <div className="mt-4 space-y-3.5">
             <div className="flex items-center justify-between">
               <div>
@@ -567,12 +721,14 @@ export function PatientRightSidebar({
             <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70">
               <div
                 ref={cyContainerRef}
-                className="h-[280px] w-full cursor-grab active:cursor-grabbing"
+                className={`w-full cursor-grab active:cursor-grabbing transition-all duration-300 ${
+                  isExtended ? "h-[420px]" : "h-[280px]"
+                }`}
                 role="img"
                 aria-label="Interactive patient knowledge graph"
               />
               <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-white/80 px-2 py-0.5 text-[9px] font-medium text-slate-500 backdrop-blur-xs">
-                Tap a node to inspect
+                Tap node to inspect
               </div>
             </div>
 

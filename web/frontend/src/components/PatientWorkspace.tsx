@@ -27,7 +27,6 @@ const pages = new Set<NavigationModule>([
   "patient_profile",
   "patient_monitoring",
   "patient_digital_twin",
-  "patient_recommendations",
   "patient_reports",
   "patient_settings",
   "patient_lab_results",
@@ -334,6 +333,7 @@ export function PatientWorkspace({
             patient={patient}
             patientId={recordId || patient?.id}
             recommendations={recommendations}
+            canViewKnowledgeGraph={false}
             onNavigate={navigate}
             isOpen={isRightSidebarOpen}
             onClose={() => setIsRightSidebarOpen(false)}

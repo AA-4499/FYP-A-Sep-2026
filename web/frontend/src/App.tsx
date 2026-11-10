@@ -1,5 +1,5 @@
 /** Clinical workspace. Database facts and research simulations have separate views. */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LabResultsView } from "./components/LabResultsView";
 import { FontSizeSettings } from "./components/FontSizeSettings";
 import { Sidebar } from "./components/Sidebar";
@@ -339,6 +339,7 @@ function Workspace({
             patient={patient || null}
             patientId={patient?.id}
             recommendations={patientRecommendations}
+            canViewKnowledgeGraph={canViewKnowledgeGraph}
             onNavigate={navigate}
             isOpen={patientRightSidebarOpen}
             onClose={() => setPatientRightSidebarOpen(false)}

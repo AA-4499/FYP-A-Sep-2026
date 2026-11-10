@@ -101,8 +101,8 @@ test('Patient Home retains recorded information and hides Doctor-only simulation
 test('Patient sidebar retains the original navigation without a care-team switch', async () => {
   const { Sidebar } = await componentModule('Sidebar');
   const html = renderToStaticMarkup(React.createElement(Sidebar, { mode: 'patient', activeModule: 'patient_home', selfService: true, onSelectModule() {}, onReturnToCareTeam() {} }));
-  for (const label of ['Home', 'My profile', 'My health', 'My digital twin', 'My recommendations', 'Reports']) assert.ok(html.includes(label), label);
-  assert.doesNotMatch(html, /Doctor dashboard|ShanghaiT2DM Cohort|Risk prediction/);
+  for (const label of ['Home', 'My profile', 'My health', 'My digital twin', 'Reports']) assert.ok(html.includes(label), label);
+  assert.doesNotMatch(html, /Doctor dashboard|ShanghaiT2DM Cohort|Risk prediction|Knowledge graph|My recommendations/);
 });
 
 

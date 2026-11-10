@@ -1,17 +1,17 @@
 {
-  "recorded_at": "2026-11-10T12:02:05.962180+08:00",
-  "source_commit": "51b8b4b8f31715657d8bfbbe75b455f2351bba11",
+  "recorded_at": "2026-11-10T13:50:13.073782+08:00",
+  "source_commit": "0f3a3d328f05c3ee25dd5f7a2fd7899b483e0de9",
   "repository": "AA-4499/FYP-A-Sep-2026",
   "branch": "TrainingModel",
-  "verification_scope": "Automated local verification using synthetic/local fixtures and isolated temporary model storage; not production acceptance.",
+  "verification_scope": "Automated local verification with synthetic fixtures, isolated temporary model caches and PGlite PostgreSQL; live server-side food lookup and private bucket metadata only. No production user prediction or deployed restart acceptance.",
   "backend": {
     "command": "python -m unittest discover -s web/backend/tests",
-    "passed": 143,
+    "passed": 158,
     "failed": 0
   },
   "frontend": {
     "command": "npm test",
-    "passed": 243,
+    "passed": 256,
     "failed": 0
   },
   "production_build": {
@@ -37,15 +37,36 @@
     "version": "2026-11-10-approved"
   },
   "deployment_and_acceptance": {
-    "frontend_backend_deployment": "not_verified",
-    "persistent_disk": "operator_action_required",
-    "supabase_runtime_configuration": "operator_to_confirm",
+    "frontend_backend_deployment": "not_changed_or_verified",
+    "persistent_disk": "not_required_for_optional_supabase_provider",
+    "supabase_runtime_configuration": "private_bucket_created; SQL_migration_and_Render_environment_pending",
     "authorised_online_prediction": "not_run_at_owner_request",
     "jira_updates": "owner_to_perform",
-    "poster": "cancelled_by_owner"
+    "poster": "cancelled_by_owner",
+    "model_initialization": "not_run; active_Admin_initialization_endpoint_implemented"
   },
   "test_logs_sha256": {
-    "backend": "c361006197b9dea1f68b4375050b9e2944f032f4459b4e1be989ae50822dede5",
-    "frontend": "ba4461c5f41d7168b7547c0813409ccc7c786715e7036cd6bff1124b4ec39945"
-  }
+    "backend": "c79ec73a63e21a7f80a172644d5292d25016cb2ef277e15a9b830242565aa2b4",
+    "frontend": "3d42b76f02a0731c5eec446b0241d9e105ef0b0d20415f4e3cc65e6b4ee7f98f",
+    "build": "354e44d133d6149baa4914a83ed10d3bb1b60aec546164f3446c0eae0a1e873e"
+  },
+  "live_read_checks": {
+    "food_composition": "30 normalized references returned using the existing server-only table; owner confirmed available CHO per 100 g edible portion",
+    "model_artifacts_bucket": "private bucket created and metadata read confirmed; no checkpoint uploaded",
+    "anonymous_food_table": "HTTP 200 with no rows; RLS not broadened"
+  },
+  "integration": {
+    "main": "995e1f5",
+    "Boon": "844fb1e",
+    "all_fetched_remote_branches": "included in TrainingModel as of pre-push fetch",
+    "retained": "doctor assignments, KG configuration, browser Conditional GRU v3 and deleted Medium v3 retirement"
+  },
+  "coverage_added": [
+    "authenticated food API and explicit CHO/fibre conventions",
+    "stale food portion/model rejection",
+    "remote checkpoint and compressed baseline reload with an empty local cache",
+    "upload/quality/digest/missing-migration failure handling",
+    "service-only registry grants, lease expiry and stale-worker denial",
+    "atomic model/baseline selection and server-enforced seven-day interval"
+  ]
 }

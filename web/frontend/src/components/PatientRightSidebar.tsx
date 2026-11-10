@@ -185,7 +185,10 @@ export function generatePatientGraph(
         { label: "Value", value: bmiStr },
         {
           label: "Recorded Weight",
-          value: patient?.weight ? `${patient.weight} kg` : "Recorded in record",
+          value:
+            patient?.recordedFields?.["Weight (kg)"] != null
+              ? `${patient.recordedFields["Weight (kg)"]} kg`
+              : "Recorded in record",
         },
       ],
     },

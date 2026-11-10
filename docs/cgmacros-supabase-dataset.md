@@ -130,7 +130,7 @@ The default mode downloads/validates the official v1.0.0 ZIP, checks its SHA-256
 python data/loaders/cgmacros_supabase_loader.py --load
 ```
 
-The loader submits data in batches and records an audit row. If a run is interrupted, rerun the same command: the database keys and idempotent upsert prevent duplicate rows. Check the final database counts rather than using the audit's submitted-row counts as exact inserted-row counts; a repeat run may submit rows that were already present.
+The loader first performs a complete preflight scan and validates all participant files without writing anything. Only after that succeeds does it make a second pass, processing one participant at a time and submitting each table in batches of 500 rows. This bounds memory usage. It records an audit row before upload. If a run is interrupted, rerun the same command: database primary/unique keys and idempotent upserts prevent duplicate observations. Check final database counts rather than treating audit candidate-row counts as exact newly inserted counts; a repeat run may submit rows already present.
 
 The official archive SHA-256 is pinned in the script. A different checksum stops the import so a changed or wrong source file cannot be loaded silently.
 

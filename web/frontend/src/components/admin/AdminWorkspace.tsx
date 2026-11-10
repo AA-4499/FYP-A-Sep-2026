@@ -3,7 +3,7 @@ import { FontSizeSettings } from "../FontSizeSettings";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, ArrowLeft, ChevronRight, LayoutDashboard, Link2, RefreshCw,
-  ShieldAlert, ShieldCheck, Users,
+  Network, ShieldAlert, ShieldCheck, Users,
 } from 'lucide-react';
 import type { AdminApiError, AdminOverview, AdminRole } from '../../lib/adminApi';
 import {
@@ -16,6 +16,7 @@ import {
   AdminAssignmentsPage, AdminOverviewPage,
 } from './AdminPages';
 import { Notice } from './AdminUI';
+import { KGPermissionAdminView } from './KGPermissionAdminView';
 
 export interface AdminWorkspaceProps {
   admin: { id: string; full_name: string; email: string };
@@ -29,6 +30,7 @@ const pages = [
   { id: 'admin_assignments', label: 'Patient assignments', icon: Link2 },
   { id: 'admin_activity', label: 'Activity history', icon: Activity },
   { id: 'admin_retraining', label: 'Retrain model', icon: RefreshCw },
+  { id: 'admin_kg_access', label: 'KG reviewer access', icon: Network },
   { id: 'admin_settings', label: 'Settings', icon: LayoutDashboard },
 ] as const;
 
@@ -119,6 +121,7 @@ export function AdminWorkspace({ admin, onExit }: AdminWorkspaceProps) {
         {page === 'admin_retraining' && <AdminRetrainingView />}
         {page === 'admin_settings' && <FontSizeSettings />}
         {page === 'admin_activity' && <AdminActivityPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
+        {page === 'admin_kg_access' && <KGPermissionAdminView />}
         <footer className="flex flex-wrap justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-400"><span>DiaTwin · Smart Diabetes Digital Twin</span><span>Admin workspace · Live platform data</span></footer>
       </main>
     </div>

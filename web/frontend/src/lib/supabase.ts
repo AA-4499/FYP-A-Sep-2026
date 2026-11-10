@@ -63,7 +63,13 @@ export function getSupabaseClient(): SupabaseClient | null {
 
   try {
     cachedClient = createClient(url, anonKey, {
-      auth: { persistSession: false },
+      auth: {
+        // Keep the authenticated workspace across reloads and let Supabase
+        // refresh access tokens without treating a refresh as a new login.
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
     });
     lastClientKey = clientKey;
     return cachedClient;
@@ -169,9 +175,11 @@ export async function fetchSupabasePatients(patientIds?: ReadonlySet<string>): P
     const id = String(row["Patient Number"]);
     grouped.set(id, [...(grouped.get(id) ?? []), row]);
   });
-  return cachedRawSummaries.map((row) =>
-    mapSupabaseToPatient(row, grouped.get(String(row["Patient Number"])) ?? []),
-  );
+  return cachedRawSummaries
+    .filter((row) => !patientIds || patientIds.has(String(row["Patient Number"]).trim()))
+    .map((row) =>
+      mapSupabaseToPatient(row, grouped.get(String(row["Patient Number"])) ?? []),
+    );
 }
 
 export function getCachedRawDetails(): SupabasePatientDetail[] {

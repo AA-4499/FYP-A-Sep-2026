@@ -49,6 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectMo
   const items: { id: NavigationModule; label: string; icon: typeof Menu }[] = doctor ? [
     { id: "doctor_overview", label: "Overview", icon: LayoutDashboard },
     { id: "doctor_patients", label: "Patient management", icon: Users },
+    ...(canViewKnowledgeGraph ? [{ id: "doctor_knowledge_graph" as const, label: "Knowledge graph", icon: Share2 }] : []),
     { id: "doctor_reports", label: "Reports", icon: FileText },
     { id: "doctor_settings", label: "Settings", icon: Settings },
   ] : [

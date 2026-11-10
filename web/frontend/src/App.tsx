@@ -105,7 +105,8 @@ function Workspace({
     setPatientPage("patient_home");
   };
   const navigate = (page: NavigationModule) => {
-    if (["doctor_monitoring", "doctor_knowledge_graph"].includes(page)) return;
+    if (page === "doctor_monitoring") return;
+    if (page === "doctor_knowledge_graph" && !canViewKnowledgeGraph) return;
     if (page === "patient_knowledge_graph" && !canViewKnowledgeGraph) return;
     if (page.startsWith("doctor_")) {
       setMode("doctor");
@@ -199,7 +200,7 @@ function Workspace({
               {error}
             </div>
           )}
-          {!patient && !overview && !settings && page !== "doctor_knowledge_graph" && (
+          {!patient && !overview && !settings && page !== "doctor_knowledge_graph" && page !== "patient_knowledge_graph" && (
             <section
               role="status"
               className="rounded-3xl border border-slate-200 bg-white p-8"
@@ -224,7 +225,7 @@ function Workspace({
               onOpen={openPatient}
             />
           )}
-          {page === "doctor_knowledge_graph" && (
+          {page === "doctor_knowledge_graph" && canViewKnowledgeGraph && (
             <React.Suspense
               fallback={
                 <section role="status" className="rounded-2xl bg-white p-6 text-sm text-slate-500">
@@ -271,6 +272,11 @@ function Workspace({
               </dl>
             </section>
           )}
+          {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (
+            <React.Suspense fallback={<section role="status" className="rounded-2xl bg-white p-6 text-sm text-slate-500">Loading Knowledge Graph…</section>}>
+              <KnowledgeGraphView patients={patients} patientId={selectedId} onSelectPatient={setSelectedId} onPreviewPatientView={() => openPatient(selectedId)} />
+            </React.Suspense>
+          )}
           {patient && (
             <>
               {page === "doctor_patients" && (
@@ -309,26 +315,6 @@ function Workspace({
                   canViewPhysiology={!isPreview && initialRole === "doctor"}
                   onNavigate={navigate}
                 />
-              )}
-              {page === "patient_knowledge_graph" && canViewKnowledgeGraph && (
-                <React.Suspense
-                  fallback={
-                    <section
-                      role="status"
-                      className="rounded-2xl bg-white p-6 text-sm text-slate-500"
-                    >
-                      Loading knowledge graph...
-                    </section>
-                  }
-                >
-                  <KnowledgeGraphView
-                    key={patient.id}
-                    patients={patients}
-                    patientId={patient.id}
-                    onSelectPatient={setSelectedId}
-                    onPreviewPatientView={() => openPatient(patient.id)}
-                  />
-                </React.Suspense>
               )}
               {["doctor_reports", "patient_reports", "reports"].includes(
                 page,

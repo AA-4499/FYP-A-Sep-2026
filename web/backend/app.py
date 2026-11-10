@@ -47,6 +47,20 @@ from services.knowledge_graph_analysis_service import (
     KnowledgeGraphAnalysisUnavailableError,
     analyze_patient_knowledge_graph,
 )
+from services.clinical_knowledge_sources_service import (
+    ClinicalKnowledgeSourcesUnavailableError,
+    get_clinical_knowledge_sources,
+)
+from services.kg_change_management_service import (
+    KGChangeManagementUnavailableError,
+    KGProposalValidationError,
+    get_user_permissions as get_kg_user_permissions,
+    list_proposals as list_kg_change_proposals,
+    submit_proposal as submit_kg_change_proposal,
+    review_proposal as review_kg_change_proposal,
+    list_permissions as list_kg_permissions,
+    set_permission as set_kg_permission,
+)
 
 
 app = Flask(__name__)
@@ -257,6 +271,110 @@ def _verify_doctor_patient_assignment(patient_id: str):
     if str(patient_id) not in assigned_ids:
         return jsonify({"error": "This patient is not assigned to your doctor account."}), 403
     return None
+
+
+@app.route("/api/doctor/knowledge-graph/sources", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_clinical_knowledge_sources():
+    """Return the checked-in literature bibliography for the Doctor KG workspace."""
+    try:
+        return jsonify(get_clinical_knowledge_sources())
+    except ClinicalKnowledgeSourcesUnavailableError as exc:
+        app.logger.warning("Clinical KG bibliography unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc), "source": "repository-bibliography"}), 503
+
+
+@app.route("/api/doctor/knowledge-graph/proposals", methods=["GET"])
+@require_auth(frozenset({"doctor"}))
+def doctor_list_kg_change_proposals():
+    user = getattr(g, "current_user", {}) or {}
+    user_id = str(user.get("id") or "")
+    try:
+        permissions = get_kg_user_permissions(user_id)
+        can_review = "kg_reviewer" in permissions
+        proposals = list_kg_change_proposals(user_id, can_review=can_review)
+        return jsonify({"proposals": proposals, "canReview": can_review, "userId": user_id})
+    except KGChangeManagementUnavailableError as exc:
+        app.logger.warning("KG proposal list unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
+
+
+@app.route("/api/doctor/knowledge-graph/proposals", methods=["POST"])
+@require_auth(frozenset({"doctor"}))
+def doctor_submit_kg_change_proposal():
+    user = getattr(g, "current_user", {}) or {}
+    payload = request.get_json(silent=True) or {}
+    try:
+        proposal = submit_kg_change_proposal(
+            str(user.get("id") or ""),
+            payload.get("targetType"),
+            payload.get("operation"),
+            payload.get("targetKey"),
+            payload.get("proposedPayload", {}),
+            payload.get("reason"),
+        )
+        return jsonify({"proposal": proposal, "published": False}), 201
+    except KGProposalValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except KGChangeManagementUnavailableError as exc:
+        app.logger.warning("KG proposal submission unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
+
+
+@app.route("/api/doctor/knowledge-graph/proposals/<proposal_id>/review", methods=["POST"])
+@require_auth(frozenset({"doctor"}))
+def doctor_review_kg_change_proposal(proposal_id: str):
+    user = getattr(g, "current_user", {}) or {}
+    payload = request.get_json(silent=True) or {}
+    try:
+        proposal = review_kg_change_proposal(
+            str(user.get("id") or ""),
+            proposal_id,
+            payload.get("decision"),
+            payload.get("note"),
+        )
+        return jsonify({"proposal": proposal, "published": False})
+    except PermissionError as exc:
+        return jsonify({"error": str(exc)}), 403
+    except KGProposalValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except KGChangeManagementUnavailableError as exc:
+        app.logger.warning("KG review decision unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
+
+
+@app.route("/api/admin/knowledge-graph/permissions", methods=["GET"])
+@require_auth(frozenset({"admin"}))
+def admin_list_kg_permissions():
+    try:
+        return jsonify({"permissions": list_kg_permissions()})
+    except KGChangeManagementUnavailableError as exc:
+        app.logger.warning("KG permissions unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
+
+
+@app.route("/api/admin/knowledge-graph/permissions", methods=["POST"])
+@require_auth(frozenset({"admin"}))
+def admin_set_kg_permission():
+    user = getattr(g, "current_user", {}) or {}
+    payload = request.get_json(silent=True) or {}
+    enabled = payload.get("enabled")
+    if not isinstance(enabled, bool):
+        return jsonify({"error": "Choose whether to grant or revoke the permission."}), 400
+    try:
+        result = set_kg_permission(
+            str(user.get("id") or ""),
+            payload.get("userId"),
+            payload.get("permission"),
+            enabled,
+            payload.get("reason"),
+        )
+        return jsonify(result)
+    except KGProposalValidationError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except KGChangeManagementUnavailableError as exc:
+        app.logger.warning("KG permission update unavailable: %s", type(exc).__name__)
+        return jsonify({"error": str(exc)}), 503
 
 
 @app.route("/api/doctor/assigned-patients", methods=["GET"])

@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/lib/accountAuth.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } });
-const { trustedRole, registerPatient, confirmationUrl, authErrorMessage, accessErrorMessage, accessStateFromRpc, applyAsDoctor, validateDoctorApplication } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { trustedRole, registerPatient, confirmationUrl, authErrorMessage, accessErrorMessage, accessStateFromRpc, applyAsDoctor, validateDoctorApplication, authSessionEventAction } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 const input = { name: ' Test Patient ', identityNumber: ' 001122-33-4455 ', email: ' test@example.com ', password: 'test-password-123', confirm: 'test-password-123' };
 
 test('signup submits only profile metadata; role and record access are never client-assigned', async () => {
@@ -108,4 +108,23 @@ test('access errors distinguish missing admin migration from expired sessions', 
   assert.match(accessErrorMessage({ code: 'PGRST202', message: 'Could not find the function' }), /migration/);
   assert.match(accessErrorMessage({ code: 'PGRST301', message: 'JWT expired' }), /session has expired/);
   assert.match(accessErrorMessage({ code: '42501', message: 'Admin access required.' }), /Admin access required/);
+});
+
+
+test('persisted INITIAL_SESSION is restored only as a candidate for server verification', () => {
+  assert.equal(authSessionEventAction('INITIAL_SESSION', 'restored-user', null), 'restore');
+  assert.equal(authSessionEventAction('INITIAL_SESSION', null, null), 'clear');
+});
+test('same-user token refresh events do not require a workspace remount', () => {
+  assert.equal(authSessionEventAction('TOKEN_REFRESHED', 'same-user', 'same-user'), 'refresh');
+  assert.equal(authSessionEventAction('USER_UPDATED', 'same-user', 'same-user'), 'refresh');
+  assert.equal(authSessionEventAction('SIGNED_IN', 'same-user', 'same-user'), 'refresh');
+});
+test('sign-out and a changed user identity clear the accepted session', () => {
+  assert.equal(authSessionEventAction('SIGNED_OUT', null, 'same-user'), 'clear');
+  assert.equal(authSessionEventAction('TOKEN_REFRESHED', 'different-user', 'same-user'), 'clear');
+  assert.equal(authSessionEventAction('TOKEN_REFRESHED', null, 'same-user'), 'clear');
+});
+test('unaccepted background sign-ins are ignored', () => {
+  assert.equal(authSessionEventAction('SIGNED_IN', 'other-user', null), 'ignore');
 });

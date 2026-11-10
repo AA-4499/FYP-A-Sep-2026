@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { CheckCircle2, LogOut, RefreshCw } from "lucide-react";
 import { getSupabaseClient, clearSupabasePatientCache } from "../lib/supabase";
-import { accessErrorMessage, authErrorMessage, fetchAccessState } from "../lib/accountAuth";
+import { accessErrorMessage, authErrorMessage, authSessionEventAction, fetchAccessState } from "../lib/accountAuth";
 import type { AccessState } from "../lib/accountAuth";
 import type { UserRole } from "../types";
 import { AccountAuthView } from "./AccountAuthView";
@@ -21,7 +21,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
   const [session, setSession] = useState<Session | null>(null);
   const acceptedUserId = useRef<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [checking, setChecking] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [demo, setDemo] = useState(false);
   const [recovery, setRecovery] = useState(
     () =>
@@ -47,20 +47,32 @@ export function AuthGateway({ renderWorkspace }: Props) {
       return;
     }
     const { data } = client.auth.onAuthStateChange((event, nextSession) => {
-      if (event === "PASSWORD_RECOVERY") {
-        acceptedUserId.current = null;
+      const action = authSessionEventAction(
+        event,
+        nextSession?.user?.id ?? null,
+        acceptedUserId.current,
+      );
+      if (action === "recover") {
+        acceptedUserId.current = nextSession?.user?.id ?? null;
         clearSupabasePatientCache();
         setUser(null);
+        setAccess(null);
+        setAccessError("");
+        setAccessLoading(false);
         setDemo(false);
         setRecovery(true);
+        setChecking(true);
         setSession(nextSession);
         return;
       }
-      if (event === "SIGNED_OUT") {
+      if (action === "clear") {
         acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
         setSession(null);
+        setAccess(null);
+        setAccessError("");
+        setAccessLoading(false);
         setDemo(false);
         setChecking(false);
         setAccess(null);
@@ -68,20 +80,21 @@ export function AuthGateway({ renderWorkspace }: Props) {
         setAccessLoading(false);
         return;
       }
-      if (event === "INITIAL_SESSION") return;
-      // A restored session or background SIGNED_IN event must not skip the login form.
-      // Only this page's successful password submission accepts an account.
-      if (!acceptedUserId.current) return;
-      if (nextSession?.user.id === acceptedUserId.current) {
-        setDemo(false);
-        setSession(nextSession);
-      } else {
-        acceptedUserId.current = null;
+      if (action === "restore" && nextSession) {
+        acceptedUserId.current = nextSession.user.id;
         clearSupabasePatientCache();
         setUser(null);
-        setSession(null);
+        setAccess(null);
+        setAccessError("");
         setDemo(false);
-        setChecking(false);
+        setRecovery(false);
+        setError("");
+        setChecking(true);
+        setSession(nextSession);
+        return;
+      }
+      if (action === "refresh") {
+        // Avoid rerunning user/access verification on token refresh: that remounts the workspace.
       }
     });
     return () => data.subscription.unsubscribe();
@@ -100,11 +113,18 @@ export function AuthGateway({ renderWorkspace }: Props) {
       .auth.getUser()
       .then(({ data, error: failure }) => {
         if (cancelled) return;
-        if (failure || !data.user)
+        if (failure || !data.user) {
           setError(
             failure ? authErrorMessage(failure) : "Please sign in again.",
           );
-        else {
+        } else if (data.user.id !== acceptedUserId.current) {
+          acceptedUserId.current = null;
+          clearSupabasePatientCache();
+          setUser(null);
+          setSession(null);
+          setAccess(null);
+          setError("The restored account did not match the active session. Please sign in again.");
+        } else {
           setUser(data.user);
           setError("");
         }

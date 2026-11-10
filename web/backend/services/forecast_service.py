@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import json
 import hashlib
 import os
 from functools import lru_cache
@@ -16,6 +17,7 @@ from models.training.t2dm.t2dm_pipeline import (
 )
 from models.training.train_from_supabase import prepare_supabase_timelines
 from models.training.supabase_io import supabase_config, supabase_headers
+from .model_store import active_checkpoint_path
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -44,6 +46,8 @@ def _cloud_timeline(patient_id: str):
         )
         response.raise_for_status()
         batch = response.json()
+        if not isinstance(batch, list) or any(not isinstance(row, dict) or str(row.get("Patient Number")) != patient_id for row in batch):
+            raise RuntimeError("Supabase returned CGM records for an inconsistent patient identity.")
         rows.extend(batch)
         if len(batch) < 1000:
             break
@@ -101,7 +105,7 @@ def _points(frame, column):
 
 def forecast_patient(patient_id: str, payload: dict):
     source, horizon, events = validate_options(payload)
-    path = Path(os.getenv("T2DM_CHECKPOINT_PATH", str(ROOT / "models/weights/gru_t2dm_forecaster.pt"))).resolve()
+    path = active_checkpoint_path()
     if not path.is_file():
         raise RuntimeError("The GRU checkpoint is missing. Train the model and deploy models/weights/gru_t2dm_forecaster.pt.")
     model, checkpoint = _model(str(path), path.stat().st_mtime_ns)
@@ -144,7 +148,12 @@ def forecast_patient(patient_id: str, payload: dict):
         error = windows.targets - predictions
         metrics = {"mae_mg_dl": float(np.abs(error).mean()), "rmse_mg_dl": float(np.sqrt((error ** 2).mean())), "test_windows": len(windows)}
     anchor = {"timestamp": start.isoformat(), "value": float(history["glucose"].iloc[-1])}
+    history_identity = [{"timestamp": pd.Timestamp(row["timestamp"]).isoformat(), **{name: float(row[name]) for name in FEATURE_COLUMNS}} for _, row in history.iterrows()]
+    input_sha256 = hashlib.sha256(json.dumps({"patient_id": patient_id, "history": history_identity}, sort_keys=True, allow_nan=False).encode()).hexdigest()
     return {
+        "application_commit": os.getenv("RENDER_GIT_COMMIT", os.getenv("APP_COMMIT", "unknown")),
+        "model_version": "legacy-gru/" + checkpoint["model_sha256"][:12], "delivery": "server",
+        "input_sha256": input_sha256, "history_start": pd.Timestamp(history["timestamp"].iloc[0]).isoformat(),
         "patient_id": patient_id, "record_id": record_id, "source": source, "horizon_hours": horizon,
         "sequence_length": length, "model_sha256": checkpoint["model_sha256"], "forecast_start": start.isoformat(), "latest_glucose": anchor["value"],
         "baseline_end": float(baseline["predicted_glucose_mg_dl"].iloc[-1]),

@@ -34,6 +34,7 @@ from services import (
 from forecast_routes import forecast_api
 from retraining_routes import retraining_api
 from services.retraining_service import recover_interrupted_training
+from services.model_store import ModelStorageError
 from services.clinical_knowledge_graph_service import (
     ClinicalKnowledgeGraphUnavailableError,
     get_clinical_knowledge_graph,
@@ -66,7 +67,10 @@ from services.kg_change_management_service import (
 app = Flask(__name__)
 app.register_blueprint(forecast_api)
 app.register_blueprint(retraining_api)
-recover_interrupted_training()
+try:
+    recover_interrupted_training()
+except (ModelStorageError, OSError, ValueError):
+    app.logger.error("Model recovery needs operator attention; other API services remain available.")
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 @app.errorhandler(SupabaseStorageError)
@@ -87,7 +91,7 @@ def authorize_api_request():
         return response
     user = getattr(g, "current_user", {})
     patient_id = request.view_args.get("patient_id") if request.view_args else None
-    if request.endpoint in {"forecast_api.glucose_forecast", "forecast_api.conditional_input", "forecast_api.conditional_forecast"}:
+    if request.endpoint in {"forecast_api.glucose_forecast", "forecast_api.conditional_input", "forecast_api.conditional_forecast", "forecast_api.saved_glucose_forecast"}:
         if not patient_id:
             return jsonify({"error": "A patient record is required for a glucose forecast."}), 403
         if user.get("role") == "doctor":
@@ -134,6 +138,7 @@ def health():
         "institution": "Swinburne University of Technology Sarawak",
         "supervisor": "Ts. Dr. Vong Wan Tze",
         "version": "2.0.0",
+        "application_commit": os.getenv("RENDER_GIT_COMMIT", os.getenv("APP_COMMIT", "unknown")),
     })
 
 

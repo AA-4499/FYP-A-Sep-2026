@@ -57,3 +57,9 @@ models/weights/training-runs/
 !models/evaluation/local_v3_medium_20261106/**/checkpoint.pt
 models/evaluation/t2dm/conditional_v2/*_test.npz
 models/evaluation/t2dm/conditional_v2/retrospective_labs/*_test.npz
+
+# Private persistent model releases and local development state
+.model-state/
+models/weights/active.json
+models/weights/versions/
+models/weights/*.tmp

@@ -127,9 +127,9 @@ class ForecastApiTests(unittest.TestCase):
 
     def test_cloud_queries_only_exact_record_and_paginates(self):
         first = Mock()
-        first.json.return_value = [{'row': i} for i in range(1000)]
+        first.json.return_value = [{'row': i, 'Patient Number': '2017_1_20201118'} for i in range(1000)]
         last = Mock()
-        last.json.return_value = [{'row': 1000}]
+        last.json.return_value = [{'row': 1000, 'Patient Number': '2017_1_20201118'}]
         with patch.dict(os.environ, {'SUPABASE_URL': 'https://example.supabase.co', 'SUPABASE_KEY': 'test-key'}), \
              patch.object(service.requests, 'get', side_effect=[first, last]) as get, \
              patch.object(service, 'prepare_supabase_timelines', return_value={'2017_1': 'frame'}) as prepare:

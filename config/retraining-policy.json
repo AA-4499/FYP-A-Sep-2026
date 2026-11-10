@@ -1,0 +1,15 @@
+{
+  "version": "2026-11-10-approved",
+  "approval_status": "approved",
+  "approval_basis": "Project owner explicitly approved these initial thresholds in the 2026-11-10 task conversation.",
+  "minimum_new_observations": 10000,
+  "minimum_growth_fraction": 0.1,
+  "minimum_new_timelines": 5,
+  "minimum_interval_days": 7,
+  "sequence_length": 24,
+  "minimum_segment_observations": 40,
+  "minimum_evaluation_windows": 100,
+  "maximum_mae_degradation": 0.0,
+  "maximum_rmse_degradation": 0.0,
+  "automatic_training": false
+}

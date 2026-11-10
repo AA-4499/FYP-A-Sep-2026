@@ -1180,7 +1180,7 @@ function ForecastPanel({
                     : browser
                       ? "Browser GRU computed successfully; no database write"
                       : current.storage?.saved
-                        ? `Saved to Supabase · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves`
+                        ? `${current.storage.retrieved ? "Saved and retrieved from Supabase" : "Saved to Supabase"} · ${current.storage.test_predictions_saved} held-out predictions and full forecast curves`
                         : "Forecast loaded; no storage receipt"}
               </p>
             )}

@@ -55,3 +55,16 @@ def glucose_forecast(patient_id):
     except Exception:
         logging.exception('GRU forecast or storage failed')
         return jsonify(error='Unable to load CGM data, run the model, or confirm the Supabase save. Check the API server logs.', run_id=run_id, saved=False), 503
+
+
+@forecast_api.get('/api/patients/<patient_id>/glucose-forecasts/<run_id>')
+def saved_glucose_forecast(patient_id, run_id):
+    try:
+        from services.forecast_storage_service import retrieve_forecast
+        return jsonify(retrieve_forecast(patient_id, run_id))
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+    except LookupError as exc:
+        return jsonify(error=str(exc)), 404
+    except RuntimeError as exc:
+        return jsonify(error=str(exc)), 503

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabase";
+import { verifyForecastReadback } from "./forecastReadback";
 import { loadForecastPreview } from "./forecastPreview";
 import { requestModelService } from './modelServiceRequest';
 import { isRetiredModelOrigin, readForecastApiOverride } from './retiredModelConnection';
@@ -33,6 +34,7 @@ export interface GlucoseForecast {
   data_origin?: "repository-workbook";
   storage?: {
     saved: boolean;
+    retrieved?: boolean;
     run_id: string;
     patient_id: string;
     created_at: string;
@@ -156,5 +158,22 @@ export async function fetchGlucoseForecast(
   const result = await response.json();
   if (!response.ok)
     throw new Error(result.error || "The forecast could not be generated.");
-  return result;
+  if (result.patient_id !== patientId || result.storage?.saved !== true || result.storage.run_id !== options.run_id) {
+    throw new Error('The model service did not confirm that this patient prediction was saved. Keep the run ID and check the service response.');
+  }
+  let storedResponse: Response;
+  try {
+    storedResponse = await requestModelService(
+      `${base}/api/patients/${encodeURIComponent(patientId)}/glucose-forecasts/${encodeURIComponent(options.run_id)}`,
+      {signal, headers: {Authorization: `Bearer ${session.access_token}`}},
+    );
+  } catch (failure) {
+    if (signal.aborted) throw failure;
+    throw new Error(`The prediction was saved (run ${options.run_id}), but retrieval could not be confirmed. Retry history when the model service is available.`);
+  }
+  if (!storedResponse.ok || !storedResponse.headers.get('content-type')?.includes('application/json')) {
+    throw new Error(`The prediction was saved (run ${options.run_id}), but it could not be retrieved. Check the deployed history API and access permissions.`);
+  }
+  verifyForecastReadback(result, await storedResponse.json());
+  return {...result, storage: {...result.storage, retrieved: true}};
 }

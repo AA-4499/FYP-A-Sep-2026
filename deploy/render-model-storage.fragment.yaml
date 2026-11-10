@@ -1,0 +1,13 @@
+# EXAMPLE FRAGMENT ONLY. Merge these fields into the EXISTING model API service.
+# Do not deploy this file as a standalone Blueprint or replace existing secrets/KG env.
+# A disk-compatible paid plan requires the operator's hosting-cost decision.
+plan: starter
+disk:
+  name: t2dm-models
+  mountPath: /var/data
+  sizeGB: 1
+envVars:
+  - key: T2DM_PERSISTENT_MOUNT
+    value: /var/data
+  - key: T2DM_MODEL_DIR
+    value: /var/data/t2dm-model

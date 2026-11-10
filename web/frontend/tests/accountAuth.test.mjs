@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/lib/accountAuth.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext } });
-const { trustedRole, registerPatient, confirmationUrl, authErrorMessage, accessErrorMessage, accessStateFromRpc, applyAsDoctor, validateDoctorApplication } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { trustedRole, registerPatient, confirmationUrl, authErrorMessage, accessErrorMessage, accessStateFromRpc, applyAsDoctor, validateDoctorApplication, isDoctorInvitationUrl, acceptDoctorInvitation } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 const input = { name: ' Test Patient ', identityNumber: ' 001122-33-4455 ', email: ' test@example.com ', password: 'test-password-123', confirm: 'test-password-123' };
 
 test('signup submits only profile metadata; role and record access are never client-assigned', async () => {
@@ -68,30 +68,47 @@ test('rate limits, unconfirmed accounts, and network failures produce usable err
   assert.match(authErrorMessage(null), /try again/);
 });
 
-test('doctor applications submit professional metadata without granting a role', async () => {
-  let request;
-  const client = { auth: { signUp: async (value) => { request = value; return { data: { user: { id: 'applicant' }, session: null }, error: null }; } } };
-  const input = { name: ' Dr. Applicant ', organisation: ' Borneo Clinic ', registrationNumber: ' MMC-123 ', email: 'doc@example.com', password: 'strong-password', confirm: 'strong-password' };
-  for (const missing of [
-    { ...input, registrationNumber: ' ' },
-    { ...input, organisation: ' ' },
-    { ...input, registrationNumber: 'A'.repeat(121) },
-    { ...input, organisation: 'A\nB' },
-    { ...input, confirm: 'different' },
-  ]) await assert.rejects(applyAsDoctor(client, missing, 'https://example.test'));
-  assert.equal(request, undefined);
-  await applyAsDoctor(client, input, 'https://example.test/auth?code=secret');
-  assert.equal(request.email, 'doc@example.com');
-  assert.equal(request.options.emailRedirectTo, 'https://example.test/');
-  assert.deepEqual(request.options.data, {
-    full_name: 'Dr. Applicant',
-    requested_role: 'doctor',
-    registration_id: 'MMC-123',
-    organisation: 'Borneo Clinic',
-  });
-  assert.equal(request.options.data.role, undefined);
-  assert.equal(request.options.data.patient_id, undefined);
-  assert.equal(validateDoctorApplication(input), undefined);
+test('public doctor registration is disabled before calling Auth', async () => {
+  let called = false;
+  await assert.rejects(applyAsDoctor({ auth: { signUp: async () => { called = true; } } }, {}, 'https://example.test'), /invitation only/);
+  assert.equal(called, false);
+});
+
+test('invitation callback recognizes both the configured redirect and default Auth fragment', () => {
+  assert.equal(isDoctorInvitationUrl('?auth=invite', ''), true);
+  assert.equal(isDoctorInvitationUrl('', '#type=invite&access_token=example'), true);
+  assert.equal(isDoctorInvitationUrl('?auth=recovery', ''), false);
+});
+
+test('doctor invitation acceptance verifies identity and live access before setting a password', async () => {
+  let user = { email_confirmed_at: '2026-11-10', app_metadata: { doctor_invitation: 'trusted-token', role: 'doctor' } };
+  let access = { role: 'doctor', status: 'active' };
+  const passwords = [];
+  const client = {
+    auth: {
+      getUser: async () => ({ data: { user }, error: null }),
+      updateUser: async (value) => { passwords.push(value); return { error: null }; },
+    },
+    rpc: async () => ({ data: access, error: null }),
+  };
+  await assert.rejects(acceptDoctorInvitation(client, 'short', 'short'), /8 characters/);
+  await assert.rejects(acceptDoctorInvitation(client, 'long-password', 'mismatch'), /do not match/);
+  access = { role: 'doctor', status: 'suspended' };
+  await assert.rejects(acceptDoctorInvitation(client, 'long-password', 'long-password'), /not active/);
+  access = { role: 'patient', status: 'active' };
+  await assert.rejects(acceptDoctorInvitation(client, 'long-password', 'long-password'), /not active/);
+  access = { role: 'doctor', status: 'active' };
+  const valid = user;
+  for (const invalid of [null, { app_metadata: {} }, { app_metadata: { doctor_invitation: 'token' } }]) {
+    user = invalid;
+    await assert.rejects(acceptDoctorInvitation(client, 'long-password', 'long-password'), /invalid or has expired/);
+  }
+  assert.deepEqual(passwords, []);
+  user = valid;
+  await acceptDoctorInvitation(client, 'long-password', 'long-password');
+  assert.deepEqual(passwords, [{ password: 'long-password' }]);
+  client.auth.updateUser = async () => ({ error: { message: 'Password rejected' } });
+  await assert.rejects(acceptDoctorInvitation(client, 'long-password', 'long-password'), { message: 'Password rejected' });
 });
 
 test('access state payloads grant exactly the database role and fail closed on malformed data', () => {

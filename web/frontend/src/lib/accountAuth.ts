@@ -105,28 +105,29 @@ export function validateDoctorApplication(input: DoctorApplicationInput): void {
   if (registration.length > 120 || CONTROL_CHARACTERS.test(registration)) throw new Error('Enter a valid professional registration number of up to 120 characters.');
 }
 
-/**
- * Self-service Doctor application. The account is created as a Patient in the
- * database; the application metadata is reviewed by an administrator and never
- * grants Doctor access from the browser.
- */
+/** Retained for older callers; public Doctor registration is no longer allowed. */
 export async function applyAsDoctor(client: SupabaseClient, input: DoctorApplicationInput, origin: string) {
-  validateDoctorApplication(input);
-  const { data, error } = await client.auth.signUp({
-    email: input.email.trim(),
-    password: input.password,
-    options: {
-      emailRedirectTo: confirmationUrl(origin),
-      data: {
-        full_name: input.name.trim(),
-        requested_role: 'doctor',
-        registration_id: input.registrationNumber.trim(),
-        organisation: input.organisation.trim(),
-      },
-    },
-  });
-  if (error) throw error;
-  return data;
+  throw new Error('Doctor accounts are invitation only. Contact your administrator.');
+}
+
+export function isDoctorInvitationUrl(search: string, hash: string): boolean {
+  return new URLSearchParams(search).get('auth') === 'invite'
+    || new URLSearchParams(hash.replace(/^#/, '')).get('type') === 'invite';
+}
+
+/** Verify an invited identity before changing its password; URL flags grant no access. */
+export async function acceptDoctorInvitation(client: SupabaseClient, password: string, confirm: string): Promise<void> {
+  validateRegistration('Doctor', password, confirm);
+  const { data, error } = await client.auth.getUser();
+  if (error || !data.user || !data.user.app_metadata?.doctor_invitation || !data.user.email_confirmed_at) {
+    throw new Error('This invitation link is invalid or has expired. Contact your administrator for help.');
+  }
+  const state = await fetchAccessState(client);
+  if (state?.role !== 'doctor' || state.status !== 'active') {
+    throw new Error('This doctor account is not active. Contact your administrator.');
+  }
+  const { error: updateError } = await client.auth.updateUser({ password });
+  if (updateError) throw updateError;
 }
 
 export function authErrorMessage(error: unknown): string {

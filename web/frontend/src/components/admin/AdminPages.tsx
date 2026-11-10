@@ -101,13 +101,13 @@ export function AdminOverviewPage({
     { label: 'Total accounts', value: overview.accounts, detail: `${activeAccounts} active accounts`, icon: Users, page: 'admin_users' as const, color: 'bg-indigo-50 text-indigo-600' },
     { label: 'Active doctors', value: overview.activeDoctors, detail: 'Approved to receive assignments', icon: Stethoscope, page: 'admin_users' as const, color: 'bg-teal-50 text-teal-600' },
     { label: 'Patient accounts', value: overview.patients, detail: `${overview.unassignedPatients} without a doctor`, icon: UserCheck, page: 'admin_assignments' as const, color: 'bg-sky-50 text-sky-600' },
-    { label: 'Awaiting approval', value: overview.pendingApplications, detail: 'Doctor applications to review', icon: ShieldCheck, page: 'admin_approvals' as const, color: 'bg-amber-50 text-amber-600' },
+    { label: 'Suspended accounts', value: overview.suspendedAccounts, detail: 'Review access in user accounts', icon: ShieldCheck, page: 'admin_users' as const, color: 'bg-amber-50 text-amber-600' },
   ];
   const roleCounts = overview.roleCounts;
   const roleTotal = (['admin', 'doctor', 'patient'] as AdminRole[])
     .reduce((sum, role) => sum + (roleCounts?.[role] ?? 0), 0);
   const totalForBars = Math.max(roleTotal, 1);
-  const attention = overview.pendingApplications + overview.unassignedPatients;
+  const attention = overview.unassignedPatients;
 
   return <div className="space-y-6">
     <PageHeading eyebrow="Your administration workspace" title="A clear view of your platform." description="Manage access, keep your care team connected, and stay on top of what needs attention." action={<button type="button" className={secondaryButton} onClick={() => navigate('admin_activity')}><ArrowUpRight className="h-4 w-4" />View activity</button>} />
@@ -117,7 +117,7 @@ export function AdminOverviewPage({
       <section className={cardClass}>
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5"><h2 className="text-sm font-bold">Needs your attention</h2><span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">{attention} items</span></div>
         <div className="divide-y divide-slate-100">
-          <button type="button" onClick={() => navigate('admin_approvals')} className="flex w-full items-center gap-4 p-6 text-left hover:bg-slate-50"><span className="rounded-xl bg-amber-50 p-3 text-amber-600"><ShieldCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{overview.pendingApplications} doctor application{overview.pendingApplications === 1 ? '' : 's'} awaiting review</p><p className="mt-1 text-xs leading-relaxed text-slate-500">Review registration details before approving access.</p></div><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></button>
+          <button type="button" onClick={() => navigate('admin_approvals')} className="flex w-full items-center gap-4 p-6 text-left hover:bg-slate-50"><span className="rounded-xl bg-amber-50 p-3 text-amber-600"><ShieldCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">Invite a doctor to the care team</p><p className="mt-1 text-xs leading-relaxed text-slate-500">Enter their details and send an invitation email.</p></div><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></button>
           <button type="button" onClick={() => navigate('admin_assignments')} className="flex w-full items-center gap-4 p-6 text-left hover:bg-slate-50"><span className="rounded-xl bg-sky-50 p-3 text-sky-600"><UserCheck className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{overview.unassignedPatients} patient{overview.unassignedPatients === 1 ? '' : 's'} without a doctor</p><p className="mt-1 text-xs leading-relaxed text-slate-500">Connect each patient with an approved care provider.</p></div><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></button>
         </div>
       </section>
@@ -231,7 +231,7 @@ export function AdminAccountsPage({ reloadToken, mutate, onFatal }: AdminPagePro
               {(data?.rows ?? []).map((account) => <tr key={account.id} className="hover:bg-slate-50/60">
                 <td className="px-5 py-4"><div className="flex items-center gap-3"><Avatar name={account.full_name} /><div><p className="font-semibold text-slate-800">{account.full_name || 'Unnamed account'}</p><p className="mt-1 text-[11px] text-slate-400">{account.email}</p></div></div></td>
                 <td className="px-5 py-4"><RoleBadge role={account.role} /></td>
-                <td className="px-5 py-4"><StatusBadge status={account.status} /></td>
+                <td className="px-5 py-4"><StatusBadge status={account.status} />{account.role === 'doctor' && !account.email_confirmed && <p className="mt-1 text-[11px] text-amber-700">Awaiting email confirmation</p>}</td>
                 <td className="px-5 py-4 text-slate-500">{account.department || '—'}</td>
                 <td className="whitespace-nowrap px-5 py-4 text-slate-400">{formatAdminDate(account.joined_at)}</td>
                 <td className="px-5 py-4"><button type="button" aria-label={`Manage ${account.full_name || account.email}`} onClick={() => setSelected(account)} className="font-semibold text-indigo-600 hover:underline">Manage</button></td>
@@ -307,14 +307,14 @@ function AccountManageModal({ account, mutate, onFatal, onClose }: { account: Ad
       <div className="flex justify-between gap-4"><dt className="text-slate-400">Assignments</dt><dd>{account.assignment_count}</dd></div>
     </dl>
 
-    {pendingApplication && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">This account has a pending doctor application. Review it from Doctor approvals before changing the role.</p>}
+    {pendingApplication && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">This account has a legacy doctor application. Doctor onboarding now requires an administrator invitation; existing accounts cannot be promoted through this editor.</p>}
 
     <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-xs font-semibold text-slate-600">Role<select value={role} onChange={(event) => { setRole(event.target.value as AdminRole); setError(null); }} className={`${fieldClass} mt-2`}>{(Object.keys(ROLE_LABELS) as AdminRole[]).map((value) => <option key={value} value={value}>{ROLE_LABELS[value]}</option>)}</select></label>
-        <label className="block text-xs font-semibold text-slate-600">Department / care group<input maxLength={100} value={department} onChange={(event) => { setDepartment(event.target.value); setError(null); }} className={`${fieldClass} mt-2`} placeholder={role === 'doctor' ? 'Required for doctors' : 'Optional'} /></label>
+        <label className="block text-xs font-semibold text-slate-600">Role<select value={role} onChange={(event) => { setRole(event.target.value as AdminRole); setError(null); }} className={`${fieldClass} mt-2`}>{(Object.keys(ROLE_LABELS) as AdminRole[]).filter((value) => value !== 'doctor' || account.role === 'doctor').map((value) => <option key={value} value={value}>{ROLE_LABELS[value]}</option>)}</select></label>
+        <label className="block text-xs font-semibold text-slate-600">Department / care group<input maxLength={160} value={department} onChange={(event) => { setDepartment(event.target.value); setError(null); }} className={`${fieldClass} mt-2`} placeholder={role === 'doctor' ? 'Required for doctors' : 'Optional'} /></label>
       </div>
-      {role === 'doctor' && <label className="block text-xs font-semibold text-slate-600">Registration number<input maxLength={60} value={registrationId} onChange={(event) => { setRegistrationId(event.target.value); setError(null); }} className={`${fieldClass} mt-2`} placeholder="Required for doctors" /><span className="mt-1 block text-[11px] font-normal text-slate-400">A doctor needs a registration number and department before they can receive patients.</span></label>}
+      {role === 'doctor' && <label className="block text-xs font-semibold text-slate-600">Registration number<input maxLength={120} value={registrationId} onChange={(event) => { setRegistrationId(event.target.value); setError(null); }} className={`${fieldClass} mt-2`} placeholder="Required for doctors" /><span className="mt-1 block text-[11px] font-normal text-slate-400">A doctor needs a registration number and department before they can receive patients.</span></label>}
       <label className="block text-xs font-semibold text-slate-600">Audit note (optional)<input maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} className={`${fieldClass} mt-2`} placeholder="Why was this changed?" /></label>
       {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
       <BusyButton busy={busy} disabled={!dirty} onClick={() => void saveRole()}>Save role & details</BusyButton>

@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -484,7 +485,7 @@ def write_to_supabase(report: dict[str, Any], streams: dict[str, list[dict[str, 
         )
         client.table("cgmacros_import_audit").update({
             "import_status": "completed",
-            "completed_at": "now()",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
             "notes": json.dumps({
                 "import_mode": "idempotent upsert",
                 "note": "Loaded/submitted counts are candidate complete rows; run verification SQL "

@@ -54,3 +54,13 @@ def readiness():
         return jsonify(data_readiness(refresh=request.args.get('refresh') == '1'))
     except (RuntimeError, ValueError, OSError, requests.RequestException):
         return jsonify(error='New-data statistics could not be loaded. Check Supabase access, data coverage, and model storage.'), 503
+
+
+@retraining_api.post('/api/admin/model/storage/initialize')
+def initialize_model_storage():
+    from services.model_store import initialize_storage
+    try:
+        active = initialize_storage()
+        return jsonify(initialized=True, model_sha256=active['model_sha256'])
+    except (OSError, ValueError):
+        return jsonify(error='Model initialization failed or another job is running. Check the private bucket, migration and server logs.'), 503

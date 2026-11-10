@@ -77,3 +77,7 @@ export async function trainingRequest(method: 'GET' | 'POST'): Promise<TrainingJ
 export async function retrainingReadiness(refresh = false): Promise<RetrainingReadiness> {
   return modelRequest('GET', `readiness${refresh ? '?refresh=1' : ''}`);
 }
+
+export async function initializeModelStorage(): Promise<{initialized:boolean;model_sha256:string}> {
+  return modelRequest("POST", "storage/initialize");
+}

@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import test from 'node:test';import {PGlite} from '@electric-sql/pglite';
+const sql=readFileSync(new URL('../../../docs/supabase_model_storage.sql',import.meta.url),'utf8');
+test('cloud model registry denies browser roles and commits version/baseline only for the current live lease',async t=>{
+ const db=new PGlite();t.after(()=>db.close());await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');await db.exec(sql);
+ const call=async(action,run=null,payload={})=>(await db.query('select public.model_storage_control($1,$2,$3::uuid,$4::jsonb) as result',[action,'legacy-gru',run,JSON.stringify(payload)])).rows[0].result;
+ await db.exec('set role authenticated');await assert.rejects(call('read'),/permission denied/);await db.exec('reset role;set role service_role');
+ assert.equal((await call('read')).active,null);
+ const first='00000000-0000-4000-8000-000000000001',second='00000000-0000-4000-8000-000000000002';
+ await call('acquire',first,{run_id:first,status:'running'});await assert.rejects(call('acquire',second,{run_id:second,status:'running'}),/already running/);
+ await assert.rejects(call('renew',second),/lease/);
+ await db.exec("reset role;update public.model_runtime_state set lease_until=clock_timestamp()-interval '1 second';set role service_role");
+ await assert.rejects(call('renew',first),/lease/);
+ await assert.rejects(call('activate',first,{run_id:first,model_sha256:'a'.repeat(64),comparison:{accepted:true}}),/lease/);
+ assert.equal((await call('recover')).job.status,'failed');assert.equal((await call('read')).active,null);
+ await call('acquire',first,{run_id:first,status:'running'});
+ await assert.rejects(call('activate',first,{run_id:first,model_sha256:'a'.repeat(64),comparison:{accepted:false}}),/unapproved/);
+ const seed={run_id:first,model_sha256:'a'.repeat(64),checkpoint:'seed.pt',activated_at:new Date().toISOString(),comparison:{accepted:true},baseline_object:null};
+ await call('activate',first,seed);await call('release',first);
+ await call('acquire',second,{run_id:second,status:'running'});await call('release',first);assert.equal((await call('read')).lease_id,second);
+ const active={...seed,run_id:second,baseline_object:'baseline.gz',baseline_sha256:'b'.repeat(64)};
+ await call('activate',second,active);await call('release',second);
+ assert.deepEqual((await call('read')).active,active);
+ await assert.rejects(call('acquire',first,{run_id:first,status:'running'}),/7-day/);
+ assert.deepEqual((await call('read')).active,active);
+});

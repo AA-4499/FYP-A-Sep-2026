@@ -9,7 +9,10 @@
 The project owner approved the initial retraining thresholds, requested that
 online acceptance and Jira updates be performed by them later, and cancelled
 the poster task. No Jira transitions/comments/attachments, production account
-tests, server disk provisioning, or poster changes were performed here.
+tests, server disk provisioning, or poster changes were performed here. A private
+Supabase Storage bucket was subsequently created; its database migration and
+Render configuration still require owner action. See
+`docs/supabase-model-storage.md` for the free-storage handoff.
 
 ## Ticket status and suggested evidence
 
@@ -18,7 +21,7 @@ tests, server disk provisioning, or poster changes were performed here.
 | Verify End-to-End Online Prediction Deployment | Patient-scoped saved-output API, automatic frontend readback comparison, input/model/deployment fingerprints, and operator API-check script | Prediction/history permission tests, exact identity checks, complete curve readback tests | Deploy both sides, run with authorised account, check patient switching/history and visible error messages; record deployed commits |
 | Define a Data-Based Retraining Policy | Approved, versioned policy and counting specification in `docs/retraining-policy.md` and `config/retraining-policy.json` | Invalid/missing data, duplicate conflicts, minimum segments, growth/interval/timeline thresholds, corrections and missing baseline tested | Project approval already recorded; use the approved specification as policy evidence |
 | Add Retraining Recommendations Based on New Data | Admin progress, threshold, eligible counts, rejected-data counts, last success, manual recommendation, and protected readiness API | Count refresh/cache, permissions, accepted baseline reset, rejected/failed baseline preservation | Deploy, open Admin against real data, record initial baseline and threshold progress |
-| Persist Retrained Models Across Service Restarts | Mounted-storage requirement, immutable checkpoints, atomic model+baseline pointer, restart recovery, clear storage errors, operator setup guide | Separate-process model reload; seed redeployment does not replace the active release; missing/corrupt/unwritable storage; failed pointer commit; interrupted training | Operator must attach/configure a persistent disk, initialize/migrate the active model, then restart AND redeploy to verify it |
+| Persist Retrained Models Across Service Restarts | Optional private Supabase storage with transactional registry/lease, or mounted disk; immutable checkpoints, atomic model+baseline selection, restart recovery, clear errors | Separate-process model reload; seed redeployment does not replace the active release; missing/corrupt/unwritable storage; failed pointer commit; interrupted training | Operator applies Supabase SQL and Render environment settings (or chooses a disk), initializes/migrates the model, then restarts AND redeploys to verify it |
 | Add Model Quality Comparison Before Activation | Common frozen holdout, active/candidate MAE+RMSE, 0% permitted degradation, minimum 100 windows, rejected status, Admin comparison table | Real checkpoint paired evaluation plus metric rejection, insufficient holdout and no-activation regressions | Deploy; record an actual training comparison and its release decision |
 | Obtain Final Poster Review and Prepare Print Submission | **Cancelled by project owner; poster already complete** | Not applicable | Do not reopen or claim a new review/print submission |
 | Validate Post-Sprint Integration and Update Jira Evidence | Regression coverage, versioned policy/runbooks and this evidence map | Frontend, backend and production build results below | Operator completes online checklist, attaches sanitized evidence to the matching issue IDs, and changes Jira status according to verified acceptance |
@@ -65,9 +68,10 @@ Local implementation checks cover:
 1. Review the code/policy change and deploy matching backend and frontend builds.
    Existing browser v3 and KG configuration remain in place. Do not restore the
    deleted Medium v3 service for these tasks.
-2. Follow `model-storage-runbook.md`: make the hosting/disk decision, back up any
-   existing ephemeral checkpoint, add the disk/environment values, and initialize
-   once. Merely setting a checkpoint path is not durable storage.
+2. Follow `supabase-model-storage.md` for the provider requiring no Render disk:
+   back up an existing ephemeral checkpoint, apply the SQL migration, select the
+   provider in Render and initialize once from Admin. The optional disk provider
+   remains documented in `model-storage-runbook.md`.
 3. Confirm the existing forecast-output and Lab Results migrations and role /
    assignment policies. The new history API does not require making private
    output tables directly readable by browser users.

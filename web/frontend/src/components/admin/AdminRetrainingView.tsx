@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { trainingRequest, retrainingReadiness, type TrainingJob, type RetrainingReadiness } from '../../lib/modelApi';
+import { trainingRequest, retrainingReadiness, initializeModelStorage, type TrainingJob, type RetrainingReadiness } from '../../lib/modelApi';
 import { decoderManifest } from '../../lib/conditionalPrediction';
 
 export function AdminRetrainingView() {
@@ -54,8 +54,9 @@ export function AdminRetrainingView() {
       </>}
     </section>
     {storage?.error && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{storage.error}</p>}
+    {storage?.writable && !storage.initialized && <button type="button" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await initializeModelStorage();setJob(await trainingRequest('GET'));await refreshData(true);}catch(failure){setError(failure instanceof Error?failure.message:'Model storage initialization failed.');}finally{setBusy(false);}}} className="rounded-xl border border-indigo-300 px-4 py-2 text-sm font-semibold text-indigo-700">Initialize model storage</button>}
     {storage?.writable && <p className="text-sm text-slate-600">Model storage is writable. {storage.initialized ? 'An immutable active release is available.' : 'Initialize the persistent store before the first training run.'}</p>}
-    <button type="button" disabled={busy || !job || job.status === 'running' || !storage?.writable || intervalBlocked} onClick={() => void start()} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><RefreshCw size={16} className={job?.status === 'running' ? 'animate-spin' : ''} />{job?.status === 'running' ? 'Training in progress…' : 'Retrain model'}</button>
+    <button type="button" disabled={busy || !job || job.status === 'running' || !storage?.writable || !storage.initialized || intervalBlocked} onClick={() => void start()} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><RefreshCw size={16} className={job?.status === 'running' ? 'animate-spin' : ''} />{job?.status === 'running' ? 'Training in progress…' : 'Retrain model'}</button>
     {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
     {job && <div role="status" className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
       <p className="font-semibold">Status: {job.status}</p>

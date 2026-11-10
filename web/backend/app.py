@@ -537,6 +537,18 @@ def serve_spa(path: str):
     })
 
 
+@app.get('/api/food-composition')
+@require_auth(APP_ROLES)
+def food_composition():
+    from services.food_composition_service import search_foods
+    try:
+        return jsonify(search_foods(request.args.get('q', '')))
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+    except RuntimeError as exc:
+        return jsonify(error=str(exc)), 503
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)

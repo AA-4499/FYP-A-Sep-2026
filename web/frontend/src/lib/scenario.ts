@@ -1,3 +1,4 @@
+import type { FoodReference } from "./foodComposition";
 import type { PhysiologyEvent } from "./physiology";
 
 export type ScenarioKind =
@@ -9,7 +10,8 @@ export interface ScenarioDraft {
   description: string;
   amount: string;
   carbohydrate: string;
-  carbohydrateSource?: "manual" | "usda-cooked-white-rice";
+  carbohydrateSource?: "manual" | "usda-cooked-white-rice" | "food-composition";
+  foodReference?: FoodReference;
   absorption: string;
   intensity: "moderate" | "intense";
   insulinFormulation?: 'rapid' | 'regular';
@@ -86,6 +88,8 @@ export function compileScenario(
         throw new Error(`${label}: enter a positive amount.`);
       if (draft.kind === "meal") {
         const carbohydrate = Number(draft.carbohydrate);
+        if (draft.carbohydrateSource === "food-composition" && carbohydrate !== foodCarbohydrate(draft.foodReference, amount, engine))
+          throw new Error(`${label}: the food reference no longer matches this portion or model. Re-select the food or use manual entry.`);
         const absorptionMinutes = Number(draft.absorption);
         if (
           draft.carbohydrateSource === "usda-cooked-white-rice" &&
@@ -151,4 +155,14 @@ export function compileScenario(
     unmodelled,
     schedule,
   };
+}
+
+export function foodCarbohydrate(reference: FoodReference | undefined, portion: number, engine: 'physiology' | 'conditional'): number | null {
+  if (!reference || reference.basis !== 'available_carbohydrate_per_100g_edible_portion' ||
+      !Number.isFinite(portion) || portion <= 0 || portion > 2000 ||
+      !Number.isFinite(reference.available_per_100g) || reference.available_per_100g < 0 || reference.available_per_100g > 100) return null;
+  if (engine === 'conditional' && (reference.fiber_per_100g === null || !Number.isFinite(reference.fiber_per_100g) || reference.fiber_per_100g < 0 || reference.fiber_per_100g > 100)) return null;
+  const per100 = reference.available_per_100g + (engine === 'conditional' ? reference.fiber_per_100g! : 0);
+  if (per100 > 100) return null;
+  return Math.round(portion * per100 / 100 * 10) / 10;
 }

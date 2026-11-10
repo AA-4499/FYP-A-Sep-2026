@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from . import cloud_model_store as cloud
 
 ROOT = Path(__file__).resolve().parents[3]
 BUNDLED = ROOT / 'models/weights/gru_t2dm_forecaster.pt'
@@ -18,6 +19,8 @@ class ModelStorageError(RuntimeError):
 
 
 def storage_directory():
+    if cloud.enabled():
+        return cloud.cache_directory()
     configured = os.getenv('T2DM_MODEL_DIR')
     if configured:
         return Path(configured).resolve()
@@ -26,6 +29,8 @@ def storage_directory():
 
 
 def storage_configured():
+    if cloud.enabled():
+        return True
     return bool(os.getenv('T2DM_MODEL_DIR') or os.getenv('T2DM_CHECKPOINT_PATH'))
 
 
@@ -45,6 +50,8 @@ def atomic_json(path, value):
 
 
 def require_storage():
+    if cloud.enabled():
+        return cloud.require_storage()
     if not storage_configured():
         raise ModelStorageError('Retraining requires persistent storage. Configure T2DM_MODEL_DIR on a persistent disk; bundled weights are read-only deployment assets.')
     directory = storage_directory()
@@ -65,6 +72,8 @@ def require_storage():
 
 
 def read_active():
+    if cloud.enabled():
+        return cloud.read_active()
     pointer = storage_directory() / 'active.json'
     if not pointer.exists():
         return None
@@ -82,6 +91,11 @@ def read_active():
 
 
 def active_checkpoint_path():
+    if cloud.enabled():
+        active = cloud.read_active()
+        if not active:
+            raise ModelStorageError("Cloud storage has no active release. Apply the migration and initialize the model store once.")
+        return cloud.download(active["checkpoint"], active["model_sha256"], ".pt")
     if storage_configured():
         # On hosted services, never infer from a replacement directory after a lost mount.
         if os.getenv('RENDER'):
@@ -95,6 +109,8 @@ def active_checkpoint_path():
 
 
 def activate(candidate, *, run_id, baseline, comparison, activated_at):
+    if cloud.enabled():
+        return cloud.activate(candidate, run_id=run_id, baseline=baseline, comparison=comparison, activated_at=activated_at)
     directory = require_storage()
     # Use only UUID run identifiers in filesystem paths.
     release_id = str(uuid.UUID(str(run_id)))
@@ -121,7 +137,7 @@ def storage_status():
     try:
         require_storage()
         active = read_active()
-        return {'configured': True, 'writable': True, 'initialized': active is not None,
+        return {'backend': 'supabase' if cloud.enabled() else 'disk', 'configured': True, 'writable': True, 'initialized': active is not None,
                 'active_model_sha256': active['model_sha256'] if active else None,
                 'last_activation': active['activated_at'] if active else None}
     except ModelStorageError as exc:
@@ -142,8 +158,14 @@ def initialize_storage():
     except Exception:
         raise ModelStorageError('The initial checkpoint failed validation. No active release was initialized; supply a compatible validated GRU checkpoint.') from None
     from datetime import datetime, timezone
-    return activate(source, run_id=str(uuid.uuid4()), baseline=None, comparison={'initialization': True},
-                    activated_at=datetime.now(timezone.utc).isoformat())
+    run_id = str(uuid.uuid4())
+    lease = cloud.acquire({'run_id': run_id, 'status': 'running', 'started_at': datetime.now(timezone.utc).isoformat(), 'initialization': True}) if cloud.enabled() else None
+    try:
+        return activate(source, run_id=run_id, baseline=None, comparison={'initialization': True},
+                        activated_at=datetime.now(timezone.utc).isoformat())
+    finally:
+        if lease:
+            lease.rmdir()
 
 
 if __name__ == '__main__':

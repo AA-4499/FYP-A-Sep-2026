@@ -1,5 +1,9 @@
 # Persisting the online GRU on the existing Render service
 
+> For the alternative that requires no Render disk, follow
+> [Supabase model storage](supabase-model-storage.md). The steps below apply only
+> to the optional disk provider.
+
 **Deployment action required.** No disk was purchased, attached, or configured
 by this implementation. The default `render.yaml`, KG origins, Neo4j settings,
 and browser inference configuration have not been changed. The deleted Medium

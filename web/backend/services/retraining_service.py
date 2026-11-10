@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timezone
 
 from . import model_store
+from . import cloud_model_store as cloud
 from .retraining_policy import inventory, policy, recommendation
 
 _inventory_cache = {}
@@ -24,14 +25,17 @@ def _now():
 
 
 def _write(path, value):
-    model_store.atomic_json(path, value)
+    if cloud.enabled():
+        cloud.save_job(value)
+    else:
+        model_store.atomic_json(path, value)
 
 
 def training_status():
     path = model_store.storage_directory() / 'retraining.json'
     storage = model_store.storage_status()
     try:
-        job = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'status': 'idle'}
+        job = cloud.control('recover')['job'] if cloud.enabled() else (json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'status': 'idle'})
         active = model_store.read_active()
     except (OSError, ValueError):
         raise model_store.ModelStorageError('Retraining state could not be read. Check the persistent model storage.') from None
@@ -40,7 +44,7 @@ def training_status():
         job = {**job, 'status': 'completed', 'finished_at': active['activated_at'],
                'model_sha256': active['model_sha256'], 'comparison': active['comparison']}
         job.pop('error', None)
-    elif job.get('status') == 'running' and not (model_store.storage_directory() / '.retraining-lock').exists():
+    elif not cloud.enabled() and job.get('status') == 'running' and not (model_store.storage_directory() / '.retraining-lock').exists():
         job = {**job, 'status': 'failed', 'error': 'The training worker stopped without a completed activation. The previous model and baseline remain active.'}
     return {**job, 'storage': storage}
 
@@ -70,6 +74,9 @@ def data_readiness(*, refresh=False):
 
 def recover_interrupted_training():
     """For the documented single-worker server; never discard committed activation."""
+    if cloud.enabled():
+        cloud.control('recover')
+        return
     directory = model_store.storage_directory()
     lock = directory / '.retraining-lock'
     if lock.exists():
@@ -93,18 +100,23 @@ def start_training(created_by):
         minimum_days = policy()['minimum_interval_days']
         if elapsed.total_seconds() < minimum_days * 86400:
             raise ValueError(f'The minimum {minimum_days}-day interval since the last successful activation has not elapsed.')
-    lock = directory / '.retraining-lock'
-    try:
-        lock.mkdir()
-    except FileExistsError:
-        raise ValueError('A retraining job is already running. Refresh its status.') from None
     job = {'run_id': str(uuid.uuid4()), 'status': 'running', 'started_at': _now(), 'created_by': created_by}
+    if cloud.enabled():
+        lock = cloud.acquire(job)
+    else:
+        lock = directory / '.retraining-lock'
+        try:
+            lock.mkdir()
+        except FileExistsError:
+            raise ValueError('A retraining job is already running. Refresh its status.') from None
     try:
         _write(directory / 'retraining.json', job)
         threading.Thread(target=_train, args=(destination, lock, job), daemon=True).start()
     except Exception:
-        _write(directory / 'retraining.json', {**job, 'status': 'failed', 'finished_at': _now(), 'error': 'The training worker could not start; the active model was not changed.'})
-        lock.rmdir()
+        try:
+            _write(directory / 'retraining.json', {**job, 'status': 'failed', 'finished_at': _now(), 'error': 'The training worker could not start; the active model was not changed.'})
+        finally:
+            lock.rmdir()
         raise
     return job
 
@@ -156,7 +168,7 @@ def _train(destination, lock, job):
     finally:
         try:
             _write(status_file, job)
-        except OSError:
+        except (OSError, model_store.ModelStorageError):
             logging.exception('Could not persist training job status; the active release pointer remains authoritative')
         finally:
             lock.rmdir()

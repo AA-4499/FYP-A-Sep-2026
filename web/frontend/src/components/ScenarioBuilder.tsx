@@ -1,3 +1,5 @@
+import { FoodCompositionPicker } from "./FoodCompositionPicker";
+import { foodCarbohydrate } from "../lib/scenario";
 import React, { useState } from "react";
 import { Plus, Trash2, CalendarClock, ChevronDown } from "lucide-react";
 import {
@@ -47,6 +49,10 @@ export function ScenarioBuilder({
           next.carbohydrateSource === "usda-cooked-white-rice"
         ) {
           const estimate = cookedRiceCarbohydrate(Number(next.amount), engine === 'conditional' ? 'total' : 'available');
+          next.carbohydrate = estimate === null ? "" : String(estimate);
+        }
+        if (next.kind === "meal" && next.carbohydrateSource === "food-composition") {
+          const estimate = foodCarbohydrate(next.foodReference, Number(next.amount), engine);
           next.carbohydrate = estimate === null ? "" : String(estimate);
         }
         return next;
@@ -243,6 +249,8 @@ export function ScenarioBuilder({
               )}
               {row.kind === "meal" && (
                 <>
+                  <FoodCompositionPicker portion={row.amount} engine={engine} disabled={disabled} onSelect={food => patch(row.id, {carbohydrateSource:"food-composition",foodReference:food,description:food.name})}/>
+                  {row.carbohydrateSource === "food-composition" && <p className="text-[10px] text-teal-800">Selected: {row.foodReference?.name} · edible portion basis · reference #{row.foodReference?.id}</p>}
                   <label className="block text-[11px] text-slate-500">
                     Carbohydrate entry method
                     <select
@@ -256,6 +264,7 @@ export function ScenarioBuilder({
                         })
                       }
                     >
+                      {row.carbohydrateSource === "food-composition" && <option value="food-composition">Selected Supabase food reference</option>}
                       <option value="manual">
                         Manual · food label / measured estimate
                       </option>
@@ -275,7 +284,7 @@ export function ScenarioBuilder({
                       step={0.1}
                       className={input}
                       readOnly={
-                        row.carbohydrateSource === "usda-cooked-white-rice"
+                        (row.carbohydrateSource === "usda-cooked-white-rice" || row.carbohydrateSource === "food-composition")
                       }
                       value={row.carbohydrate}
                       onChange={(event) =>

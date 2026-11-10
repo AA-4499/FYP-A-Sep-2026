@@ -25,25 +25,38 @@ export function getSupabaseCredentials(): { url: string; anonKey: string } {
     (import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string) ||
     "sb_publishable_z9E8XFx9DIyTKA-T-XI7gw_g0_l-Zkw";
 
-  const storedUrl =
+  const rawStoredUrl =
     typeof window !== "undefined"
-      ? localStorage.getItem(STORAGE_URL_KEY) || ""
+      ? (localStorage.getItem(STORAGE_URL_KEY) || "").trim()
       : "";
-  const storedKey =
+  const rawStoredKey =
     typeof window !== "undefined"
-      ? localStorage.getItem(STORAGE_KEY_KEY) || ""
+      ? (localStorage.getItem(STORAGE_KEY_KEY) || "").trim()
       : "";
 
-  return {
-    url: storedUrl || envUrl,
-    anonKey: storedKey || envKey,
-  };
+  const url =
+    rawStoredUrl && rawStoredUrl !== "null" && rawStoredUrl !== "undefined"
+      ? rawStoredUrl
+      : envUrl.trim();
+  const anonKey =
+    rawStoredKey && rawStoredKey !== "null" && rawStoredKey !== "undefined"
+      ? rawStoredKey
+      : envKey.trim();
+
+  return { url, anonKey };
 }
 
 export function saveSupabaseCredentials(url: string, anonKey: string) {
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_URL_KEY, url.trim());
-    localStorage.setItem(STORAGE_KEY_KEY, anonKey.trim());
+    const trimmedUrl = url.trim();
+    const trimmedKey = anonKey.trim();
+    if (!trimmedUrl && !trimmedKey) {
+      localStorage.removeItem(STORAGE_URL_KEY);
+      localStorage.removeItem(STORAGE_KEY_KEY);
+    } else {
+      localStorage.setItem(STORAGE_URL_KEY, trimmedUrl);
+      localStorage.setItem(STORAGE_KEY_KEY, trimmedKey);
+    }
   }
 }
 
@@ -152,10 +165,20 @@ export async function fetchSupabasePatients(
   const client = getSupabaseClient();
   if (!client)
     throw new Error("Connect your Supabase project to load patient records.");
-  const [summaries, details] = await Promise.all([
-    readClinicalRows(client, "patient_summary"),
-    readClinicalRows(client, "patient_detail"),
-  ]);
+
+  const summaries = await readClinicalRows(client, "patient_summary");
+  let details: Record<string, unknown>[] = [];
+  try {
+    details = await Promise.race([
+      readClinicalRows(client, "patient_detail"),
+      new Promise<Record<string, unknown>[]>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout loading patient_detail")), 6000),
+      ),
+    ]);
+  } catch (err) {
+    console.warn("Could not load full patient_detail table (continuing with summaries):", err);
+  }
+
   cachedRawSummaries = summaries as unknown as SupabasePatientSummary[];
   cachedRawDetails = details as unknown as SupabasePatientDetail[];
   const grouped = new Map<string, SupabasePatientDetail[]>();

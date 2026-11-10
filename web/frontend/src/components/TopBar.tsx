@@ -16,6 +16,7 @@ interface TopBarProps {
   currentPatient: Patient | undefined;
   patientsList: Patient[];
   isSupabaseConnected: boolean;
+  isLoadingDatabase?: boolean;
   onSelectPatient: (patientId: string) => void;
   onSwitchMode: (mode: "patient" | "doctor") => void;
   onOpenAuth: () => void;
@@ -29,6 +30,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   showPatientSearch = true,
   patientsList,
   isSupabaseConnected,
+  isLoadingDatabase = false,
   onSelectPatient,
   onSwitchMode,
   onOpenAuth,
@@ -163,21 +165,35 @@ export const TopBar: React.FC<TopBarProps> = ({
           className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition ${
             isSupabaseConnected
               ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+              : isLoadingDatabase
+                ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
           }`}
           title="Configure Supabase Connection"
         >
           <Database
-            className={`w-3.5 h-3.5 ${isSupabaseConnected ? "text-emerald-600" : "text-slate-400"}`}
+            className={`w-3.5 h-3.5 ${
+              isSupabaseConnected
+                ? "text-emerald-600"
+                : isLoadingDatabase
+                  ? "text-amber-600"
+                  : "text-slate-400"
+            }`}
           />
           <span className="text-[11px]">
-            {isSupabaseConnected ? "Database connected" : "Connect database"}
+            {isSupabaseConnected
+              ? "Database connected"
+              : isLoadingDatabase
+                ? "Connecting database…"
+                : "Connect database"}
           </span>
           <span
             className={`w-1.5 h-1.5 rounded-full ${
               isSupabaseConnected
                 ? "bg-emerald-500 animate-pulse"
-                : "bg-slate-300"
+                : isLoadingDatabase
+                  ? "bg-amber-500 animate-pulse"
+                  : "bg-slate-300"
             }`}
           />
         </button>

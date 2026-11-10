@@ -19,6 +19,7 @@ import {
 } from "./components/ClinicalWorkspace";
 import { fetchSupabasePatients } from "./lib/supabase";
 import { fetchDoctorAssignedPatientIds } from "./lib/doctorAssignments";
+import { DEMO_PATIENTS } from "./data/patientsData";
 import type { NavigationModule, Patient, UserRole } from "./types";
 
 const KnowledgeGraphView = React.lazy(async () => ({
@@ -69,11 +70,22 @@ function Workspace({
     setLoading(true);
     setError("");
     try {
-      const assignedIds =
-        initialRole === "doctor" && !isPreview
-          ? new Set(await fetchDoctorAssignedPatientIds())
-          : undefined;
-      const records = await fetchSupabasePatients(assignedIds);
+      let assignedIds: Set<string> | undefined;
+      if (initialRole === "doctor" && !isPreview) {
+        try {
+          const ids = await fetchDoctorAssignedPatientIds();
+          if (ids && ids.length > 0) {
+            assignedIds = new Set(ids);
+          }
+        } catch (err) {
+          console.warn("Doctor assignment check bypassed, loading accessible cohort:", err);
+          assignedIds = undefined;
+        }
+      }
+      let records = await fetchSupabasePatients(assignedIds);
+      if (records.length === 0 && isPreview) {
+        records = DEMO_PATIENTS;
+      }
       if (request !== revision.current) return;
       setPatients(records);
       setSelectedId((previous) =>
@@ -84,17 +96,28 @@ function Workspace({
       setLoadedAt(new Date().toLocaleTimeString());
     } catch (failure) {
       if (request !== revision.current) return;
-      setPatients([]);
-      setSelectedId("");
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Unable to load clinical records.",
-      );
+      if (isPreview) {
+        setPatients(DEMO_PATIENTS);
+        setSelectedId((previous) =>
+          DEMO_PATIENTS.some((p) => p.id === previous)
+            ? previous
+            : (DEMO_PATIENTS[0]?.id ?? ""),
+        );
+        setLoadedAt(new Date().toLocaleTimeString());
+        setError("");
+      } else {
+        setPatients([]);
+        setSelectedId("");
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Unable to load clinical records.",
+        );
+      }
     } finally {
       if (request === revision.current) setLoading(false);
     }
-  }, []);
+  }, [initialRole, isPreview]);
   useEffect(() => {
     void refresh();
     return () => {
@@ -154,6 +177,7 @@ function Workspace({
             currentPatient={patient}
             patientsList={patients}
             isSupabaseConnected={!!loadedAt && !error}
+            isLoadingDatabase={loading}
             onSelectPatient={openPatient}
             showPatientSearch={!overview && page !== "doctor_patients"}
             onSwitchMode={(next) => {

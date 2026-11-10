@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Validate and import the public CGMacros 1.0.0 dataset into Supabase.
 
-The script never fills missing measurements. It keeps complete records in
-separate participant, glucose, activity and meal tables, rejects invalid rows,
-and uses Supabase uniqueness constraints for idempotent imports.
+Run from the repository root. Default mode is a dry run; add --load to write
+complete, validated records to Supabase. The script uses a two-pass streaming
+approach so it does not hold all participants' observations in memory.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 import requests
@@ -81,7 +81,7 @@ def exact_deduplicate(
     value_fields: tuple[str, ...],
     label: str,
 ) -> tuple[list[dict[str, Any]], int]:
-    """Drop identical duplicate keys, but stop on conflicting duplicate values."""
+    """Drop identical duplicate keys; stop if the same key has conflicting data."""
     seen: dict[tuple[Any, ...], tuple[Any, ...]] = {}
     output: list[dict[str, Any]] = []
     duplicates = 0
@@ -91,8 +91,7 @@ def exact_deduplicate(
         if key in seen:
             if seen[key] != values:
                 raise ValueError(
-                    f"Conflicting duplicate {label} key {key}; "
-                    "review the source CSV instead of silently choosing a row."
+                    f"Conflicting duplicate {label} key {key}; review the source file."
                 )
             duplicates += 1
             continue
@@ -111,8 +110,10 @@ def as_number(value: Any) -> float | None:
 def parse_bio_profiles(
     bio: pd.DataFrame, participant_numbers: list[int]
 ) -> list[dict[str, Any]]:
-    """Use explicit participant identifiers where present; otherwise follow
-    the row-order mapping used by the original CGMacros analysis notebook.
+    """Map required participant profile fields to the matching participant IDs.
+
+    The original publisher notebook maps bio.csv rows in order to sorted
+    participant CSVs where an explicit participant identifier is absent.
     """
     required = {
         "age": find_column(bio, ["Age"]),
@@ -122,9 +123,7 @@ def parse_bio_profiles(
     }
     missing_columns = [key for key, value in required.items() if value is None]
     if missing_columns:
-        raise ValueError(
-            "bio.csv is missing required profile columns: " + ", ".join(missing_columns)
-        )
+        raise ValueError("bio.csv is missing required fields: " + ", ".join(missing_columns))
 
     id_col = find_column(
         bio, ["Participant ID", "Participant", "Subject ID", "Subject", "Patient ID"]
@@ -140,23 +139,19 @@ def parse_bio_profiles(
                     raise ValueError(f"Duplicate participant {number} in bio.csv")
                 rows_by_number[number] = row
         if not set(participant_numbers).issubset(rows_by_number):
-            raise ValueError(
-                "bio.csv participant ID column was found, but one or more main-file "
-                "participants could not be matched."
-            )
+            raise ValueError("bio.csv participant IDs do not match all main participant files.")
     else:
         if len(bio) != len(participant_numbers):
             raise ValueError(
-                "bio.csv has no recognisable participant ID column and its row count "
-                "does not match the number of participant CSV files. Refusing to guess."
+                "bio.csv has no participant ID column and its row count differs from "
+                "the main participant-file count. Refusing to guess the mapping."
             )
         print(
-            "NOTE: bio.csv has no participant ID column. Mapping its rows in order "
-            "to the sorted participant CSV IDs, matching the original publisher notebook."
+            "NOTE: bio.csv has no participant ID column; matching its rows in order "
+            "to sorted main CSV participant IDs, as in the original publisher notebook."
         )
         rows_by_number = {
-            number: bio.iloc[index]
-            for index, number in enumerate(participant_numbers)
+            number: bio.iloc[index] for index, number in enumerate(participant_numbers)
         }
 
     profiles: list[dict[str, Any]] = []
@@ -173,15 +168,17 @@ def parse_bio_profiles(
 
         if age is None or bmi is None or hba1c is None or sex_value not in {"F", "M"}:
             raise ValueError(
-                f"Participant CGMacros-{number:03d} lacks a required profile value. "
-                "No value will be imputed."
+                f"CGMacros-{number:03d} has a missing required profile value; no imputation."
             )
         if not (18 <= age <= 69 and 20.69 <= bmi <= 49.09 and 4.6 <= hba1c <= 8.5):
             raise ValueError(
-                f"Participant CGMacros-{number:03d} has a profile value outside "
-                "the published data-dictionary ranges."
+                f"CGMacros-{number:03d} has a profile value outside the official data ranges."
             )
 
+        # The Bio data dictionary labels the 4.6–8.5 A1c values as mmol/mol,
+        # but the paper reports these as percentages and uses percentage
+        # thresholds to define the 15/16/14 cohort groups. We follow the
+        # paper's published classification logic; see the import documentation.
         if hba1c < 5.7:
             group = "No diabetes"
         elif hba1c <= 6.4:
@@ -206,9 +203,12 @@ def parse_bio_profiles(
 def build_measurement_records(
     frame: pd.DataFrame, participant_id: str, source_file: str
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, int]]:
-    """Create three complete-case streams from one participant CSV."""
+    """Create non-empty, valid glucose, Fitbit activity and meal records."""
     columns = {normalise_name(col): col for col in frame.columns}
-    missing = [name for name in REQUIRED_MAIN_COLUMNS if normalise_name(name) not in columns]
+    missing = [
+        name for name in REQUIRED_MAIN_COLUMNS
+        if normalise_name(name) not in columns
+    ]
     if missing:
         raise ValueError(f"{source_file} is missing required columns: {missing}")
 
@@ -219,7 +219,6 @@ def build_measurement_records(
     glucose_records: list[dict[str, Any]] = []
     activity_records: list[dict[str, Any]] = []
     meal_records: list[dict[str, Any]] = []
-
     counts = {
         "glucose_rows_read": len(frame) * 2,
         "activity_rows_read": len(frame),
@@ -235,8 +234,9 @@ def build_measurement_records(
         recorded_at = timestamp.strftime("%Y-%m-%dT%H:%M:%S")
         source_row = index + 2
 
-        # CGM columns are separate streams. The source publication says both
-        # series were linearly interpolated to a 1-minute grid.
+        # Keep the two sensors as separate readings; do not average them.
+        # Original sensor intervals: Libre 15 min, Dexcom 5 min. Published CSV
+        # values are already linearly interpolated to a one-minute grid.
         for device, field, native_interval in (
             ("Abbott FreeStyle Libre Pro", "Libre GL", 15),
             ("Dexcom G6 Pro", "Dexcom GL", 5),
@@ -244,24 +244,23 @@ def build_measurement_records(
             value = as_number(frame.iloc[index][col(field)])
             if value is None:
                 counts["incomplete_rows_rejected"] += 1
-                continue
-            if not 40 <= value <= 400:
+            elif not 40 <= value <= 400:
                 counts["invalid_rows_rejected"] += 1
-                continue
-            glucose_records.append({
-                "participant_id": participant_id,
-                "recorded_at": recorded_at,
-                "cgm_device": device,
-                "glucose_mg_dl": value,
-                "native_sampling_interval_minutes": native_interval,
-                "published_series_interval_minutes": 1,
-                "linear_interpolation_in_source": True,
-                "source_file": source_file,
-                "source_row_number": source_row,
-            })
+            else:
+                glucose_records.append({
+                    "participant_id": participant_id,
+                    "recorded_at": recorded_at,
+                    "cgm_device": device,
+                    "glucose_mg_dl": value,
+                    "native_sampling_interval_minutes": native_interval,
+                    "published_series_interval_minutes": 1,
+                    "linear_interpolation_in_source": True,
+                    "source_file": source_file,
+                    "source_row_number": source_row,
+                })
 
-        # Require all three Fitbit features for an activity row. No partial or
-        # empty activity records are sent to the complete-case table.
+        # Fitbit activity rows require all three measures. No partial record
+        # is written into the model-ready activity table.
         hr = as_number(frame.iloc[index][col("HR")])
         calories = as_number(frame.iloc[index][col("Calories (Activity)")])
         mets_x10 = as_number(frame.iloc[index][col("Mets")])
@@ -284,12 +283,11 @@ def build_measurement_records(
         meal_value = frame.iloc[index][col("Meal Type")]
         if pd.notna(meal_value) and str(meal_value).strip():
             counts["meal_rows_read"] += 1
-            meal_type = str(meal_value).strip().lower()
             meal_type = {
                 "breakfast": "Breakfast",
                 "lunch": "Lunch",
                 "dinner": "Dinner",
-            }.get(meal_type)
+            }.get(str(meal_value).strip().lower())
             values = {
                 "meal_calories_kcal": as_number(frame.iloc[index][col("Calories")]),
                 "carbohydrates_g": as_number(frame.iloc[index][col("Carbs")]),
@@ -300,8 +298,7 @@ def build_measurement_records(
             }
             if meal_type is None or any(value is None for value in values.values()):
                 counts["incomplete_rows_rejected"] += 1
-                continue
-            if not (
+            elif not (
                 30 <= values["meal_calories_kcal"] <= 1180
                 and 0 <= values["carbohydrates_g"] <= 176
                 and 3 <= values["protein_g"] <= 176
@@ -310,15 +307,15 @@ def build_measurement_records(
                 and 0 <= values["amount_consumed_percent"] <= 100
             ):
                 counts["invalid_rows_rejected"] += 1
-                continue
-            meal_records.append({
-                "participant_id": participant_id,
-                "recorded_at": recorded_at,
-                "meal_type": meal_type,
-                **values,
-                "source_file": source_file,
-                "source_row_number": source_row,
-            })
+            else:
+                meal_records.append({
+                    "participant_id": participant_id,
+                    "recorded_at": recorded_at,
+                    "meal_type": meal_type,
+                    **values,
+                    "source_file": source_file,
+                    "source_row_number": source_row,
+                })
 
     glucose_records, duplicates = exact_deduplicate(
         glucose_records,
@@ -342,19 +339,37 @@ def build_measurement_records(
         "meal",
     )
     counts["duplicate_rows_rejected"] += duplicates
-
     return glucose_records, activity_records, meal_records, counts
 
 
-def load_source(archive: Path) -> tuple[dict[str, Any], dict[str, list[dict[str, Any]]]]:
+def scan_source(
+    archive: Path,
+    on_participant: Callable[[str, Any], None] | None = None,
+) -> dict[str, Any]:
+    """Scan and validate one participant at a time, with optional upload callback."""
     if not archive.exists():
         download_archive(archive)
     checksum = sha256_file(archive)
     if checksum.lower() != SOURCE_SHA256:
         raise ValueError(
-            f"CGMacros archive SHA-256 mismatch: {checksum}. "
-            "Expected the official PhysioNet 1.0.0 archive checksum."
+            f"Archive SHA-256 mismatch: {checksum}. Expected the official PhysioNet v1.0.0 checksum."
         )
+
+    totals: dict[str, Any] = {
+        "source_archive_sha256": checksum,
+        "participant_rows_read": 0,
+        "participant_rows_loaded": 0,
+        "glucose_rows_read": 0,
+        "glucose_rows_loaded": 0,
+        "activity_rows_read": 0,
+        "activity_rows_loaded": 0,
+        "meal_rows_read": 0,
+        "meal_rows_loaded": 0,
+        "duplicate_rows_rejected": 0,
+        "incomplete_rows_rejected": 0,
+        "invalid_rows_rejected": 0,
+        "warnings": [],
+    }
 
     with zipfile.ZipFile(archive) as source:
         participant_files: dict[int, zipfile.ZipInfo] = {}
@@ -364,7 +379,7 @@ def load_source(archive: Path) -> tuple[dict[str, Any], dict[str, list[dict[str,
             number = parse_participant_number(base)
             if number is not None:
                 if number in participant_files:
-                    raise ValueError(f"More than one main CSV found for participant {number}")
+                    raise ValueError(f"More than one main CSV found for participant {number}.")
                 participant_files[number] = info
             elif base.lower() == "bio.csv":
                 bio_info = info
@@ -374,28 +389,16 @@ def load_source(archive: Path) -> tuple[dict[str, Any], dict[str, list[dict[str,
         participant_numbers = sorted(participant_files)
         if len(participant_numbers) != 45:
             raise ValueError(
-                f"Expected 45 participant CSVs in CGMacros 1.0.0, found {len(participant_numbers)}."
+                f"Expected 45 participant CSVs, found {len(participant_numbers)}."
             )
 
         bio = pd.read_csv(source.open(bio_info))
         participants = parse_bio_profiles(bio, participant_numbers)
+        totals["participant_rows_read"] = len(bio)
+        totals["participant_rows_loaded"] = len(participants)
 
-        streams = {"glucose": [], "activity": [], "meals": []}
-        totals = {
-            "source_archive_sha256": checksum,
-            "participant_rows_read": len(bio),
-            "participant_rows_loaded": len(participants),
-            "glucose_rows_read": 0,
-            "glucose_rows_loaded": 0,
-            "activity_rows_read": 0,
-            "activity_rows_loaded": 0,
-            "meal_rows_read": 0,
-            "meal_rows_loaded": 0,
-            "duplicate_rows_rejected": 0,
-            "incomplete_rows_rejected": 0,
-            "invalid_rows_rejected": 0,
-            "warnings": [],
-        }
+        if on_participant:
+            on_participant("participants", participants)
 
         for number in participant_numbers:
             info = participant_files[number]
@@ -404,19 +407,30 @@ def load_source(archive: Path) -> tuple[dict[str, Any], dict[str, list[dict[str,
             glucose, activity, meals, counts = build_measurement_records(
                 frame, participant_id, info.filename
             )
-            streams["glucose"].extend(glucose)
-            streams["activity"].extend(activity)
-            streams["meals"].extend(meals)
-            for key, value in counts.items():
-                totals[key] = totals.get(key, 0) + value
 
-        totals["glucose_rows_loaded"] = len(streams["glucose"])
-        totals["activity_rows_loaded"] = len(streams["activity"])
-        totals["meal_rows_loaded"] = len(streams["meals"])
-        totals["participant_rows_loaded"] = len(participants)
-        streams["participants"] = participants
+            totals["glucose_rows_read"] += counts["glucose_rows_read"]
+            totals["glucose_rows_loaded"] += len(glucose)
+            totals["activity_rows_read"] += counts["activity_rows_read"]
+            totals["activity_rows_loaded"] += len(activity)
+            totals["meal_rows_read"] += counts["meal_rows_read"]
+            totals["meal_rows_loaded"] += len(meals)
+            for key in (
+                "duplicate_rows_rejected",
+                "incomplete_rows_rejected",
+                "invalid_rows_rejected",
+            ):
+                totals[key] += counts[key]
 
-    return totals, streams
+            if on_participant:
+                on_participant("measurements", {
+                    "glucose": glucose,
+                    "activity": activity,
+                    "meals": meals,
+                })
+
+            del frame, glucose, activity, meals
+
+    return totals
 
 
 def batched_upsert(client: Any, table: str, rows: list[dict[str, Any]], conflict: str) -> None:
@@ -427,17 +441,19 @@ def batched_upsert(client: Any, table: str, rows: list[dict[str, Any]], conflict
             on_conflict=conflict,
             ignore_duplicates=True,
         ).execute()
-        print(f"{table}: submitted {min(start + len(batch), len(rows)):,}/{len(rows):,}")
+    if rows:
+        print(f"{table}: upserted/submitted {len(rows):,} rows for current participant/batch.")
 
 
-def write_to_supabase(report: dict[str, Any], streams: dict[str, list[dict[str, Any]]]) -> str:
+def write_to_supabase(archive: Path, preflight: dict[str, Any]) -> str:
+    """Second pass upload. If interrupted, rerun safely because keys are unique."""
     load_dotenv()
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
         raise EnvironmentError(
             "Set SUPABASE_URL and SUPABASE_SECRET_KEY (or SUPABASE_SERVICE_ROLE_KEY) "
-            "in the local environment. Never use the public anon key for this import."
+            "in the root .env. Never use the frontend anon key."
         )
 
     client = create_client(url, key)
@@ -445,58 +461,72 @@ def write_to_supabase(report: dict[str, Any], streams: dict[str, list[dict[str, 
         "dataset_name": "CGMacros",
         "dataset_version": SOURCE_VERSION,
         "source_doi": SOURCE_DOI,
-        "source_archive_sha256": report["source_archive_sha256"],
+        "source_archive_sha256": preflight["source_archive_sha256"],
         "import_status": "running",
-        "participant_rows_read": report["participant_rows_read"],
-        "participant_rows_loaded": report["participant_rows_loaded"],
-        "glucose_rows_read": report["glucose_rows_read"],
-        "glucose_rows_loaded": report["glucose_rows_loaded"],
-        "activity_rows_read": report["activity_rows_read"],
-        "activity_rows_loaded": report["activity_rows_loaded"],
-        "meal_rows_read": report["meal_rows_read"],
-        "meal_rows_loaded": report["meal_rows_loaded"],
-        "duplicate_rows_rejected": report["duplicate_rows_rejected"],
-        "incomplete_rows_rejected": report["incomplete_rows_rejected"],
-        "invalid_rows_rejected": report["invalid_rows_rejected"],
+        "participant_rows_read": preflight["participant_rows_read"],
+        "participant_rows_loaded": preflight["participant_rows_loaded"],
+        "glucose_rows_read": preflight["glucose_rows_read"],
+        "glucose_rows_loaded": preflight["glucose_rows_loaded"],
+        "activity_rows_read": preflight["activity_rows_read"],
+        "activity_rows_loaded": preflight["activity_rows_loaded"],
+        "meal_rows_read": preflight["meal_rows_read"],
+        "meal_rows_loaded": preflight["meal_rows_loaded"],
+        "duplicate_rows_rejected": preflight["duplicate_rows_rejected"],
+        "incomplete_rows_rejected": preflight["incomplete_rows_rejected"],
+        "invalid_rows_rejected": preflight["invalid_rows_rejected"],
         "notes": json.dumps({
-            "import_mode": "idempotent upsert; exact duplicate keys ignored",
-            "warnings": report.get("warnings", []),
-            "rows_loaded_are_submitted_complete_rows": True,
+            "mode": "two-pass; source fully validated before upload",
+            "counts": "candidate complete rows; verify final DB row counts after import",
+            "hba1c_unit": "Source dictionary says mmol/mol but paper grouping implies percent; verify with authors",
         }),
     }
     created = client.table("cgmacros_import_audit").insert(audit).execute()
     run_id = created.data[0]["import_run_id"]
 
-    try:
+    def upload_callback(stage: str, payload: Any) -> None:
+        if stage == "participants":
+            batched_upsert(
+                client, "cgmacros_participants", payload, "participant_id"
+            )
+            return
         batched_upsert(
-            client, "cgmacros_participants", streams["participants"], "participant_id"
-        )
-        batched_upsert(
-            client, "cgmacros_glucose_readings", streams["glucose"],
+            client, "cgmacros_glucose_readings", payload["glucose"],
             "participant_id,recorded_at,cgm_device",
         )
         batched_upsert(
-            client, "cgmacros_activity_readings", streams["activity"],
+            client, "cgmacros_activity_readings", payload["activity"],
             "participant_id,recorded_at",
         )
         batched_upsert(
-            client, "cgmacros_meal_events", streams["meals"],
+            client, "cgmacros_meal_events", payload["meals"],
             "participant_id,recorded_at,meal_type",
         )
+
+    try:
+        uploaded_report = scan_source(archive, on_participant=upload_callback)
+        if uploaded_report["source_archive_sha256"] != preflight["source_archive_sha256"]:
+            raise RuntimeError("Source archive checksum changed between validation and upload.")
+        for key in (
+            "participant_rows_loaded",
+            "glucose_rows_loaded",
+            "activity_rows_loaded",
+            "meal_rows_loaded",
+            "duplicate_rows_rejected",
+            "incomplete_rows_rejected",
+            "invalid_rows_rejected",
+        ):
+            if uploaded_report[key] != preflight[key]:
+                raise RuntimeError(f"Preflight/upload count mismatch for {key}.")
+
         client.table("cgmacros_import_audit").update({
             "import_status": "completed",
             "completed_at": datetime.now(timezone.utc).isoformat(),
-            "notes": json.dumps({
-                "import_mode": "idempotent upsert",
-                "note": "Loaded/submitted counts are candidate complete rows; run verification SQL "
-                        "from docs/cgmacros-supabase-dataset.md for exact final table counts.",
-            }),
         }).eq("import_run_id", run_id).execute()
     except Exception as exc:
         client.table("cgmacros_import_audit").update({
             "import_status": "failed",
-            "completed_at": "now()",
-            "notes": f"Import failed: {type(exc).__name__}: {exc}",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "notes": f"Import failed; rerun is safe after correcting issue: {type(exc).__name__}: {exc}",
         }).eq("import_run_id", run_id).execute()
         raise
 
@@ -507,28 +537,29 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
     parser.add_argument(
-        "--load", action="store_true",
-        help="Write validated records to Supabase. Without this flag, only a dry run is performed.",
+        "--load",
+        action="store_true",
+        help="After preflight validation, write rows to Supabase. Default is dry-run only.",
     )
     args = parser.parse_args()
 
-    report, streams = load_source(args.archive)
+    report = scan_source(args.archive)
     report["source_archive"] = str(args.archive)
     report["rows_ready"] = {
-        "participants": len(streams["participants"]),
-        "glucose": len(streams["glucose"]),
-        "activity": len(streams["activity"]),
-        "meals": len(streams["meals"]),
+        "participants": report["participant_rows_loaded"],
+        "glucose": report["glucose_rows_loaded"],
+        "activity": report["activity_rows_loaded"],
+        "meals": report["meal_rows_loaded"],
     }
+    print(json.dumps(report, indent=2))
 
     if not args.load:
-        print(json.dumps(report, indent=2))
         print("\nDRY RUN ONLY: no Supabase rows were written. Add --load to import.")
         return 0
 
-    run_id = write_to_supabase(report, streams)
-    print(f"\nImport submitted successfully. import_run_id={run_id}")
-    print("Run the verification SQL in docs/cgmacros-supabase-dataset.md.")
+    run_id = write_to_supabase(args.archive, report)
+    print(f"\nImport completed. import_run_id={run_id}")
+    print("Run verification SQL in docs/cgmacros-supabase-dataset.md.")
     return 0
 
 

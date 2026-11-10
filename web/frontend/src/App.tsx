@@ -361,6 +361,7 @@ function Workspace({
             patient={patient || null}
             patientId={patient?.id}
             recommendations={patientRecommendations}
+            canViewKnowledgeGraph={canViewKnowledgeGraph}
             onNavigate={navigate}
             isOpen={patientRightSidebarOpen}
             onClose={() => setPatientRightSidebarOpen(false)}

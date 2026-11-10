@@ -31,10 +31,12 @@ const mockPatient = {
   hba1c: 7.4,
   fastingGlucose: 5.6,
   bmi: 27.5,
-  weight: 74,
   hasContinuousCGM: true,
   timeInRangePct: 68,
   cgmReadings: [],
+  recordedFields: {
+    'Weight (kg)': 74,
+  },
 };
 
 const mockRecommendations = [
@@ -89,41 +91,57 @@ test('generatePatientGraph constructs comprehensive nodes and edges from patient
   assert.ok(cgmNode.label.includes('Active'), 'Should indicate active CGM sensor');
 });
 
-test('PatientRightSidebar defaults to Recommendations view', () => {
+test('Knowledge Graph is hidden for patient in right sidebar, recommendations shown by default', () => {
   const html = renderToStaticMarkup(
     React.createElement(PatientRightSidebar, {
       patient: mockPatient,
       patientId: mockPatient.id,
       recommendations: mockRecommendations,
+      canViewKnowledgeGraph: false,
       isOpen: true,
     })
   );
 
   assert.ok(html.includes('data-testid="patient-right-sidebar"'), 'Should render sidebar');
-  assert.ok(html.includes('Health Insights'), 'Should render sidebar title');
-  assert.ok(html.includes('Recommendations'), 'Should render Recommendations tab');
-  assert.ok(html.includes('Knowledge Graph'), 'Should render Knowledge Graph tab');
-  assert.ok(html.includes('Approved by your care team'), 'Should show care team approval header');
+  assert.ok(html.includes('My Recommendations'), 'Should show My Recommendations heading');
   assert.ok(html.includes('Review morning glucose patterns'), 'Should show recommendation 1');
   assert.ok(html.includes('Daily post-meal walk'), 'Should show recommendation 2');
-  assert.ok(html.includes('Approved'), 'Should show approval badge');
+  assert.ok(html.includes('Approved by Care Team'), 'Should show approved header');
+  // Knowledge graph must be hidden for patient
+  assert.doesNotMatch(html, /Knowledge Graph<\/span>/, 'Knowledge Graph tab must be hidden for patients');
+  assert.doesNotMatch(html, /Personal Health Graph/, 'Knowledge graph content must be hidden for patients');
 });
 
-test('PatientRightSidebar renders Knowledge Graph view when active tab is knowledge_graph', () => {
+test('Knowledge Graph in right sidebar can be viewed by doctor', () => {
   const html = renderToStaticMarkup(
     React.createElement(PatientRightSidebar, {
       patient: mockPatient,
       patientId: mockPatient.id,
       recommendations: mockRecommendations,
+      canViewKnowledgeGraph: true,
       isOpen: true,
       defaultTab: 'knowledge_graph',
     })
   );
 
+  assert.ok(html.includes('Knowledge Graph'), 'Doctor should see Knowledge Graph tab');
   assert.ok(html.includes('Personal Health Graph'), 'Should show Personal Health Graph heading');
-  assert.ok(html.includes('Interactive patient knowledge graph'), 'Should have Cytoscape aria-label');
+  assert.ok(html.includes('Interactive patient knowledge graph'), 'Should have Cytoscape canvas aria-label');
   assert.ok(html.includes('Biomarkers'), 'Should show Biomarkers category filter');
-  assert.ok(html.includes('Care &amp; Lifestyle') || html.includes('Care & Lifestyle'), 'Should show Care filter');
+});
+
+test('Right sidebar supports extending width with extend toggle', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(PatientRightSidebar, {
+      patient: mockPatient,
+      patientId: mockPatient.id,
+      recommendations: mockRecommendations,
+      canViewKnowledgeGraph: true,
+      isOpen: true,
+    })
+  );
+
+  assert.ok(html.includes('Extend'), 'Should render extend width button');
 });
 
 test('PatientRightSidebar handles empty recommendations gracefully with empty state', () => {
@@ -132,6 +150,7 @@ test('PatientRightSidebar handles empty recommendations gracefully with empty st
       patient: mockPatient,
       patientId: mockPatient.id,
       recommendations: [],
+      canViewKnowledgeGraph: false,
       isOpen: true,
     })
   );

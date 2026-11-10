@@ -46,9 +46,21 @@ export function AuthGateway({ renderWorkspace }: Props) {
       setError("Supabase is not configured.");
       return;
     }
+
+    // Check for existing active session on mount (tab restore / refresh)
+    setChecking(true);
+    client.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (existingSession?.user) {
+        setSession(existingSession);
+      } else {
+        setChecking(false);
+      }
+    }).catch(() => {
+      setChecking(false);
+    });
+
     const { data } = client.auth.onAuthStateChange((event, nextSession) => {
       if (event === "PASSWORD_RECOVERY") {
-        acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
         setDemo(false);
@@ -57,7 +69,6 @@ export function AuthGateway({ renderWorkspace }: Props) {
         return;
       }
       if (event === "SIGNED_OUT") {
-        acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
         setSession(null);
@@ -68,19 +79,13 @@ export function AuthGateway({ renderWorkspace }: Props) {
         setAccessLoading(false);
         return;
       }
-      if (event === "INITIAL_SESSION") return;
-      // A restored session or background SIGNED_IN event must not skip the login form.
-      // Only this page's successful password submission accepts an account.
-      if (!acceptedUserId.current) return;
-      if (nextSession?.user.id === acceptedUserId.current) {
+      if (nextSession?.user) {
         setDemo(false);
         setSession(nextSession);
       } else {
-        acceptedUserId.current = null;
         clearSupabasePatientCache();
         setUser(null);
         setSession(null);
-        setDemo(false);
         setChecking(false);
       }
     });

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { ChevronDown, LogOut, PanelRightClose, PanelRightOpen, RefreshCw, Sparkles } from "lucide-react";
+import { ChevronDown, LogOut, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase";
 import { loadPatientDashboard } from "../lib/patientDashboard";
 import type { PatientDashboardData } from "../lib/patientDashboard";
@@ -42,7 +42,15 @@ export function PatientWorkspace({
   error: string;
   onExit: () => void;
 }) {
-  const [page, setPage] = useState<NavigationModule>("patient_home");
+  const [page, setPage] = useState<NavigationModule>(() => {
+    const saved =
+      typeof window !== "undefined"
+        ? localStorage.getItem("dt_patient_active_page")
+        : null;
+    return saved && pages.has(saved as NavigationModule)
+      ? (saved as NavigationModule)
+      : "patient_home";
+  });
   const [data, setData] = useState<PatientDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -125,7 +133,12 @@ export function PatientWorkspace({
       patient_dashboard: "patient_home",
     };
     const next = aliases[module] ?? module;
-    if (pages.has(next)) setPage(next);
+    if (pages.has(next)) {
+      setPage(next);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("dt_patient_active_page", next);
+      }
+    }
   };
   const condition =
     typeof data?.summary?.["Type of Diabetes"] === "string"
@@ -177,25 +190,6 @@ export function PatientWorkspace({
               </div>
             </div>
             <div className="flex items-center gap-2.5 self-end sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setIsRightSidebarOpen((prev) => !prev)}
-                aria-label={isRightSidebarOpen ? "Hide right sidebar" : "Show recommendations and knowledge graph sidebar"}
-                aria-pressed={isRightSidebarOpen}
-                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition ${
-                  isRightSidebarOpen
-                    ? "border-teal-300 bg-teal-50 text-teal-800"
-                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                <Sparkles className="h-3.5 w-3.5 text-teal-600" />
-                <span className="hidden sm:inline">Health Insights</span>
-                {isRightSidebarOpen ? (
-                  <PanelRightClose className="h-3.5 w-3.5 opacity-70" />
-                ) : (
-                  <PanelRightOpen className="h-3.5 w-3.5 opacity-70" />
-                )}
-              </button>
               <button
                 disabled={loading}
                 onClick={() => setRetry((value) => value + 1)}

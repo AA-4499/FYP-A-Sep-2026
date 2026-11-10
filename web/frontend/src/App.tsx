@@ -54,12 +54,26 @@ function Workspace({
   // AuthGateway routes verified admin accounts to AdminWorkspace.
   const canViewPredictions = !isPreview && initialRole === "doctor";
   const canViewKnowledgeGraph = !isPreview && initialRole === "doctor";
-  const [doctorPage, setDoctorPage] =
-    useState<NavigationModule>("doctor_overview");
-  const [patientPage, setPatientPage] =
-    useState<NavigationModule>("patient_home");
+  const [doctorPage, setDoctorPage] = useState<NavigationModule>(() => {
+    const saved =
+      typeof window !== "undefined"
+        ? localStorage.getItem("dt_doctor_active_page")
+        : null;
+    return (saved as NavigationModule) || "doctor_overview";
+  });
+  const [patientPage, setPatientPage] = useState<NavigationModule>(() => {
+    const saved =
+      typeof window !== "undefined"
+        ? localStorage.getItem("dt_patient_active_page")
+        : null;
+    return (saved as NavigationModule) || "patient_home";
+  });
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedId, setSelectedId] = useState<string>(() => {
+    return typeof window !== "undefined"
+      ? localStorage.getItem("dt_selected_patient_id") || ""
+      : "";
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [loadedAt, setLoadedAt] = useState("");
@@ -138,6 +152,9 @@ function Workspace({
 
   const openPatient = (id: string) => {
     setSelectedId(id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("dt_selected_patient_id", id);
+    }
     setMode("patient");
     setPatientPage("patient_home");
   };
@@ -147,9 +164,15 @@ function Workspace({
     if (page.startsWith("doctor_")) {
       setMode("doctor");
       setDoctorPage(page);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("dt_doctor_active_page", page);
+      }
     } else {
       setMode("patient");
       setPatientPage(page);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("dt_patient_active_page", page);
+      }
     }
   };
   const backToDoctor = () => {

@@ -14,6 +14,7 @@ Run these in the Supabase SQL Editor, in order, as the project owner (`postgres`
 3. `supabase_patient_auto_provision.sql`
 4. `supabase_patient_dashboard.sql`
 5. `supabase_admin_workspace.sql`
+6. `supabase_doctor_invitations.sql` (always apply last, including after rerunning older migrations)
 
 The admin migration is transactional and idempotent: it creates `profiles.status`,
 `profiles.department`, `doctor_applications`, `admin_audit_logs`, all `admin_*` functions, the
@@ -28,8 +29,8 @@ It can be rerun safely after a failure.
 
 Admin accounts are never created from the Admin UI. Create the person's auth user first (Dashboard →
 Authentication → Users, "Add user", or have them register as a Patient), then promote that account.
-The **User accounts** screen manages existing identities; it does not create a Supabase Auth user or
-send an invitation. This boundary avoids putting a service-role credential in the browser:
+The **Add doctor** screen creates Doctor accounts through the Flask invitation endpoint.
+Server credentials stay in the backend. Bootstrap Admin accounts separately:
 
 ```sql
 -- Replace the email with the real administrator account.
@@ -59,19 +60,45 @@ where lower(u.email) = lower('admin@example.com');
 Sign out and back in so a fresh JWT is issued. Admin accounts cannot demote or suspend the last
 remaining active administrator.
 
-## 3. Doctor onboarding
+## 3. Doctor onboarding by invitation
 
-1. The applicant uses **Doctor? Apply to join your care workspace** on the sign-in page. This creates
-   a normal Supabase account (role stays `patient`) plus a pending row in `doctor_applications`.
-   Doctor applicants are **not** given a patient clinical record.
-2. The applicant confirms their email. Approval is blocked until the email is confirmed and a
-   professional registration number exists.
-3. An administrator opens **Doctor approvals**, reviews the registration/organisation, optionally
-   writes a review note, and approves or declines. Approval sets `profiles.role = 'doctor'`,
-   copies the department/organisation, marks the application approved and syncs the JWT role. Declines
-   require a reason; the applicant sees it after sign-in.
-4. The new Doctor signs out and back in to receive the Doctor workspace. If a Doctor account already
-   exists, **User accounts → Manage** can change its role, department or registration directly.
+1. An **active Admin** opens **Add doctor** and enters the full name, email, organisation / clinic,
+   department / care group, and professional registration number. All fields are required.
+2. **Send invitation** calls `POST /api/admin/doctors/invite` with the administrator's access token.
+   The database re-checks the current role and status, reserves the email, and validates the details.
+   The backend uses its server-only Supabase key to send the invitation email.
+3. Account creation re-checks the inviting administrator under a database lock. A Doctor profile,
+   professional details, trusted Auth role, and audit record are created together. No patient record
+   is created for the Doctor. User-editable metadata cannot grant access.
+4. The Doctor opens the email link, chooses and confirms a password, then signs in to the Doctor
+   workspace. The password setup verifies both the invitation identity and live account access.
+5. Assign patients from **Patient assignments**. Existing Doctor accounts remain available.
+
+Public Doctor applications and promotions to Doctor through the role editor are disabled. Historical
+applications remain in the database; the old approval RPC cannot grant access. Existing account emails
+cannot be invited again or silently overwritten. An expired invitation can be recovered using
+**Forgot password?** with the invited email; suspended accounts still cannot access the workspace.
+
+### Deployment configuration
+
+- Apply `docs/supabase_doctor_invitations.sql` after the admin migration, then deploy both backend
+  and frontend. Do not rerun the older migrations without reapplying the invitation migration last.
+- Configure the existing backend `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (or service-role key).
+  Never put the secret key in any `VITE_*` variable.
+- Set `DOCTOR_INVITE_REDIRECT_URL=https://YOUR-APP/?auth=invite` on the backend. For local development,
+  `http://localhost:5173/?auth=invite` is supported. The client cannot override this destination.
+- Add that exact URL to **Supabase Authentication > URL Configuration > Redirect URLs**. Set the
+  Site URL to the application origin. Keep the invite email template's `{{ .ConfirmationURL }}` link.
+- Configure Supabase Auth email delivery / production SMTP. Without functioning email delivery,
+  invitations cannot be reported as sent. See the [Supabase invitation documentation](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail).
+- Set `VITE_API_BASE_URL` to the Flask service when frontend and backend use different hosts;
+  include the frontend origin in backend `ALLOWED_ORIGINS`.
+
+A success message means Supabase accepted the email send, not that the recipient has read it.
+If delivery times out, check **User accounts** and Supabase Auth/email logs before retrying. A failed
+send does not display a success notice or clear the form. Unused reservations expire after one hour;
+this is separate from Supabase's email-link expiry. A retry replaces an unused reservation. Account
+creation consumes the reservation once, and the email confirmation status is shown in the directory.
 
 ## 4. Patient assignments (care-team scoping)
 
@@ -110,7 +137,8 @@ Run after applying the SQL and deploying the frontend:
 2. A non-Admin session cannot call the RPCs. With any Doctor/Patient access token:
    `POST {SUPABASE_URL}/rest/v1/rpc/admin_list_accounts` returns an error (`42501 Admin access
    required`), never rows.
-3. Doctor application → approval → the applicant signs in as Doctor and sees the Doctor workspace.
+3. Active Admin adds a Doctor, who receives an invitation email, sets a password, and signs in.
+   Verify that Patient/Doctor and suspended Admin sessions cannot send invitations, including old tokens.
 4. Assign a patient to a Doctor; the Doctor's patient list contains only assigned patients (direct
    REST reads of unassigned `patient_summary` rows return `[]`; the Flask forecast endpoint returns
    403 for unassigned patients).
@@ -137,8 +165,8 @@ frontend build in the same window. A database backup before applying is recommen
 
 ## 9. Security boundaries
 
-- The browser never holds a service-role key; Admin RPCs only manage existing accounts and profiles,
-  never create or delete auth users or send emails.
+- The browser never holds a service-role key. Doctor invitations use the authenticated Flask endpoint;
+  a guarded database reservation and Auth trigger verify the inviting administrator before creation.
 - `profiles` and clinical tables remain unreadable/unwritable for other users through direct PostgREST
   calls; the Admin screens use guarded `SECURITY DEFINER` functions instead of broad policies.
 - Identity numbers (`nric_passport_no`) are deliberately excluded from Admin list responses.

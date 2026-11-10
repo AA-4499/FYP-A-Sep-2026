@@ -33,6 +33,7 @@ from services import (
 
 from forecast_routes import forecast_api
 from retraining_routes import retraining_api
+from doctor_invitation_routes import doctor_invitation_api
 from services.retraining_service import recover_interrupted_training
 from services.model_store import ModelStorageError
 from services.clinical_knowledge_graph_service import (
@@ -67,6 +68,7 @@ from services.kg_change_management_service import (
 app = Flask(__name__)
 app.register_blueprint(forecast_api)
 app.register_blueprint(retraining_api)
+app.register_blueprint(doctor_invitation_api)
 try:
     recover_interrupted_training()
 except (ModelStorageError, OSError, ValueError):

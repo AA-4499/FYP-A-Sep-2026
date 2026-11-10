@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { CheckCircle2, LogOut, RefreshCw } from "lucide-react";
 import { getSupabaseClient, clearSupabasePatientCache } from "../lib/supabase";
-import { accessErrorMessage, authErrorMessage, authSessionEventAction, fetchAccessState } from "../lib/accountAuth";
+import { accessErrorMessage, authErrorMessage, authSessionEventAction, fetchAccessState, isDoctorInvitationUrl } from "../lib/accountAuth";
 import type { AccessState } from "../lib/accountAuth";
 import type { UserRole } from "../types";
 import { AccountAuthView } from "./AccountAuthView";
@@ -23,9 +23,10 @@ export function AuthGateway({ renderWorkspace }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
   const [demo, setDemo] = useState(false);
+  const [invitation, setInvitation] = useState(() => isDoctorInvitationUrl(window.location.search, window.location.hash));
   const [recovery, setRecovery] = useState(
     () =>
-      new URLSearchParams(window.location.search).get("auth") === "recovery",
+      new URLSearchParams(window.location.search).get("auth") === "recovery" || invitation,
   );
   const [error, setError] = useState(
     () =>
@@ -34,6 +35,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
       ) || "",
   );
   const [retry, setRetry] = useState(0);
+  const [notice, setNotice] = useState('');
   const [access, setAccess] = useState<AccessState | null>(null);
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState("");
@@ -182,6 +184,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
       if (failure) throw failure;
       acceptedUserId.current = null;
       setRecovery(false);
+      setInvitation(false);
       setError("");
       setDemo(false);
       setUser(null);
@@ -220,14 +223,18 @@ export function AuthGateway({ renderWorkspace }: Props) {
       <AccountAuthView
         key={recovery ? "recovery" : "signin"}
         recovery={recovery}
+        invitation={invitation}
         initialError={error}
+        initialNotice={notice}
         onSignedIn={(next) => {
           acceptedUserId.current = next.user.id;
           clearSupabasePatientCache();
           setUser(null);
           setDemo(false);
           setRecovery(false);
+          setInvitation(false);
           setError("");
+          setNotice('');
           setChecking(true);
           setSession(next);
         }}
@@ -236,6 +243,9 @@ export function AuthGateway({ renderWorkspace }: Props) {
           setSession(null);
           setUser(null);
           setRecovery(false);
+          setInvitation(false);
+          setError('');
+          setNotice('Password saved. Sign in with your email and new password.');
           window.history.replaceState(null, "", window.location.pathname);
         }}
         onPreview={() => setDemo(true)}
@@ -280,7 +290,7 @@ export function AuthGateway({ renderWorkspace }: Props) {
     return (
       <AccountStatus
         title="Doctor application under review"
-        message="Your application has been received. An administrator will verify your professional registration; once approved, sign in again to open your Doctor workspace."
+        message="Your application has been received. Doctor onboarding now requires an administrator invitation. Contact your administrator about this older application."
         onExit={signOut}
       />
     );

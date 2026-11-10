@@ -15,6 +15,11 @@ source for this integration.
   older frontend registration implementation. Pending-doctor API restrictions
   and provisioning safeguards are retained.
 - `main`, `AndyTest`, and `JodyTesting`: already ancestors of TrainingModel.
+- `patient-right-sidebar`: discovered during the final remote refresh and
+  incorporated through `465c840`. The interactive sidebar is retained, but
+  generated demo recommendations are not promoted to approved patient advice.
+  Its graph shows only recorded profile/measurement facts, and its advice list
+  filters out drafts and recommendations belonging to another patient.
 
 Conflict resolution retains TrainingModel's model checkpoints, browser inference,
 prediction results, Admin retraining, direct Supabase assignment reads, and
@@ -46,7 +51,7 @@ does not establish that the KG service is down.
 
 ## Validation and database boundary
 
-- Frontend: 228 tests passed, production build passed, and all three conditional
+- Frontend: 234 tests passed, production build passed, and all three conditional
   model/reference deployment assets passed their SHA-256 checks.
 - Backend: 122 tests passed, including real GRU/Medium v3 inference and KG API
   authorization tests.

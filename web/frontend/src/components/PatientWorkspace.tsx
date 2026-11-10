@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { ChevronDown, LogOut, RefreshCw } from "lucide-react";
+import { ChevronDown, LogOut, PanelRightClose, PanelRightOpen, RefreshCw, Sparkles } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase";
 import { loadPatientDashboard } from "../lib/patientDashboard";
 import type { PatientDashboardData } from "../lib/patientDashboard";
@@ -17,6 +17,8 @@ import { mapClinicalRecord } from "../lib/clinicalData";
 import { readClinicalRows } from "../lib/supabaseRows";
 import { PatientRecommendationsView } from "./PatientRecommendationsView";
 import { PatientHomeView } from "./PatientHomeView";
+import { PatientRightSidebar } from "./PatientRightSidebar";
+import type { ClinicalRecommendation } from "../data/knowledgeGraphDemoData";
 
 const card =
   "rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs sm:p-6";
@@ -45,6 +47,7 @@ export function PatientWorkspace({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -105,6 +108,8 @@ export function PatientWorkspace({
         : null,
     [data, recordId, name],
   );
+  const recommendations: ClinicalRecommendation[] = [];
+
   const navigate = (module: NavigationModule) => {
     const aliases: Partial<Record<NavigationModule, NavigationModule>> = {
       monitoring: "patient_monitoring",
@@ -121,7 +126,7 @@ export function PatientWorkspace({
       : "";
   return (
     <div className="min-h-screen bg-[#f8fafc] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
-      <div className="mx-auto flex max-w-[1400px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
+      <div className="mx-auto flex max-w-[1680px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode="patient"
           activeModule={page}
@@ -164,7 +169,26 @@ export function PatientWorkspace({
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 self-end sm:self-auto">
+            <div className="flex items-center gap-2.5 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setIsRightSidebarOpen((prev) => !prev)}
+                aria-label={isRightSidebarOpen ? "Hide right sidebar" : "Show recommendations and knowledge graph sidebar"}
+                aria-pressed={isRightSidebarOpen}
+                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition ${
+                  isRightSidebarOpen
+                    ? "border-teal-300 bg-teal-50 text-teal-800"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+                <span className="hidden sm:inline">Health Insights</span>
+                {isRightSidebarOpen ? (
+                  <PanelRightClose className="h-3.5 w-3.5 opacity-70" />
+                ) : (
+                  <PanelRightOpen className="h-3.5 w-3.5 opacity-70" />
+                )}
+              </button>
               <button
                 disabled={loading}
                 onClick={() => setRetry((value) => value + 1)}
@@ -292,7 +316,7 @@ export function PatientWorkspace({
                   <RecordedReport patient={patient} />
                 )}
                 {page === "patient_recommendations" && (
-                  <PatientRecommendationsView recommendations={[]} />
+                  <PatientRecommendationsView recommendations={recommendations} />
                 )}
                 {page === "patient_digital_twin" && (
                   <RiskSimulationView
@@ -305,6 +329,16 @@ export function PatientWorkspace({
             )
           )}
         </main>
+        {isRightSidebarOpen && (
+          <PatientRightSidebar
+            patient={patient}
+            patientId={recordId || patient?.id}
+            recommendations={recommendations}
+            onNavigate={navigate}
+            isOpen={isRightSidebarOpen}
+            onClose={() => setIsRightSidebarOpen(false)}
+          />
+        )}
       </div>
     </div>
   );

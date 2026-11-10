@@ -9,6 +9,8 @@ import { SupabaseConfigModal } from "./components/SupabaseConfigModal";
 import { PatientRecommendationsView } from "./components/PatientRecommendationsView";
 import { RiskSimulationView } from "./components/RiskSimulationView";
 import { PatientHomeView } from "./components/PatientHomeView";
+import { PatientRightSidebar } from "./components/PatientRightSidebar";
+import type { ClinicalRecommendation } from "./data/knowledgeGraphDemoData";
 import {
   CohortOverview,
   PatientRegistry,
@@ -99,6 +101,10 @@ function Workspace({
     };
   }, [refresh]);
   const patient = patients.find((p) => p.id === selectedId);
+  const [patientRightSidebarOpen, setPatientRightSidebarOpen] = useState(true);
+
+  const patientRecommendations: ClinicalRecommendation[] = [];
+
   const openPatient = (id: string) => {
     setSelectedId(id);
     setMode("patient");
@@ -125,7 +131,7 @@ function Workspace({
   const overview = page === "doctor_overview";
   return (
     <div className="min-h-screen bg-[#f5f8f8] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
-      <div className="mx-auto flex max-w-[1500px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
+      <div className="mx-auto flex max-w-[1700px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode={mode}
           activeModule={page}
@@ -291,7 +297,7 @@ function Workspace({
                 <PatientHomeView
                   patient={patient}
                   onNavigate={navigate}
-                  sharedRecommendations={[]}
+                  sharedRecommendations={patientRecommendations}
                   canViewPredictions={canViewPredictions}
                 />
               )}
@@ -322,12 +328,22 @@ function Workspace({
               {page === "patient_lab_results" && <LabResultsView key={patient.id} patient={patient} />}
               {page === "patient_recommendations" && (
                 <PatientRecommendationsView
-                  recommendations={[]}
+                  recommendations={patientRecommendations}
                 />
               )}
             </>
           )}
         </main>
+        {mode === "patient" && patientRightSidebarOpen && (
+          <PatientRightSidebar
+            patient={patient || null}
+            patientId={patient?.id}
+            recommendations={patientRecommendations}
+            onNavigate={navigate}
+            isOpen={patientRightSidebarOpen}
+            onClose={() => setPatientRightSidebarOpen(false)}
+          />
+        )}
       </div>
       <SupabaseConfigModal
         isOpen={connectionOpen}

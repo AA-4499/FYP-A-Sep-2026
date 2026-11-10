@@ -22,6 +22,7 @@ Meal images, image paths, microbiome features, and gut-health scores are not imp
 **Important source properties**
 
 - The original sensor sampling intervals were 15 minutes for Abbott FreeStyle Libre Pro and 5 minutes for Dexcom G6 Pro.
+- **HbA1c unit ambiguity:** the PhysioNet Bio data dictionary lists A1c values (4.6–8.5) as mmol/mol, but the paper classifies participants using percentage cutoffs `<5.7%`, `5.7–6.4%`, and `>6.4%`. The importer preserves the numeric values and applies the paper's classification logic as percent so that it reproduces the published group counts; this field must not be used for clinical interpretation until the unit is confirmed with the authors.
 - The published main CSVs resample both glucose streams to a one-minute grid using linear interpolation. A one-minute value must therefore not be described as a new native sensor measurement.
 - Fitbit records heart rate and MET at one-minute intervals. The source CSV stores MET multiplied by 10; the import divides it by 10 and also preserves the original value.
 - CGMacros timestamps have been shifted by a random number of days (365–720 days) to protect dates. Relative timing within a participant is retained, but the timestamps are not the real calendar dates.
@@ -46,7 +47,7 @@ The tables are in the existing `FYP-A-Sep-2026` Supabase project, project ref `d
 - Glucose readings use `(participant_id, recorded_at, cgm_device)` as the primary key.
 - Activity readings use `(participant_id, recorded_at)` as the primary key.
 - Meal events use `(participant_id, recorded_at, meal_type)` as the primary key.
-- Additional unique source-file/row indexes prevent the same source row from being imported under a different timestamp.
+- Additional unique source-file/row indexes prevent duplicate source rows. The glucose index includes `cgm_device` because the same source row contains both Libre and Dexcom values.
 - Re-running the importer is idempotent: identical existing keys are ignored, not duplicated. Conflicting duplicate keys in the source are treated as an error and stop the import.
 
 ### No-empty-field policy

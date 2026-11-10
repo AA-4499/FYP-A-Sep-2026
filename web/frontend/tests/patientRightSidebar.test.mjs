@@ -130,7 +130,7 @@ test('Knowledge Graph in right sidebar can be viewed by doctor', () => {
   assert.ok(html.includes('Biomarkers'), 'Should show Biomarkers category filter');
 });
 
-test('Right sidebar supports extending width with extend toggle', () => {
+test('Right sidebar has hide sidebar button matching left sidebar', () => {
   const html = renderToStaticMarkup(
     React.createElement(PatientRightSidebar, {
       patient: mockPatient,
@@ -138,10 +138,11 @@ test('Right sidebar supports extending width with extend toggle', () => {
       recommendations: mockRecommendations,
       canViewKnowledgeGraph: true,
       isOpen: true,
+      onClose: () => {},
     })
   );
 
-  assert.ok(html.includes('Extend'), 'Should render extend width button');
+  assert.ok(html.includes('aria-label="Hide sidebar"'), 'Should render hide sidebar button matching left sidebar');
 });
 
 test('PatientRightSidebar handles empty recommendations gracefully with empty state', () => {

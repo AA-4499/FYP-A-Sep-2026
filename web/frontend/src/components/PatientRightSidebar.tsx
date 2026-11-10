@@ -601,11 +601,7 @@ export function PatientRightSidebar({
     <aside
       data-testid="patient-right-sidebar"
       aria-label="Care recommendations and clinical sidebar"
-      className={`w-full shrink-0 transition-all duration-300 ease-in-out lg:sticky lg:top-5 ${
-        isExtended
-          ? "lg:w-[540px] xl:w-[600px]"
-          : "lg:w-[350px] xl:w-[380px]"
-      }`}
+      className="w-full shrink-0 transition-all duration-300 ease-in-out lg:sticky lg:top-5 lg:w-[350px] xl:w-[380px]"
     >
       <div className="flex flex-col rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5">
         {/* Top Header */}
@@ -634,39 +630,16 @@ export function PatientRightSidebar({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Extend / Standard width toggle button */}
+          {onClose && (
             <button
               type="button"
-              onClick={() => setIsExtended((prev) => !prev)}
-              aria-label={isExtended ? "Standard width" : "Extend sidebar width"}
-              title={isExtended ? "Standard width" : "Extend sidebar width"}
-              className="hidden lg:flex items-center gap-1 rounded-lg border border-slate-200/80 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition text-[11px]"
+              onClick={onClose}
+              aria-label="Hide sidebar"
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 transition"
             >
-              {isExtended ? (
-                <>
-                  <Minimize2 className="h-3.5 w-3.5" />
-                  <span className="text-[10px] font-semibold pr-1">Standard</span>
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="h-3.5 w-3.5" />
-                  <span className="text-[10px] font-semibold pr-1">Extend</span>
-                </>
-              )}
+              <PanelRightClose size={18} />
             </button>
-
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close right sidebar"
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Tab Switcher: Only displayed when doctor has permission to view knowledge graph */}

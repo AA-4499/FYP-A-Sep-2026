@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import zipfile
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -197,6 +198,19 @@ def parse_bio_profiles(
             "source_version": SOURCE_VERSION,
             "source_doi": SOURCE_DOI,
         })
+
+    observed_groups = Counter(profile["diabetes_group"] for profile in profiles)
+    expected_groups = {
+        "No diabetes": 15,
+        "Prediabetes": 16,
+        "Type 2 Diabetes": 14,
+    }
+    if dict(observed_groups) != expected_groups:
+        raise ValueError(
+            "The HbA1c-based group counts do not match the published cohort "
+            f"(observed={dict(observed_groups)}, expected={expected_groups}). "
+            "Do not import until participant-to-bio.csv mapping and units are checked."
+        )
     return profiles
 
 

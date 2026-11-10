@@ -1,5 +1,6 @@
 /** Clinical workspace. Database facts and research simulations have separate views. */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PanelRightClose } from "lucide-react";
 import { LabResultsView } from "./components/LabResultsView";
 import { FontSizeSettings } from "./components/FontSizeSettings";
 import { Sidebar } from "./components/Sidebar";
@@ -354,16 +355,29 @@ function Workspace({
             </>
           )}
         </main>
-        {mode === "patient" && patientRightSidebarOpen && (
-          <PatientRightSidebar
-            patient={patient || null}
-            patientId={patient?.id}
-            recommendations={patientRecommendations}
-            canViewKnowledgeGraph={canViewKnowledgeGraph}
-            onNavigate={navigate}
-            isOpen={patientRightSidebarOpen}
-            onClose={() => setPatientRightSidebarOpen(false)}
-          />
+        {mode === "patient" && (
+          !patientRightSidebarOpen ? (
+            <div className="sticky top-5 shrink-0 hidden lg:block">
+              <button
+                type="button"
+                onClick={() => setPatientRightSidebarOpen(true)}
+                aria-label="Show right sidebar"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-2xs transition"
+              >
+                <PanelRightClose size={18} className="rotate-180" />
+              </button>
+            </div>
+          ) : (
+            <PatientRightSidebar
+              patient={patient || null}
+              patientId={patient?.id}
+              recommendations={patientRecommendations}
+              canViewKnowledgeGraph={canViewKnowledgeGraph}
+              onNavigate={navigate}
+              isOpen={patientRightSidebarOpen}
+              onClose={() => setPatientRightSidebarOpen(false)}
+            />
+          )
         )}
       </div>
       <SupabaseConfigModal

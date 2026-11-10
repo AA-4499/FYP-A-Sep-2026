@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { ChevronDown, LogOut, RefreshCw } from "lucide-react";
+import { ChevronDown, LogOut, PanelRightClose, RefreshCw } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase";
 import { loadPatientDashboard } from "../lib/patientDashboard";
 import type { PatientDashboardData } from "../lib/patientDashboard";
@@ -322,7 +322,18 @@ export function PatientWorkspace({
             )
           )}
         </main>
-        {isRightSidebarOpen && (
+        {!isRightSidebarOpen ? (
+          <div className="sticky top-5 shrink-0 hidden lg:block">
+            <button
+              type="button"
+              onClick={() => setIsRightSidebarOpen(true)}
+              aria-label="Show right sidebar"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-2xs transition"
+            >
+              <PanelRightClose size={18} className="rotate-180" />
+            </button>
+          </div>
+        ) : (
           <PatientRightSidebar
             patient={patient}
             patientId={recordId || patient?.id}

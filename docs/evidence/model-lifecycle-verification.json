@@ -1,0 +1,51 @@
+{
+  "recorded_at": "2026-11-10T12:02:05.962180+08:00",
+  "source_commit": "51b8b4b8f31715657d8bfbbe75b455f2351bba11",
+  "repository": "AA-4499/FYP-A-Sep-2026",
+  "branch": "TrainingModel",
+  "verification_scope": "Automated local verification using synthetic/local fixtures and isolated temporary model storage; not production acceptance.",
+  "backend": {
+    "command": "python -m unittest discover -s web/backend/tests",
+    "passed": 143,
+    "failed": 0
+  },
+  "frontend": {
+    "command": "npm test",
+    "passed": 243,
+    "failed": 0
+  },
+  "production_build": {
+    "command": "npm run build",
+    "result": "passed",
+    "conditional_model_and_reference_hash_checks": 3
+  },
+  "operator_script": {
+    "command": "node --check scripts/verify-online-prediction.mjs",
+    "result": "syntax_check_passed",
+    "online_execution": "not_run_at_owner_request"
+  },
+  "runtime": {
+    "python": "3.13.13",
+    "pandas": "3.0.6",
+    "torch": "2.14.1+cpu",
+    "node": "v25.8.0",
+    "declared_frontend_node": "22.x"
+  },
+  "bundled_checkpoint_sha256": "9e0522534ff164b07163cfb3e247a275d865348c21a2bcd2de93495bb2fe5e4b",
+  "policy": {
+    "approval": "Explicit project-owner approval on 2026-11-10",
+    "version": "2026-11-10-approved"
+  },
+  "deployment_and_acceptance": {
+    "frontend_backend_deployment": "not_verified",
+    "persistent_disk": "operator_action_required",
+    "supabase_runtime_configuration": "operator_to_confirm",
+    "authorised_online_prediction": "not_run_at_owner_request",
+    "jira_updates": "owner_to_perform",
+    "poster": "cancelled_by_owner"
+  },
+  "test_logs_sha256": {
+    "backend": "c361006197b9dea1f68b4375050b9e2944f032f4459b4e1be989ae50822dede5",
+    "frontend": "ba4461c5f41d7168b7547c0813409ccc7c786715e7036cd6bff1124b4ec39945"
+  }
+}

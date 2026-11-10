@@ -147,7 +147,7 @@ def forecast_patient(patient_id, payload, role, token):
         raise LookupError('No authorized CGM records found.')
     record = engineer_record(pd.DataFrame(rows),summary,patient_id)
     times = pd.DatetimeIndex(record['times']); history = record['dynamic'][-24:]
-    if len(history) != 24 or not np.isfinite(history).all() or not np.all(np.abs(np.diff(times[-24:].asi8)-900e9) <= 1e9):
+    if len(history) != 24 or not np.isfinite(history).all() or not np.all(abs(times[-23:] - times[-24:-1] - pd.Timedelta(minutes=15)) <= pd.Timedelta(seconds=1)):
         raise ValueError('24 consecutive valid CGM readings at 15-minute intervals are required. Missing readings are not interpolated.')
     registry,saved,model = load_predictor(REGISTRY.read_text(encoding='utf-8'))
     base,changed,explanations = predict_comparison(record,baseline,scenario,saved,model)

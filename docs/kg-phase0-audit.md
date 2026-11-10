@@ -1,8 +1,8 @@
 # Knowledge Graph Phase 0 — baseline and branch audit
 
-**Audit date:** 7 November 2026  
-**Target branch:** `KnowledgeGraph`  
-**Audited branch head:** `424ce85544b3ed69f69143edc0a42789a9f934b3`  
+**Audit date:** 7 November 2026
+**Target branch:** `KnowledgeGraph`
+**Audited branch head:** `424ce85544b3ed69f69143edc0a42789a9f934b3`
 **Scope:** Repository and source inspection only. No Aura queries, Supabase migrations, deployments, graph writes or branch merges were performed during this audit.
 
 ## Branch and integration baseline

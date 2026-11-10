@@ -1,7 +1,7 @@
 # TrainingModel AI and prediction architecture review
 
-**Reviewed branch:** `TrainingModel`  
-**Comparison point:** `KnowledgeGraph` head `424ce85544b3ed69f69143edc0a42789a9f934b3`  
+**Reviewed branch:** `TrainingModel`
+**Comparison point:** `KnowledgeGraph` head `424ce85544b3ed69f69143edc0a42789a9f934b3`
 **Purpose:** Describe what the prediction/AI code currently does and what still needs to be built for KG-grounded recommendations. This is a repository-code review, not a clinical validation or deployment verification.
 
 ## Executive finding

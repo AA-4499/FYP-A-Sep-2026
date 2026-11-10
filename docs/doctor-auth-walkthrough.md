@@ -1,5 +1,12 @@
 # Doctor registration
 
+> Integration note (2026-11-10): This document preserves the original Boon
+> registration implementation for reference. The active TrainingModel flow uses
+> `applyAsDoctor`, database-backed `get_my_access_state`, and the live Admin
+> approval workspace. Follow [Admin operations](admin-operations.md) for the
+> current installation and migration order. Do not rerun the legacy registration
+> migration over an existing Admin installation to change its active triggers.
+
 The active `AccountAuthView.tsx` supports **Register as a Doctor** with full name,
 organisation / clinic, professional registration number, email, password and password
 confirmation. Supabase sends the confirmation link. A confirmed applicant can sign in

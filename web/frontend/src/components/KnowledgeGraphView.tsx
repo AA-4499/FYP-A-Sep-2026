@@ -577,7 +577,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setRefreshKey((value) => value + 1)} disabled={currentLoading || assignmentsLoading} className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-2.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 disabled:opacity-50">
-            <RefreshCw className={"h-4 w-4 " + (currentLoading ? "animate-spin" : "")} />
+            <RefreshCw className={"h-4 w-4 " + (currentLoading ? "motion-safe:animate-spin" : "")} />
             Refresh
           </button>
           <button type="button" onClick={() => patientId && onPreviewPatientView(patientId)} disabled={!patientId || !assignedIds.includes(patientId)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
@@ -595,7 +595,7 @@ export const KnowledgeGraphView: React.FC<Props> = ({
 
       <div className="grid gap-3 sm:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)]">
         <label className="block rounded-2xl border border-slate-200 bg-white p-4">
-          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Select patient</span>
+          <span className="text-xs font-semibold text-slate-600">Select patient</span>
           <select
             value={assignedIds.includes(patientId) ? patientId : ""}
             onChange={(event) => onSelectPatient(event.target.value)}
@@ -604,24 +604,24 @@ export const KnowledgeGraphView: React.FC<Props> = ({
           >
             <option value="">Choose an assigned patient</option>
             {selectablePatients.map(({ id, patient }) => (
-              <option key={id} value={id}>{patient?.name || "Patient " + id} · {id}</option>
+              <option key={id} value={id}>{patient?.name || "Patient " + id} - {id}</option>
             ))}
           </select>
           <span className="mt-2 block text-[11px] leading-5 text-slate-500">Only patient IDs assigned to this Doctor account are selectable.</span>
         </label>
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Patient</span>
+            <span className="text-xs font-semibold text-slate-400">Patient</span>
             <p className="mt-2 truncate text-base font-bold text-slate-900">{selectedPatient?.name || (patientId ? "Patient " + patientId : "No selection")}</p>
             <p className="mt-1 truncate text-[11px] text-slate-500">{patientId || "Select an assigned record"}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Graph nodes</span>
+            <span className="text-xs font-semibold text-slate-400">Graph nodes</span>
             <p className="mt-2 text-2xl font-bold text-slate-900">{nodeCount}</p>
             <p className="mt-1 text-[11px] text-slate-500">{activeTab === "changes" ? "Proposal queue" : activeTab === "sources" ? "Bibliography entries" : activeTab === "patient" ? "Patient and recorded conditions" : "Shared medical concepts"}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Relationships</span>
+            <span className="text-xs font-semibold text-slate-400">Relationships</span>
             <p className="mt-2 text-2xl font-bold text-slate-900">{edgeCount}</p>
             <p className="mt-1 text-[11px] text-slate-500">{activeTab === "changes" ? "Separate from published Aura graph" : activeTab === "sources" ? "Source registry" : activeTab === "clinical" ? (clinicalGraph?.stats.reviewedEdges ?? 0) + " reviewed · " + (clinicalGraph?.stats.candidateEdges ?? 0) + " candidates" : "Recorded graph relationships"}</p>
           </div>
@@ -717,11 +717,11 @@ export const KnowledgeGraphView: React.FC<Props> = ({
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       <div className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">DOI</p>
+                        <p className="text-xs font-semibold tracking-wide text-slate-500">DOI</p>
                         <p className="mt-1 break-all text-xs text-slate-700">{source.doi || "Not recorded"}</p>
                       </div>
                       <div className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">KG v1 usage</p>
+                        <p className="text-xs font-semibold tracking-wide text-slate-500">KG v1 usage</p>
                         <p className="mt-1 text-xs text-slate-700">{source.v1_usage ? source.v1_usage.replace(/_/g, " ") : "Not specified"}</p>
                       </div>
                     </div>
@@ -768,15 +768,14 @@ export const KnowledgeGraphView: React.FC<Props> = ({
               )}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3">
-              <span className="text-[11px] text-slate-500">{filteredNodes.length} nodes visible · {visibleEdges.length} connecting relationships</span>
+              <span className="text-[11px] text-slate-500">{filteredNodes.length} nodes visible, {visibleEdges.length} connecting relationships</span>
               <button type="button" onClick={() => { setSearch(""); setSelectedNodeId(nodes[0]?.id || ""); const cy = cyRef.current; if (cy) { cy.nodes().style("display", "element"); cy.edges().style("display", "element"); cy.fit(cy.elements(), 32); } }} className="text-[11px] font-semibold text-teal-800 hover:underline">Reset view</button>
             </div>
           </section>
 
           <aside className="space-y-4">
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Selected node</p>
-              <h2 className="mt-1 text-base font-bold text-slate-900">{selectedNode?.label || "Select a node"}</h2>
+              <h2 className="text-base font-bold text-slate-900">{selectedNode?.label || "Select a node"}</h2>
               <p className="mt-2 text-xs leading-5 text-slate-600">{selectedNode?.description || "Select a graph node to inspect its details."}</p>
               <div className="mt-4 space-y-2">
                 {(selectedNode?.details || []).map((detail) => (

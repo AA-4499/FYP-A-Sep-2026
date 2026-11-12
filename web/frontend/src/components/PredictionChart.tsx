@@ -169,20 +169,20 @@ export function PredictionChart({
             aria-label="Fit forecast vertical range"
             aria-pressed={focused}
             onClick={() => setFocused((value) => !value)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-medium text-black transition hover:bg-white hover:shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[11px] font-medium text-black transition-colors hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50"
           >
             <SlidersHorizontal size={12} />
             {focused ? "Show reference range" : "Fit forecast range"}
           </button>
         </div>
       </div>
-      <div className="mt-5 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-black">
-        <span>Glucose · mg/dL</span>
+      <div className="mt-5 flex items-center justify-between text-xs font-semibold text-slate-600">
+        <span>Glucose (mg/dL)</span>
         <span>
           {first
             ? new Date(first.timestamp).toISOString().slice(0, 10)
             : "Forecast"}{" "}
-          · {clockLabel}
+          ({clockLabel})
         </span>
       </div>
       <div
@@ -380,7 +380,7 @@ export function PredictionChart({
           <div className="flex items-center gap-2 text-black">
             <MoveHorizontal size={14} />
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-wide">
+              <p className="text-xs font-semibold text-slate-600">
                 {inspectTime !== null ? "Inspecting" : "Forecast end"}
               </p>
               <p className="mt-0.5 text-xs font-semibold text-black">
@@ -400,14 +400,14 @@ export function PredictionChart({
                     {item.label}{item.range && !modelOnly ? " average" : ""}
                   </p>
                   <p className="mt-0.5 text-lg font-semibold tracking-tight">
-                    {typeof value === "number" ? value.toFixed(1) : "—"}
+                    {typeof value === "number" ? value.toFixed(1) : "N/A"}
                     <span className="ml-1 text-[10px] font-normal tracking-normal text-black">
                       mg/dL
                     </span>
                   </p>
                   {!modelOnly && bounds && (
                     <p className="mt-0.5 text-[10px] text-black">
-                      Range {bounds[0].toFixed(0)}–{bounds[1].toFixed(0)}
+                      Range {bounds[0].toFixed(0)}-{bounds[1].toFixed(0)}
                     </p>
                   )}
                 </div>

@@ -382,7 +382,7 @@ function GlucoseChart({
               }}
               contentStyle={{
                 borderRadius: 16,
-                border: "1px solid #e2e8f0",
+                border: "1px solid var(--color-border-subtle)",
                 boxShadow: "0 12px 36px -20px rgba(15,23,42,0.35)",
                 fontSize: 11,
                 whiteSpace: "normal",
@@ -870,10 +870,10 @@ function ForecastPanel({
   const forecastRows = output?.baseline.slice(1) ?? [];
 
   return (
-    <div className="space-y-5 pb-10 animate-fadeIn">
+    <div className="space-y-5 pb-10 motion-safe:animate-fadeIn">
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        <button type="button" disabled={!current || loading || saving || !!saveNotice} onClick={() => void saveResult()} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Saving…' : saveNotice ? 'Saved' : 'Save to lab results'}</button>
-        <button type="button" onClick={() => onNavigate('patient_lab_results')} className="text-sm font-semibold text-teal-700">View lab results</button>
+        <button type="button" disabled={!current || loading || saving || !!saveNotice} onClick={() => void saveResult()} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 active:scale-95 disabled:opacity-50">{saving ? 'Saving…' : saveNotice ? 'Saved' : 'Save to lab results'}</button>
+        <button type="button" onClick={() => onNavigate('patient_lab_results')} className="text-sm font-semibold text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 active:scale-95 disabled:opacity-50">View lab results</button>
         {saveNotice && <span role="status" className="text-sm text-teal-700">{saveNotice}</span>}
         {saveError && <span role="alert" className="text-sm text-rose-700">{saveError}</span>}
       </div>
@@ -887,7 +887,7 @@ function ForecastPanel({
         >
           <button
             onClick={() => onNavigate("patient_dashboard")}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50"
           >
             <ArrowLeft size={14} />
             Back to Patient Dashboard
@@ -988,9 +988,9 @@ function ForecastPanel({
             }}
           >
             <option value="browser">
-              Repository GRU · browser (no Render)
+              Repository GRU (in-browser)
             </option>
-            <option value="supabase">Supabase data · Python service (Render)</option>
+            <option value="supabase">Supabase data, Python service (Render)</option>
             {patient.dataSource !== "supabase" && (
               <>
                 <option value="preview">Local data preview (no server)</option>

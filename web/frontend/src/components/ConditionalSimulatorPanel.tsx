@@ -101,10 +101,10 @@ export function ConditionalSimulatorPanel({patient, allowInsulin = false}: {pati
 
   return <div className="space-y-5" data-testid="conditional-simulator">
     <section className={`${card} flex flex-wrap items-center justify-between gap-4 !py-4`}>
-      <div><p className="flex items-center gap-2 text-sm font-semibold"><Activity size={17} className="text-teal-700"/>CGM forecast & what-if simulator</p><p className="mt-1 text-xs text-slate-500">Conditional GRU v3 · browser inference</p></div>
+      <div><p className="flex items-center gap-2 text-sm font-semibold"><Activity size={17} className="text-teal-700"/>CGM forecast & what-if simulator</p><p className="mt-1 text-xs text-slate-500">Conditional GRU v3 (browser inference)</p></div>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex flex-wrap items-center gap-2 text-xs text-slate-600">Data source<select className={`${field} max-w-full`} aria-label="Simulator data source" value={source} onChange={event => setSource(event.target.value as ConditionalSource)}><option value="supabase">Authorized Supabase visit</option><option value="local">Local workbook · Python service</option></select></label>
-        <span className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">4-hour window · 15 / 30 / 60 / 240 min outputs</span>
+        <label className="flex flex-wrap items-center gap-2 text-xs text-slate-600">Data source<select className={`${field} max-w-full`} aria-label="Simulator data source" value={source} onChange={event => setSource(event.target.value as ConditionalSource)}><option value="supabase">Authorized Supabase visit</option><option value="local">Local workbook, Python service</option></select></label>
+        <span className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">4-hour window (15 / 30 / 60 / 240 min outputs)</span>
         <button type="button" className="rounded-lg border border-slate-200 p-2 text-slate-600" aria-label="Refresh forecast history" disabled={busy} onClick={()=>setRevision(v=>v+1)}><RefreshCw size={16}/></button>
         {source==='local'&&<button type="button" aria-label="Model service connection" className="rounded-lg border border-slate-200 p-2 text-slate-600" onClick={()=>setConnectionOpen(v=>!v)}><Settings2 size={16}/></button>}
       </div>

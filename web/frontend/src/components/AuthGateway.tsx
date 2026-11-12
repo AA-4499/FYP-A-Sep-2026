@@ -356,9 +356,6 @@ function AccountStatus({
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
       <section className="w-full max-w-lg space-y-5 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <CheckCircle2 className="h-9 w-9 text-blue-600" />
-        <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
-          DiaTwin account
-        </p>
         <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
         <p className="text-sm leading-relaxed text-slate-500">{message}</p>
         {children}
@@ -366,7 +363,7 @@ function AccountStatus({
           {onRetry && (
             <button
               onClick={onRetry}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50"
             >
               <RefreshCw className="h-4 w-4" />
               Check again
@@ -374,7 +371,7 @@ function AccountStatus({
           )}
           <button
             onClick={onExit}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50"
           >
             <LogOut className="h-4 w-4" />
             Sign out

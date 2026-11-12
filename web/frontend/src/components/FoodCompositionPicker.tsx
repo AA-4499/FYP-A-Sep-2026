@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Utensils, Check, Sparkles, Edit3 } from 'lucide-react';
+import { Search, Utensils, Check, Sparkles, Edit3, Wheat, Cookie, Soup, Apple, Milk, Salad } from 'lucide-react';
 import { getSupabaseClient } from '../lib/supabase';
 import type { FoodReference } from '../lib/foodComposition';
 
@@ -13,12 +13,21 @@ export interface QuickFoodItem {
   presets: { label: string; grams: number }[];
 }
 
+function FoodIcon({ id, className }: { id: string; className?: string }) {
+  if (id === 'rice') return <Wheat className={className} />;
+  if (id === 'bread') return <Cookie className={className} />;
+  if (id === 'noodles') return <Soup className={className} />;
+  if (id === 'fruit') return <Apple className={className} />;
+  if (id === 'milk') return <Milk className={className} />;
+  return <Salad className={className} />;
+}
+
 export const QUICK_FOODS: QuickFoodItem[] = [
   {
     id: 'rice',
     name: 'White Rice',
     chineseName: '白米饭',
-    icon: '🍚',
+    icon: 'rice',
     defaultPortion: 150,
     carbsPer100g: 28.2,
     presets: [
@@ -31,7 +40,7 @@ export const QUICK_FOODS: QuickFoodItem[] = [
     id: 'bread',
     name: 'Bread',
     chineseName: '面包',
-    icon: '🍞',
+    icon: 'bread',
     defaultPortion: 60,
     carbsPer100g: 49.4,
     presets: [
@@ -44,7 +53,7 @@ export const QUICK_FOODS: QuickFoodItem[] = [
     id: 'noodles',
     name: 'Noodles / Pasta',
     chineseName: '面条 / 意面',
-    icon: '🍜',
+    icon: 'noodles',
     defaultPortion: 180,
     carbsPer100g: 25.0,
     presets: [
@@ -57,7 +66,7 @@ export const QUICK_FOODS: QuickFoodItem[] = [
     id: 'fruit',
     name: 'Fresh Fruit',
     chineseName: '水果 (苹果/橙)',
-    icon: '🍎',
+    icon: 'fruit',
     defaultPortion: 150,
     carbsPer100g: 13.5,
     presets: [
@@ -70,7 +79,7 @@ export const QUICK_FOODS: QuickFoodItem[] = [
     id: 'milk',
     name: 'Milk / Drink',
     chineseName: '牛奶 / 饮品',
-    icon: '🥛',
+    icon: 'milk',
     defaultPortion: 250,
     carbsPer100g: 4.8,
     presets: [
@@ -83,7 +92,7 @@ export const QUICK_FOODS: QuickFoodItem[] = [
     id: 'lowcarb',
     name: 'Low-Carb Meal',
     chineseName: '低碳餐 (肉/蛋/菜)',
-    icon: '🥗',
+    icon: 'lowcarb',
     defaultPortion: 200,
     carbsPer100g: 3.5,
     presets: [
@@ -363,13 +372,15 @@ export function FoodCompositionPicker({
                 type="button"
                 disabled={disabled}
                 onClick={() => handleQuickClick(food)}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-all ${
+                className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 active:scale-95 disabled:opacity-50 ${
                   isSelected
                     ? 'border-teal-600 bg-teal-600 font-semibold text-white shadow-sm ring-2 ring-teal-200'
                     : 'border-slate-200/80 bg-white text-slate-700 hover:border-teal-300 hover:bg-teal-50/50'
                 }`}
               >
-                <span className="text-xl">{food.icon}</span>
+                <span className="flex items-center justify-center h-6 w-6">
+                  <FoodIcon id={food.id} className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-teal-700'}`} />
+                </span>
                 <span className="mt-1 line-clamp-1 text-[11px] font-semibold">
                   {food.name}
                 </span>

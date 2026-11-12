@@ -176,7 +176,7 @@ function Workspace({
   const settings = page === "doctor_settings" || page === "patient_settings";
   const overview = page === "doctor_overview";
   return (
-    <div className="min-h-screen bg-[#f5f8f8] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
+    <div className="min-h-screen bg-slate-50 p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
       <div className="mx-auto flex max-w-[1700px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode={mode}
@@ -320,7 +320,7 @@ function Workspace({
                 <div>
                   <dt className="text-slate-400">Data provenance</dt>
                   <dd className="mt-2 font-semibold">
-                    Measured · calculated · predicted · simulated
+                    Measured, calculated, predicted, simulated
                   </dd>
                 </div>
               </dl>

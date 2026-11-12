@@ -84,14 +84,14 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={onViewAllPatients}
-              className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-medium text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
+              className="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-medium text-xs flex items-center gap-2 shadow-sm motion-safe:transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 disabled:opacity-50"
             >
               <Users className="w-3.5 h-3.5" />
               <span>View All 128 Patients</span>
             </button>
             <button
               onClick={onViewMonitoring}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-medium text-xs flex items-center gap-2 transition"
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-medium text-xs flex items-center gap-2 motion-safe:transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 disabled:opacity-50"
             >
               <Activity className="w-3.5 h-3.5" />
               <span>Cohort Monitoring</span>
@@ -108,7 +108,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
           className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-teal-500 hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
+            <span className="text-xs font-semibold text-slate-400">
               Assigned Patients
             </span>
             <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center group-hover:scale-110 transition">
@@ -128,7 +128,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
           className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-amber-500 hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
+            <span className="text-xs font-semibold text-slate-400">
               Need Review
             </span>
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition">
@@ -148,7 +148,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
           className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-red-500 hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
+            <span className="text-xs font-semibold text-slate-400">
               Worsening Trends
             </span>
             <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition">
@@ -168,7 +168,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
           className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-slate-400 hover:shadow-md transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400">
+            <span className="text-xs font-semibold text-slate-400">
               Missing Data / Overdue
             </span>
             <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center group-hover:scale-110 transition">
@@ -205,7 +205,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
                 <YAxis dataKey="category" type="category" tick={{ fontSize: 11, fill: '#475569', fontWeight: 600 }} width={75} />
                 <Tooltip
                   formatter={(val: any) => [`${val} Patients`, 'Count']}
-                  contentStyle={{ fontSize: '11px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                  contentStyle={{ fontSize: '11px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}
                 />
                 <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={24} />
               </BarChart>
@@ -241,7 +241,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} />
                 <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} domain={[5, 10]} />
                 <Tooltip
-                  contentStyle={{ fontSize: '11px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                  contentStyle={{ fontSize: '11px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <Line
@@ -295,7 +295,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-400 uppercase tracking-wider text-[10px] font-bold">
+            <thead className="bg-slate-50 text-slate-500 text-xs font-semibold">
               <tr>
                 <th className="py-2.5 px-3">Patient</th>
                 <th className="py-2.5 px-3">Severity Tag</th>
@@ -315,7 +315,7 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
                       </span>
                       <div>
                         <strong className="block text-slate-900 font-semibold">{p.name}</strong>
-                        <span className="text-[10px] text-slate-400 font-mono">{p.displayId} · Age {p.age}</span>
+                        <span className="text-xs text-slate-400">{p.displayId}, age {p.age}</span>
                       </div>
                     </div>
                   </td>

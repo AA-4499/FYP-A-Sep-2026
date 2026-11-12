@@ -64,7 +64,7 @@ export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-teal-600" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-teal-600">
+            <span className="text-xs font-semibold text-teal-600">
               Assigned Cohort Patient Registry
             </span>
           </div>
@@ -186,7 +186,7 @@ export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-slate-900">{currentPatient.name}</h2>
-                  <span className="px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-bold font-mono">
+                  <span className="px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 text-xs font-semibold">
                     ID: {currentPatient.displayId}
                   </span>
                 </div>
@@ -234,22 +234,22 @@ export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
               <div className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase block">HbA1c</span>
+                    <span className="text-xs text-slate-500 font-semibold block">HbA1c</span>
                     <strong className="text-base font-extrabold text-slate-900">{currentPatient.hba1c}%</strong>
                     <span className="text-[10px] text-red-500 block">Target &lt; 7.0%</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase block">Fasting Glucose</span>
+                    <span className="text-xs text-slate-500 font-semibold block">Fasting Glucose</span>
                     <strong className="text-base font-extrabold text-slate-900">{currentPatient.fastingGlucose} mmol/L</strong>
                     <span className="text-[10px] text-slate-500 block">Basal state</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase block">Time in Range</span>
+                    <span className="text-xs text-slate-500 font-semibold block">Time in Range</span>
                     <strong className="text-base font-extrabold text-teal-600">{currentPatient.timeInRangePct}%</strong>
                     <span className="text-[10px] text-slate-500 block">Target &gt; 70%</span>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase block">Body Mass Index</span>
+                    <span className="text-xs text-slate-500 font-semibold block">Body Mass Index</span>
                     <strong className="text-base font-extrabold text-slate-900">{currentPatient.bmi}</strong>
                     <span className="text-[10px] text-amber-600 block">Overweight</span>
                   </div>
@@ -281,7 +281,7 @@ export const DoctorPatientListView: React.FC<DoctorPatientListViewProps> = ({
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-slate-500">Cohort Avg: {t.avgHba1c}%</span>
-                        <span className="font-bold text-slate-900 font-mono">Patient HbA1c: {t.currentHba1c}%</span>
+                        <span className="font-bold text-slate-900">Patient HbA1c: {t.currentHba1c}%</span>
                       </div>
                     </div>
                   ))}

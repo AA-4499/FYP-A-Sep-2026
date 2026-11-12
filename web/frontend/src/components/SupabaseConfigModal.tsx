@@ -167,7 +167,7 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
                 {testResult.count === 0 && (
                   <div className="mt-2.5 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] space-y-1.5 text-left">
                     <strong className="block text-amber-950 font-bold">
-                      💡 Why does it show 0 rows when your table has data?
+                      Why does it show 0 rows when your table has data?
                     </strong>
                     <p className="text-[11px] leading-relaxed">
                       In Supabase, Row Level Security (RLS) restricts public API access by default. Run this in your{' '}

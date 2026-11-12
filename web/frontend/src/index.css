@@ -1,3 +1,18 @@
+/* Hallmark · built: the project · redesign: polish */
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-canvas-bg: #f8fafc;
+  --color-model-bg: #f1f5f9;
+  --color-thumb: #cbd5e1;
+  --color-thumb-hover: #94a3b8;
+  --color-admin-focus: #818cf8;
+  --color-border-subtle: #e2e8f0;
+  --color-toggle-ink: #475569;
+  --color-backdrop: rgb(15 23 42 / 35%);
+  --color-panel-bg: #fcfdfd;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,7 +20,7 @@
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
   }
 }
 
@@ -13,7 +28,7 @@
 #cytoscape-canvas {
   width: 100%;
   height: 520px;
-  background-color: #f8fafc;
+  background-color: var(--color-canvas-bg);
   border-radius: 0.75rem;
 }
 
@@ -21,7 +36,7 @@
 model-viewer {
   width: 100%;
   height: 380px;
-  background-color: #f1f5f9;
+  background-color: var(--color-model-bg);
   border-radius: 0.75rem;
   --poster-color: transparent;
 }
@@ -35,11 +50,11 @@ model-viewer {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-thumb);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-thumb-hover);
 }
 
 @keyframes fadeIn {
@@ -60,8 +75,14 @@ model-viewer {
 .admin-workspace button:focus-visible,
 .admin-workspace a:focus-visible,
 .admin-workspace select:focus-visible {
-  outline: 2px solid #818cf8;
+  outline: 2px solid var(--color-admin-focus);
   outline-offset: 3px;
+}
+
+.admin-workspace button:active,
+.admin-workspace a:active,
+.navigation-toggle:active {
+  transform: scale(0.98);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -73,16 +94,16 @@ model-viewer {
 
 /* A compact rail on desktop and an overlay drawer on smaller screens. */
 .workspace-navigation { flex-shrink: 0; width: 100%; height: 40px; }
-.navigation-toggle { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; color: #475569; }
+.navigation-toggle { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-panel-bg); color: var(--color-toggle-ink); }
 .desktop-navigation-toggle { display: none; }
-.navigation-panel { position: fixed; inset: 0 auto 0 0; z-index: 70; width: min(288px, calc(100vw - 56px)); height: 100dvh; padding: 24px 16px; overflow-y: auto; overscroll-behavior: contain; background: white; border-right: 1px solid #e2e8f0; transform: translateX(-100%); visibility: hidden; transition: transform 200ms ease, visibility 200ms; }
+.navigation-panel { position: fixed; inset: 0 auto 0 0; z-index: 70; width: min(288px, calc(100% - 56px)); height: 100dvh; padding: 24px 16px; overflow-y: auto; overscroll-behavior: contain; background: var(--color-panel-bg); border-right: 1px solid var(--color-border-subtle); transform: translateX(-100%); visibility: hidden; transition: transform 200ms ease, visibility 200ms; }
 .is-mobile-open .navigation-panel { transform: translateX(0); visibility: visible; }
-.navigation-backdrop { position: fixed; inset: 0; z-index: 60; background: rgb(15 23 42 / 35%); }
+.navigation-backdrop { position: fixed; inset: 0; z-index: 60; background: var(--color-backdrop); }
 .is-mobile-open > .navigation-toggle { position: fixed; right: 8px; top: 12px; z-index: 80; }
 @media (min-width: 1024px) {
   .workspace-navigation { position: sticky; top: 28px; align-self: flex-start; width: 256px; height: calc(100dvh - 56px); }
   .workspace-navigation > .navigation-toggle { display: none; }
-  .navigation-panel { position: absolute; inset: 0; width: 240px; height: 100%; border: 1px solid #e2e8f0; border-radius: 24px; transform: none; visibility: visible; }
+  .navigation-panel { position: absolute; inset: 0; width: 240px; height: 100%; border: 1px solid var(--color-border-subtle); border-radius: 24px; transform: none; visibility: visible; }
   .is-collapsed.workspace-navigation { width: 40px; }
   .is-collapsed .navigation-panel { transform: translateX(calc(-100% - 40px)); visibility: hidden; pointer-events: none; }
   .is-collapsed > .desktop-navigation-toggle { display: flex; }

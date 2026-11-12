@@ -295,7 +295,7 @@ export function KnowledgeGraphChangesView() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="text-base font-bold text-slate-900">{canReview ? "Review queue" : "My proposals"}</h2><p className="mt-1 text-xs text-slate-500">{pendingCount} awaiting a final decision · {proposals.length} visible</p></div>
-          <button type="button" onClick={() => void loadProposals()} disabled={loading || busy} className="inline-flex items-center gap-2 text-xs font-semibold text-teal-700 disabled:opacity-50"><RefreshCw className={"h-3.5 w-3.5 " + (loading ? "animate-spin" : "")} />Refresh</button>
+          <button type="button" onClick={() => void loadProposals()} disabled={loading || busy} className="inline-flex items-center gap-2 text-xs font-semibold text-teal-700 disabled:opacity-50"><RefreshCw className={"h-3.5 w-3.5 " + (loading ? "motion-safe:animate-spin" : "")} />Refresh</button>
         </div>
         {loading && <p role="status" className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">Loading proposals…</p>}
         {!loading && proposals.length === 0 && <p className="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">No proposals are available. Submit a change above, or check back after a Doctor submits one.</p>}
@@ -303,10 +303,10 @@ export function KnowledgeGraphChangesView() {
           <article key={proposal.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase text-slate-600">{proposal.target_type}</span>
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">{proposal.target_type}</span>
                 <span className="text-sm font-semibold text-slate-900">{proposal.operation} · {proposal.target_key}</span>
               </div>
-              <span className={"rounded-full border px-2.5 py-1 text-[10px] font-bold " + statusStyle(proposal.status)}>{proposal.status.replace(/_/g, " ")}</span>
+              <span className={"rounded-full border px-2.5 py-1 text-xs font-medium " + statusStyle(proposal.status)}>{proposal.status.replace(/_/g, " ")}</span>
             </div>
             <p className="mt-3 text-xs leading-5 text-slate-600">{proposal.change_reason}</p>
             {Object.keys(proposal.proposed_payload || {}).length > 0 && <pre className="mt-3 overflow-x-auto rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-700">{JSON.stringify(proposal.proposed_payload, null, 2)}</pre>}

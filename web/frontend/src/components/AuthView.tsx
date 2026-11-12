@@ -83,7 +83,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col justify-between p-4 sm:p-8 lg:p-12 animate-fadeIn selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col justify-between p-4 sm:p-8 lg:p-12 motion-safe:animate-fadeIn selection:bg-blue-600 selection:text-white">
       {/* Top Bar with Brand and Flow Switcher Tabs */}
       <header className="max-w-6xl w-full mx-auto flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-100">
         <div className="flex items-center gap-3">
@@ -176,9 +176,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Hero */}
             <div className="space-y-6">
-              <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
-                CONNECTED DIABETES CARE
-              </span>
+              
               <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
                 Your health.<br />A clearer picture.
               </h2>
@@ -187,28 +185,26 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </p>
 
               {/* Graphical Card: One connected view / Digital Twin */}
-              <div className="p-6 rounded-3xl bg-[#f8fafc] border border-slate-200/80 shadow-2xs space-y-4 max-w-md">
+              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 shadow-2xs space-y-4 max-w-md">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
                   <span>One connected view</span>
-                  <span className="text-blue-600 font-bold uppercase tracking-wider text-[10px] bg-blue-50 px-2 py-0.5 rounded-md">
-                    DIGITAL TWIN
-                  </span>
+                  <span className="text-blue-600 font-semibold text-xs bg-blue-50 px-2 py-0.5 rounded-md">Digital twin</span>
                 </div>
 
                 <div className="h-28 bg-white rounded-2xl border border-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
                   <div className="flex items-center gap-6 text-xs text-slate-600">
                     <div className="text-center">
                       <span className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center mx-auto mb-1">
-                        📈
+                        +
                       </span>
                       <span className="text-[11px] font-medium">Health trends</span>
                     </div>
                     <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold shadow-sm">
-                      👤
+                      User
                     </div>
                     <div className="text-center">
                       <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center mx-auto mb-1">
-                        💡
+                        *
                       </span>
                       <span className="text-[11px] font-medium">Personal insights</span>
                     </div>
@@ -224,9 +220,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {/* Right Form */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-8 sm:p-10 space-y-6 max-w-md mx-auto w-full">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  WELCOME TO YOUR HEALTH PLATFORM
-                </span>
+                
                 <h3 className="text-2xl font-bold text-slate-900">Welcome back</h3>
                 <p className="text-xs text-slate-500">
                   Sign in to your personalised health workspace.
@@ -298,10 +292,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                 >
                   <span>{isSubmitting ? 'Signing in�' : 'Sign in'}</span>
-                  <span>→</span>
+                  <span></span>
                 </button>
               </form>
 
@@ -352,9 +346,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </button>
 
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
-                  YOUR PERSONAL HEALTH SPACE
-                </span>
+                
                 <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                   A little closer.<br />To understanding you.
                 </h2>
@@ -400,9 +392,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {/* Right Registration Form */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-8 sm:p-10 space-y-6 max-w-md mx-auto w-full">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  PATIENT REGISTRATION
-                </span>
+                
                 <h3 className="text-2xl font-bold text-slate-900">Your journey starts here</h3>
                 <p className="text-xs text-slate-500">
                   Create an account for your personal health workspace.
@@ -495,10 +485,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
                 >
                   <span>Create patient account</span>
-                  <span>→</span>
+                  <span></span>
                 </button>
               </form>
 
@@ -535,9 +525,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </button>
 
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
-                  A CONNECTED CLINICAL WORKSPACE
-                </span>
+                
                 <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                   More context.<br />For every patient.
                 </h2>
@@ -583,9 +571,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {/* Right Doctor Registration Form */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-8 sm:p-10 space-y-5 max-w-md mx-auto w-full">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  DOCTOR REGISTRATION
-                </span>
+                
                 <h3 className="text-2xl font-bold text-slate-900">Join your care workspace</h3>
                 <p className="text-xs text-slate-500">
                   Apply for access with your professional details.
@@ -691,10 +677,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
                 >
                   <span>Submit application</span>
-                  <span>→</span>
+                  <span></span>
                 </button>
               </form>
 
@@ -726,9 +712,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </button>
 
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
-                  ACCOUNT RECOVERY
-                </span>
+                
                 <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                   A fresh start.<br />Same health journey.
                 </h2>
@@ -774,9 +758,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {/* Right Reset Form */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-8 sm:p-10 space-y-6 max-w-md mx-auto w-full">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  LET'S GET YOU BACK IN
-                </span>
+                
                 <h3 className="text-2xl font-bold text-slate-900">Forgot your password?</h3>
                 <p className="text-xs text-slate-500">
                   Enter your account email and we'll send you a link to reset your password.
@@ -808,10 +790,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
                 >
                   <span>Send reset link</span>
-                  <span>→</span>
+                  <span></span>
                 </button>
               </form>
 
@@ -847,9 +829,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </button>
 
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider block">
-                  EMAIL VERIFICATION
-                </span>
+                
                 <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                   One small step.<br />A more connected you.
                 </h2>
@@ -895,9 +875,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             {/* Right 6-Digit PIN Form */}
             <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-8 sm:p-10 space-y-6 max-w-md mx-auto w-full">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  VERIFY YOUR EMAIL
-                </span>
+                
                 <h3 className="text-2xl font-bold text-slate-900">Enter verification code</h3>
                 <p className="text-xs text-slate-500">
                   Enter the six digit verification code sent to your registered email address.
@@ -936,10 +914,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
                 >
                   <span>Verify email</span>
-                  <span>→</span>
+                  <span></span>
                 </button>
 
                 {onTestPatientMode && <button
@@ -947,8 +925,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   onClick={onTestPatientMode}
                   className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition"
                 >
-                  <span>🧪</span>
-                  <span>Skip verification — Test Patient Dashboard</span>
+                  
+                  <span>Skip verification: Test Patient Dashboard</span>
                 </button>}
               </form>
 

@@ -61,12 +61,12 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
   const active = organData[selectedOrgan];
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-8">
+    <div className="space-y-6 motion-safe:animate-fadeIn pb-8">
       {/* Top Header & Back Button */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => onNavigate('patient_dashboard')}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-blue-600 transition"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Dashboard</span>
@@ -78,7 +78,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
           <div className="p-0.5 bg-slate-200/80 rounded-lg flex items-center">
             <button
               onClick={() => setIsSimulatedMode(false)}
-              className={`px-3 py-1 rounded-md font-semibold transition ${
+              className={`px-3 py-1 rounded-md font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50 ${
                 !isSimulatedMode ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -86,7 +86,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
             </button>
             <button
               onClick={() => setIsSimulatedMode(true)}
-              className={`px-3 py-1 rounded-md font-semibold transition ${
+              className={`px-3 py-1 rounded-md font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50 ${
                 isSimulatedMode ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600'
               }`}
             >
@@ -111,16 +111,15 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
 
           {/* Interactive Silhouette & Organ Nodes */}
           <div className="relative my-6 w-full max-w-[240px] h-[340px] flex items-center justify-center">
-            {/* Ambient Avatar Glow */}
+            {/* Ambient Avatar Tint */}
             <div
-              className="absolute inset-0 rounded-full blur-2xl opacity-30 transition-all duration-500 pointer-events-none"
-              style={{
-                backgroundColor: isSimulatedMode ? '#3b82f6' : '#ef4444',
-              }}
+              className={`absolute inset-0 rounded-full opacity-10 transition-opacity duration-500 pointer-events-none ${
+                isSimulatedMode ? 'bg-blue-500' : 'bg-rose-500'
+              }`}
             />
 
             {/* Stylized Anatomical Model Silhouette */}
-            <svg viewBox="0 0 200 320" className="w-full h-full">
+            <svg viewBox="0 0 200 320" className="w-full h-full" aria-hidden="true">
               {/* Head */}
               <circle cx="100" cy="35" r="22" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="2" />
               {/* Neck */}
@@ -151,7 +150,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
                 cy="105"
                 r="8"
                 fill={organData.cardio.color}
-                className="cursor-pointer hover:scale-125 transition transform"
+                className="cursor-pointer hover:opacity-80 transition-opacity stroke-white stroke-2"
                 onClick={() => setSelectedOrgan('cardio')}
               />
 
@@ -161,7 +160,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
                 cy="132"
                 r="9"
                 fill={organData.pancreas.color}
-                className="cursor-pointer hover:scale-125 transition transform"
+                className="cursor-pointer hover:opacity-80 transition-opacity stroke-white stroke-2"
                 onClick={() => setSelectedOrgan('pancreas')}
               />
 
@@ -171,7 +170,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
                 cy="125"
                 r="8"
                 fill={organData.liver.color}
-                className="cursor-pointer hover:scale-125 transition transform"
+                className="cursor-pointer hover:opacity-80 transition-opacity stroke-white stroke-2"
                 onClick={() => setSelectedOrgan('liver')}
               />
 
@@ -181,7 +180,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
                 cy="148"
                 r="7"
                 fill={organData.kidneys.color}
-                className="cursor-pointer hover:scale-125 transition transform"
+                className="cursor-pointer hover:opacity-80 transition-opacity stroke-white stroke-2"
                 onClick={() => setSelectedOrgan('kidneys')}
               />
               <circle
@@ -189,7 +188,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
                 cy="148"
                 r="7"
                 fill={organData.kidneys.color}
-                className="cursor-pointer hover:scale-125 transition transform"
+                className="cursor-pointer hover:opacity-80 transition-opacity stroke-white stroke-2"
                 onClick={() => setSelectedOrgan('kidneys')}
               />
             </svg>
@@ -201,7 +200,7 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
               <button
                 key={key}
                 onClick={() => setSelectedOrgan(key)}
-                className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg capitalize transition ${
+                className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 disabled:opacity-50 ${
                   selectedOrgan === key
                     ? 'bg-blue-600 text-white shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -244,8 +243,8 @@ export const DigitalTwinView: React.FC<DigitalTwinViewProps> = ({ patient, onNav
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div
-                  className="h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${active.stress}%`, backgroundColor: active.color }}
+                  className="h-2 w-full rounded-full transition-transform duration-500 origin-left"
+                  style={{ transform: `scaleX(${active.stress / 100})`, transformOrigin: 'left', backgroundColor: active.color }}
                 />
               </div>
             </div>

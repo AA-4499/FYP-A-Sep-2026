@@ -74,7 +74,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             {/* Dropdown list if searching or opened */}
             {isDropdownOpen && (
               <div className="absolute top-10 left-0 w-full min-w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs">
-                <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <div className="px-3 py-1 border-b border-slate-100 text-xs font-medium text-slate-500 flex items-center justify-between">
                   <span>Patient Cohort Records</span>
                   {isSupabaseConnected && (
                     <span className="text-emerald-600 font-bold">Supabase</span>

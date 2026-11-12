@@ -45,10 +45,7 @@ function Heading({
         <Icon size={22} />
       </div>
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[.2em] text-teal-700">
-          {eyebrow}
-        </p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {title}
         </h1>
         {description && <p className="mt-2 text-sm text-slate-500">{description}</p>}
@@ -146,7 +143,7 @@ export function PatientRegistry({
         </p>
         <div className="mt-4 max-h-[520px] overflow-auto">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-white text-[10px] uppercase tracking-wide text-slate-400">
+            <thead className="sticky top-0 bg-white text-xs font-semibold text-slate-500">
               <tr>
                 {[
                   "Patient record",
@@ -349,12 +346,9 @@ export function RecordedGraph({ patient }: { patient: Patient }) {
       />
       <section className={panel}>
         <div className="rounded-2xl bg-teal-950 p-6 text-white">
-          <p className="text-[10px] uppercase tracking-widest text-teal-200">
-            Patient record
-          </p>
-          <h2 className="mt-2 break-all text-xl font-bold">{patient.id}</h2>
+          <h2 className="break-all text-xl font-bold">{patient.id}</h2>
           <p className="mt-2 text-xs text-teal-100">
-            {entries.length} recorded attributes · patient_summary
+            {entries.length} recorded attributes, patient summary
           </p>
         </div>
         <div className="mx-auto h-8 w-px bg-teal-200" />
@@ -366,7 +360,7 @@ export function RecordedGraph({ patient }: { patient: Patient }) {
               aria-pressed={key === selected}
               className={`rounded-2xl border p-4 text-left transition ${selected === key ? "border-teal-500 bg-teal-50 ring-1 ring-teal-500" : "border-slate-200 hover:border-teal-300"}`}
             >
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-teal-600">
+              <p className="text-xs font-mediumr text-teal-600">
                 has recorded attribute
               </p>
               <p className="mt-2 text-xs font-semibold text-slate-600">{key}</p>
@@ -382,9 +376,7 @@ export function RecordedGraph({ patient }: { patient: Patient }) {
       </section>
       {selectedValue !== undefined && (
         <section className={panel}>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-teal-700">
-            Selected relationship
-          </p>
+          
           <p className="mt-3 break-words text-sm">
             <strong>{patient.id}</strong> → has recorded attribute →{" "}
             <strong>{selected}</strong> → {String(selectedValue)}

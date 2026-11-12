@@ -285,10 +285,10 @@ export function ScenarioBuilder({
                           patch(row.id, { absorption: event.target.value })
                         }
                       >
-                        <option value="25">Faster · e.g. a sugary drink</option>
-                        <option value="45">Typical · mixed meal</option>
+                        <option value="25">Faster (e.g. a sugary drink)</option>
+                        <option value="45">Typical (mixed meal)</option>
                         <option value="75">
-                          Slower · mixed meal with fat / fibre
+                          Slower (mixed meal with fat / fibre)
                         </option>
                       </select>
                       <span className="mt-1 block text-[10px]">
@@ -314,10 +314,10 @@ export function ScenarioBuilder({
                     }
                   >
                     <option value="moderate">
-                      Moderate aerobic · e.g. walking
+                      Moderate aerobic (e.g. walking)
                     </option>
                     <option value="intense">
-                      Intense · possible stress-related rise
+                      Intense (possible stress-related rise)
                     </option>
                   </select>
                 </label>
@@ -330,7 +330,7 @@ export function ScenarioBuilder({
                 </p>
               )}
               {row.kind === "insulin" && (
-                engine === 'conditional' ? <label className="block text-[11px] text-slate-500">Insulin action assumption<select aria-label={`Event ${index + 1} insulin formulation`} className={input} value={row.insulinFormulation ?? 'rapid'} onChange={event => patch(row.id, {insulinFormulation:event.target.value as 'rapid'|'regular'})}><option value="rapid">Rapid analogue · 6h duration / 75m peak</option><option value="regular">Regular · 8h duration / 180m peak</option></select><span className="mt-1 block text-[10px]">Estimated IOB is recalculated from dose, time and formulation. No dose is suggested.</span></label> : <p className="text-[10px] leading-relaxed text-slate-400">
+                engine === 'conditional' ? <label className="block text-[11px] text-slate-500">Insulin action assumption<select aria-label={`Event ${index + 1} insulin formulation`} className={input} value={row.insulinFormulation ?? 'rapid'} onChange={event => patch(row.id, {insulinFormulation:event.target.value as 'rapid'|'regular'})}><option value="rapid">Rapid analogue (6h duration) / 75m peak</option><option value="regular">Regular (8h duration / 180m peak)</option></select><span className="mt-1 block text-[10px]">Estimated IOB is recalculated from dose, time and formulation. No dose is suggested.</span></label> : <p className="text-[10px] leading-relaxed text-slate-400">
                   Only a hypothetical rapid-acting injection is represented.
                   Basal insulin, pumps and non-insulin injections require
                   different models. No dose is suggested.

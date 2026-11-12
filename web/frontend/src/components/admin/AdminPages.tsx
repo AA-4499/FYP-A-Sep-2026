@@ -226,7 +226,7 @@ export function AdminAccountsPage({ reloadToken, mutate, onFatal }: AdminPagePro
       {loading && !data ? <LoadingState label="Loading accounts…" /> : <>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-xs">
-            <thead className="bg-slate-50/80 text-[10px] uppercase tracking-wider text-slate-400"><tr>{['Account', 'Role', 'Status', 'Department', 'Joined', ''].map((label, index) => <th scope="col" key={index} className="px-5 py-3.5">{label || <span className="sr-only">Actions</span>}</th>)}</tr></thead>
+            <thead className="bg-slate-50/80 text-xs font-semibold text-slate-400"><tr>{['Account', 'Role', 'Status', 'Department', 'Joined', ''].map((label, index) => <th scope="col" key={index} className="px-5 py-3.5">{label || <span className="sr-only">Actions</span>}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-100">
               {(data?.rows ?? []).map((account) => <tr key={account.id} className="hover:bg-slate-50/60">
                 <td className="px-5 py-4"><div className="flex items-center gap-3"><Avatar name={account.full_name} /><div><p className="font-semibold text-slate-800">{account.full_name || 'Unnamed account'}</p><p className="mt-1 text-[11px] text-slate-400">{account.email}</p></div></div></td>
@@ -526,7 +526,7 @@ export function AdminAssignmentsPage({ reloadToken, mutate, onFatal }: AdminPage
       {loading && !data ? <LoadingState label="Loading patient directory…" /> : <>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-xs">
-            <thead className="bg-slate-50/80 text-[10px] uppercase tracking-wider text-slate-400"><tr>{['Patient', 'Patient number', 'Assigned doctor', 'Change assignment', ''].map((label, index) => <th scope="col" key={index} className="px-5 py-3.5">{label || <span className="sr-only">Actions</span>}</th>)}</tr></thead>
+            <thead className="bg-slate-50/80 text-xs font-semibold text-slate-400"><tr>{['Patient', 'Patient number', 'Assigned doctor', 'Change assignment', ''].map((label, index) => <th scope="col" key={index} className="px-5 py-3.5">{label || <span className="sr-only">Actions</span>}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-100">
               {(data?.rows ?? []).map((row) => {
                 const saved = row.assigned_doctor_id ?? '';

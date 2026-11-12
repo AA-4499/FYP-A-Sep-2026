@@ -43,7 +43,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
         <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+              <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
                 ShanghaiT2DM Cohort Report
               </span>
             </div>
@@ -77,13 +77,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
           </div>
           <div>
             <span className="text-slate-400 block text-[11px]">Current Risk Score</span>
-            <strong className="text-[#b91c1c] font-bold text-sm">{patient.currentRiskPct}% (Elevated)</strong>
+            <strong className="text-rose-700 font-bold text-sm">{patient.currentRiskPct}% (Elevated)</strong>
           </div>
         </div>
 
         {/* 2. Key Metrics & Trends Across 14 Visits */}
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-blue-600" />
             1. Longitudinal Trends & Current Vitals
           </h2>
@@ -108,7 +108,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
 
         {/* 3. Explainable AI: Key Factor Attributions */}
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600" />
             2. Risk Factor Breakdown (heuristic)
           </h2>
@@ -118,7 +118,7 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
                 <span className="w-40 text-slate-700 font-medium">{factor.name}</span>
                 <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className="bg-[#c83232] h-2.5 rounded-full"
+                    className="bg-rose-600 h-2.5 rounded-full"
                     style={{ width: `${factor.value}%` }}
                   />
                 </div>
@@ -130,13 +130,13 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
 
         {/* 4. What-If Counterfactual Results */}
         <div className="space-y-3">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-teal-600" />
             3. What-If Simulation Findings
           </h2>
           <div className="overflow-x-auto text-xs">
             <table className="w-full text-left border border-slate-200 rounded-xl overflow-hidden">
-              <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px]">
+              <thead className="bg-slate-50 text-slate-700 font-semibold text-xs">
                 <tr>
                   <th className="p-2.5">Indicator</th>
                   <th className="p-2.5">Current Baseline</th>
@@ -159,8 +159,8 @@ export const ReportView: React.FC<ReportViewProps> = ({ patient, onNavigate }) =
                 </tr>
                 <tr>
                   <td className="p-2.5 font-semibold">Complication Risk</td>
-                  <td className="p-2.5 text-[#b91c1c] font-bold">68%</td>
-                  <td className="p-2.5 text-[#1d4ed8] font-bold">43% (-25%)</td>
+                  <td className="p-2.5 text-rose-700 font-bold">68%</td>
+                  <td className="p-2.5 text-blue-700 font-bold">43% (-25%)</td>
                   <td className="p-2.5 text-emerald-600 font-semibold">Shifted from High to Moderate</td>
                 </tr>
               </tbody>

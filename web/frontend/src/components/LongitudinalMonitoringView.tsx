@@ -616,7 +616,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
 
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Risk assessment</p>
-          <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${Number.isFinite(patient.currentRiskPct) ? 'text-[#b91c1c]' : 'text-slate-500'}`}>
+          <p className={`text-2xl sm:text-3xl font-bold tracking-tight ${Number.isFinite(patient.currentRiskPct) ? 'text-rose-700' : 'text-slate-500'}`}>
             {Number.isFinite(patient.currentRiskPct) ? clinicalValue(patient.currentRiskPct, '%') : 'Not assessed'}
           </p>
         </div>
@@ -628,7 +628,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
           <div className="space-y-0.5 border-r border-slate-100 pr-3">
             <span className="text-[11px] text-slate-500 font-medium">Time In Range (TIR)</span>
             <p className="text-xl font-bold text-emerald-600">{clinicalValue(cgmSummary.timeInRangePct, '%')}</p>
-            <span className="text-[10px] text-slate-400">70–180 mg/dL target</span>
+            <span className="text-[10px] text-slate-400">70-180 mg/dL target</span>
           </div>
 
           <div className="space-y-0.5 border-r border-slate-100 pr-3">
@@ -679,7 +679,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                 {filteredAgpReadings.length > 0
                   ? `${getReadingDate(
                       filteredAgpReadings[0].timestamp
-                    ).toLocaleDateString()} – ${getReadingDate(
+                    ).toLocaleDateString()} - ${getReadingDate(
                       filteredAgpReadings[
                         filteredAgpReadings.length - 1
                       ].timestamp
@@ -921,8 +921,8 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   }}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="range">AGP · Date range</option>
-                  <option value="day">CGM · Single day</option>
+                  <option value="range">AGP (Date range)</option>
+                  <option value="day">CGM (Single day)</option>
                 </select>
               </div>
 
@@ -953,17 +953,17 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                     [
                       {
                         id: 'target',
-                        label: 'Target range: 70–180 mg/dL',
+                        label: 'Target range: 70-180 mg/dL',
                         swatch: 'bg-emerald-100 border border-emerald-400',
                       },
                       {
                         id: 'p10-p90',
-                        label: '10th–90th percentile',
+                        label: '10th-90th percentile',
                         swatch: 'bg-green-300 border border-green-400',
                       },
                       {
                         id: 'p25-p75',
-                        label: '25th–75th percentile',
+                        label: '25th-75th percentile',
                         swatch: 'bg-green-700',
                       },
                       {
@@ -1008,7 +1008,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                 <>
                   <span className="inline-flex items-center gap-2">
                     <span className="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300" />
-                    Target range: 70–180 mg/dL
+                    Target range: 70-180 mg/dL
                   </span>
 
                   <span className="inline-flex items-center gap-2">
@@ -1073,7 +1073,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   </clipPath>
                 </defs>
 
-                {/* Interactive target range: 70–180 mg/dL */}
+                {/* Interactive target range: 70-180 mg/dL */}
                 <g
                   clipPath="url(#agp-plot-clip)"
                   pointerEvents="all"
@@ -1450,7 +1450,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                                         : `${bin.tar.toFixed(1)}% of readings above target`;
                                     details.push(
                                       `Median: ${bin.median.toFixed(1)} mg/dL`,
-                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `P10-P90: ${bin.p10.toFixed(1)}-${bin.p90.toFixed(1)} mg/dL`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
                                     break;
@@ -1464,7 +1464,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                                         : `${bin.tbr.toFixed(1)}% of readings below target`;
                                     details.push(
                                       `Median: ${bin.median.toFixed(1)} mg/dL`,
-                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `P10-P90: ${bin.p10.toFixed(1)}-${bin.p90.toFixed(1)} mg/dL`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
                                     break;
@@ -1472,34 +1472,34 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                                   case 'target':
                                     focusLabel = `${bin.inRangeCount} readings within target`;
                                     focusColor = '#047857';
-                                    focusMessage = `${bin.tir.toFixed(1)}% within 70–180 mg/dL`;
+                                    focusMessage = `${bin.tir.toFixed(1)}% within 70-180 mg/dL`;
                                     details.push(
                                       `Median: ${bin.median.toFixed(1)} mg/dL`,
-                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
+                                      `P25-P75: ${bin.p25.toFixed(1)}-${bin.p75.toFixed(1)} mg/dL`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
                                     break;
 
                                   case 'p10-p90':
                                     focusLabel =
-                                      `${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`;
+                                      `${bin.p10.toFixed(1)}-${bin.p90.toFixed(1)} mg/dL`;
                                     focusColor = '#166534';
-                                    focusMessage = 'P10–P90 · Central 80%';
+                                    focusMessage = 'P10-P90 · Central 80%';
                                     details.push(
                                       `Median: ${bin.median.toFixed(1)} mg/dL`,
-                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
+                                      `P25-P75: ${bin.p25.toFixed(1)}-${bin.p75.toFixed(1)} mg/dL`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
                                     break;
 
                                   case 'p25-p75':
                                     focusLabel =
-                                      `${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`;
+                                      `${bin.p25.toFixed(1)}-${bin.p75.toFixed(1)} mg/dL`;
                                     focusColor = '#166534';
-                                    focusMessage = 'P25–P75 · Central 50%';
+                                    focusMessage = 'P25-P75 · Central 50%';
                                     details.push(
                                       `Median: ${bin.median.toFixed(1)} mg/dL`,
-                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `P10-P90: ${bin.p10.toFixed(1)}-${bin.p90.toFixed(1)} mg/dL`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
                                     break;
@@ -1509,8 +1509,8 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                                     focusColor = '#1D4ED8';
                                     focusMessage = 'Median glucose';
                                     details.push(
-                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
-                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `P25-P75: ${bin.p25.toFixed(1)}-${bin.p75.toFixed(1)} mg/dL`,
+                                      `P10-P90: ${bin.p10.toFixed(1)}-${bin.p90.toFixed(1)} mg/dL`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
                                     break;
@@ -1520,8 +1520,8 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                                     focusColor = '#1D4ED8';
                                     focusMessage = 'Glucose distribution summary';
                                     details.push(
-                                      `P25–P75: ${bin.p25.toFixed(1)}–${bin.p75.toFixed(1)} mg/dL`,
-                                      `P10–P90: ${bin.p10.toFixed(1)}–${bin.p90.toFixed(1)} mg/dL`,
+                                      `P25-P75: ${bin.p25.toFixed(1)}-${bin.p75.toFixed(1)} mg/dL`,
+                                      `P10-P90: ${bin.p10.toFixed(1)}-${bin.p90.toFixed(1)} mg/dL`,
                                       `Time in range: ${bin.tir.toFixed(1)}%`,
                                       `Sample size: ${bin.readingsCount}`
                                     );
@@ -1955,7 +1955,7 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   : `${agpMetrics.tir.toFixed(1)}%`}
                 </p>
                 <p className="text-[10px] text-slate-400">
-                  70–180 mg/dL
+                  70-180 mg/dL
                 </p>
               </div>
 

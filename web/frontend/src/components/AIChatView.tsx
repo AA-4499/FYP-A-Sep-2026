@@ -154,7 +154,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ patient, onNavigate }) =
 
         <div className="space-y-1">
           <p className="text-xs sm:text-sm text-slate-500 font-medium">Current risk</p>
-          <p className="text-2xl sm:text-3xl font-bold text-[#b91c1c] tracking-tight">
+          <p className="text-2xl sm:text-3xl font-bold text-rose-700 tracking-tight">
             {patient.currentRiskPct}%
           </p>
         </div>
@@ -191,7 +191,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ patient, onNavigate }) =
                       : 'bg-blue-600 text-white rounded-tr-xs shadow-2xs'
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-1 opacity-70 text-[10px] uppercase font-bold">
+                  <div className="flex items-center gap-2 mb-1 opacity-70 text-xs font-semibold">
                     {isAi ? (
                       <>
                         <Bot className="w-3 h-3 text-blue-600" />
@@ -215,15 +215,15 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ patient, onNavigate }) =
 
           {isTyping && (
             <div className="flex items-center gap-2 text-xs text-slate-400 p-2">
-              <Bot className="w-3.5 h-3.5 animate-spin text-blue-600" />
-              <span>Analyzing risk factors...</span>
+              <Bot className="w-3.5 h-3.5 motion-safe:animate-spin text-blue-600" />
+              <span>Analyzing risk factors…</span>
             </div>
           )}
         </div>
 
         {/* Suggested Prompts */}
         <div className="pt-2">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1.5">
+          <span className="text-xs font-medium text-slate-500 block mb-1.5">
             Suggested queries:
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -231,7 +231,7 @@ export const AIChatView: React.FC<AIChatViewProps> = ({ patient, onNavigate }) =
               <button
                 key={p}
                 onClick={() => handleSendMessage(p)}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition font-medium"
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 active:scale-95 font-medium"
               >
                 {p}
               </button>

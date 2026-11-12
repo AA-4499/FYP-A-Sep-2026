@@ -120,13 +120,12 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                       Glucose response and recovery
                     </h2>
                     <p className="mt-2 text-xs text-slate-500">
-                      CGM-like sensor response · mg/dL · time since the seed
-                      observation
+                      CGM-like sensor response (mg/dL) across time since the seed observation
                     </p>
                   </div>
                   <select
                     aria-label="Physiology horizon"
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 active:scale-95 disabled:opacity-50"
                     value={hours}
                     onChange={(e) => {
                       setHours(Number(e.target.value));
@@ -255,10 +254,10 @@ export function PhysiologyLab({ patient }: { patient: Patient }) {
                     ],
                   ].map(([n, title, text]) => (
                     <div key={n} className="rounded-2xl bg-slate-50 p-4">
-                      <span className="text-xs font-bold text-teal-700">
-                        {n}
-                      </span>
-                      <h3 className="mt-2 text-xs font-bold">{title}</h3>
+                      <h3 className="text-xs font-bold text-slate-900">
+                        <span className="text-teal-700 mr-2">{n}.</span>
+                        {title}
+                      </h3>
                       <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
                         {text}
                       </p>

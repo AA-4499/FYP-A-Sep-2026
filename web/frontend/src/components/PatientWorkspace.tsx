@@ -137,7 +137,7 @@ export function PatientWorkspace({
       ? data.summary["Type of Diabetes"]
       : "";
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
+    <div className="min-h-screen bg-slate-50 p-3 font-sans text-slate-900 sm:p-5 lg:p-7">
       <div className="mx-auto flex max-w-[1680px] flex-col items-start gap-5 lg:flex-row lg:gap-6">
         <Sidebar
           mode="patient"

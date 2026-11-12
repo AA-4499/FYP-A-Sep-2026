@@ -394,7 +394,7 @@ export function PatientRightSidebar({
     <aside
       data-testid="patient-right-sidebar"
       aria-label="Care recommendations and clinical sidebar"
-      className="w-full shrink-0 transition-all duration-300 ease-in-out lg:sticky lg:top-5 lg:w-[350px] xl:w-[380px]"
+      className="w-full shrink-0 transition-opacity duration-300 ease-in-out lg:sticky lg:top-5 lg:w-[350px] xl:w-[380px]"
     >
       <div className="flex flex-col rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5">
         {/* Top Header */}
@@ -694,13 +694,13 @@ export function PatientRightSidebar({
             <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70">
               <div
                 ref={cyContainerRef}
-                className={`w-full cursor-grab active:cursor-grabbing transition-all duration-300 ${
+                className={`w-full cursor-grab active:cursor-grabbing ${
                   isExtended ? "h-[420px]" : "h-[280px]"
                 }`}
                 role="img"
                 aria-label="Interactive patient knowledge graph"
               />
-              <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-white/80 px-2 py-0.5 text-[9px] font-medium text-slate-500 backdrop-blur-xs">
+              <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[9px] font-medium text-slate-500 shadow-2xs">
                 Tap node to inspect
               </div>
             </div>

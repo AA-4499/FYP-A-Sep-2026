@@ -11,7 +11,7 @@ import { PatientRecommendationsView } from "./components/PatientRecommendationsV
 import { RiskSimulationView } from "./components/RiskSimulationView";
 import { PatientHomeView } from "./components/PatientHomeView";
 import { PatientRightSidebar } from "./components/PatientRightSidebar";
-import type { ClinicalRecommendation } from "./data/knowledgeGraphDemoData";
+import { createDemoRecommendations, type ClinicalRecommendation } from "./data/knowledgeGraphDemoData";
 import {
   CohortOverview,
   PatientRegistry,
@@ -20,6 +20,7 @@ import {
 } from "./components/ClinicalWorkspace";
 import { fetchSupabasePatients, getSupabaseClient, clearSupabasePatientCache } from "./lib/supabase";
 import { fetchDoctorAssignedPatientIds } from './lib/doctorAssignments';
+import { DEMO_PATIENTS } from "./data/patientsData";
 import type { NavigationModule, Patient, UserRole } from "./types";
 
 const KnowledgeGraphView = React.lazy(async () => ({
@@ -87,7 +88,10 @@ function Workspace({
     try {
       const assignedIds = initialRole === 'doctor' && !isPreview
         ? new Set(await fetchDoctorAssignedPatientIds(getSupabaseClient())) : undefined;
-      const records = await fetchSupabasePatients(assignedIds);
+      let records = await fetchSupabasePatients(assignedIds);
+      if (records.length === 0 && isPreview) {
+        records = DEMO_PATIENTS;
+      }
       if (request !== revision.current) return;
       setPatients(records);
       setSelectedId((previous) =>
@@ -98,9 +102,20 @@ function Workspace({
       setLoadedAt(new Date().toLocaleTimeString());
     } catch (failure) {
       if (request !== revision.current) return;
-      setPatients([]);
-      setSelectedId("");
-      setError(failure instanceof Error ? failure.message : "Unable to load clinical records.");
+      if (isPreview) {
+        setPatients(DEMO_PATIENTS);
+        setSelectedId((previous) =>
+          DEMO_PATIENTS.some((p) => p.id === previous)
+            ? previous
+            : (DEMO_PATIENTS[0]?.id ?? ""),
+        );
+        setLoadedAt(new Date().toLocaleTimeString());
+        setError("");
+      } else {
+        setPatients([]);
+        setSelectedId("");
+        setError(failure instanceof Error ? failure.message : "Unable to load clinical records.");
+      }
     } finally {
       if (request === revision.current) setLoading(false);
     }
@@ -114,7 +129,17 @@ function Workspace({
   const patient = patients.find((p) => p.id === selectedId);
   const [patientRightSidebarOpen, setPatientRightSidebarOpen] = useState(true);
 
-  const patientRecommendations: ClinicalRecommendation[] = [];
+  const patientRecommendations = useMemo(() => {
+    if (!patient?.id) return [];
+    if (isPreview) {
+      return createDemoRecommendations(patient.id).map((item) => ({
+        ...item,
+        status: "published" as const,
+        publishedAt: new Date().toISOString(),
+      }));
+    }
+    return [];
+  }, [patient?.id, isPreview]);
 
   const openPatient = (id: string) => {
     setSelectedId(id);

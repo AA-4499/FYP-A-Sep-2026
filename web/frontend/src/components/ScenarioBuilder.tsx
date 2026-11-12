@@ -106,15 +106,18 @@ export function ScenarioBuilder({
           disabled={disabled || !Number.isFinite(origin) || value.length >= 12}
           onChange={(event) => {
             if (!event.target.value) return;
+            const kind = event.target.value as ScenarioKind;
+            const isMeal = kind === "meal";
             onChange([
               ...value,
               {
                 id: crypto.randomUUID(),
-                kind: event.target.value as ScenarioKind,
+                kind,
                 at: "",
-                description: "",
-                amount: "",
-                carbohydrate: "",
+                description: isMeal ? "White Rice" : "",
+                amount: isMeal ? "150" : "",
+                carbohydrate: isMeal ? "42.3" : "",
+                carbohydrateSource: isMeal ? "manual" : undefined,
                 absorption: "45",
                 intensity: "moderate",
                 insulinFormulation: 'rapid',
@@ -213,30 +216,24 @@ export function ScenarioBuilder({
                   }
                 />
               </label>
-              {["meal", "insulin", "medication", "activity"].includes(
-                row.kind,
-              ) && (
+              {["insulin", "medication", "activity"].includes(row.kind) && (
                 <label className="block text-[11px] text-slate-500">
-                  {row.kind === "meal"
-                    ? "Total food / drink mass (g)"
-                    : row.kind === "insulin"
-                      ? "Hypothetical dose (units)"
-                      : row.kind === "medication"
-                        ? "Dose (mg) · context only"
-                        : "Duration (minutes)"}
+                  {row.kind === "insulin"
+                    ? "Hypothetical dose (units)"
+                    : row.kind === "medication"
+                      ? "Dose (mg) · context only"
+                      : "Duration (minutes)"}
                   <input
                     aria-label={`Event ${index + 1} amount`}
                     type="number"
                     min={row.kind === "activity" ? 1 : 0.1}
                     step={row.kind === "activity" ? 1 : 0.1}
                     max={
-                      row.kind === "meal"
-                        ? 2000
-                        : row.kind === "insulin"
-                          ? 20
-                          : row.kind === "activity"
-                            ? 120
-                            : undefined
+                      row.kind === "insulin"
+                        ? 20
+                        : row.kind === "activity"
+                          ? 120
+                          : undefined
                     }
                     required
                     className={input}
@@ -249,108 +246,57 @@ export function ScenarioBuilder({
               )}
               {row.kind === "meal" && (
                 <>
-                  <FoodCompositionPicker portion={row.amount} engine={engine} disabled={disabled} onSelect={food => patch(row.id, {carbohydrateSource:"food-composition",foodReference:food,description:food.name})}/>
-                  {row.carbohydrateSource === "food-composition" && <p className="text-[10px] text-teal-800">Selected: {row.foodReference?.name} · edible portion basis · reference #{row.foodReference?.id}</p>}
-                  <label className="block text-[11px] text-slate-500">
-                    Carbohydrate entry method
-                    <select
-                      aria-label={`Event ${index + 1} carbohydrate source`}
-                      className={input}
-                      value={row.carbohydrateSource || "manual"}
-                      onChange={(event) =>
-                        patch(row.id, {
-                          carbohydrateSource: event.target
-                            .value as ScenarioDraft["carbohydrateSource"],
-                        })
-                      }
-                    >
-                      {row.carbohydrateSource === "food-composition" && <option value="food-composition">Selected Supabase food reference</option>}
-                      <option value="manual">
-                        Manual · food label / measured estimate
-                      </option>
-                      <option value="usda-cooked-white-rice">
-                        Cooked white rice (USDA estimate)
-                      </option>
-                    </select>
-                  </label>
-                  <label className="block text-[11px] text-slate-500">
-                    {engine === 'conditional' ? 'Total carbohydrate (g), not food weight' : 'Carbohydrate excluding fibre (g), not food weight'}
-                    <input
-                      aria-label={`Event ${index + 1} carbohydrate`}
-                      type="number"
-                      required
-                      min={0.1}
-                      max={engine === 'conditional' ? 150 : 200}
-                      step={0.1}
-                      className={input}
-                      readOnly={
-                        (row.carbohydrateSource === "usda-cooked-white-rice" || row.carbohydrateSource === "food-composition")
-                      }
-                      value={row.carbohydrate}
-                      onChange={(event) =>
-                        patch(row.id, { carbohydrate: event.target.value })
-                      }
-                    />
-                    <span className="mt-1 block text-[10px]">
-                      Use the food label or a measured estimate. Food weight is
-                      not carbohydrate weight; names do not determine nutrients.
-                    </span>
-                  </label>
-                  {row.carbohydrateSource === "usda-cooked-white-rice" ? (
-                    <p className="rounded-lg bg-teal-50 p-3 text-[10px] leading-relaxed text-teal-900">
-                      Reference estimate: {row.amount || "—"} g cooked white
-                      rice → {row.carbohydrate || "—"} g {engine === 'conditional' ? 'total carbohydrate. Uses 28.17' : 'carbohydrate excluding fibre. Uses (28.17 − 0.4)'} g / 100 g; recipes and water
-                      content vary. Only use if the entire portion is cooked
-                      white rice, not dry rice or a mixed meal.{" "}
-                      <a
-                        href={cookedRiceReferenceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline"
+                  <FoodCompositionPicker
+                    portion={row.amount || "150"}
+                    carbohydrate={row.carbohydrate || "42.3"}
+                    description={row.description || "White Rice"}
+                    engine={engine}
+                    disabled={disabled}
+                    onSelectFood={(foodName, portionGrams, carbsGrams) => {
+                      patch(row.id, {
+                        description: foodName,
+                        amount: String(portionGrams),
+                        carbohydrate: String(carbsGrams),
+                        carbohydrateSource: "manual",
+                      });
+                    }}
+                    onUpdatePortion={(portionGrams, carbsGrams) => {
+                      patch(row.id, {
+                        amount: String(portionGrams),
+                        carbohydrate: String(carbsGrams),
+                        carbohydrateSource: "manual",
+                      });
+                    }}
+                    onUpdateCarbs={(carbsGrams) => {
+                      patch(row.id, {
+                        carbohydrate: String(carbsGrams),
+                        carbohydrateSource: "manual",
+                      });
+                    }}
+                  />
+                  {engine === 'physiology' && (
+                    <label className="block text-[11px] text-slate-500">
+                      Assumed absorption speed
+                      <select
+                        aria-label={`Event ${index + 1} absorption`}
+                        className={input}
+                        value={row.absorption}
+                        onChange={(event) =>
+                          patch(row.id, { absorption: event.target.value })
+                        }
                       >
-                        USDA source
-                      </a>
-                    </p>
-                  ) : (
-                    Number(row.amount) > 0 &&
-                    Number(row.carbohydrate) / Number(row.amount) >= 0.9 && (
-                      <p
-                        role="status"
-                        className="rounded-lg bg-amber-50 p-3 text-[10px] leading-relaxed text-amber-950"
-                      >
-                        Check units: this specifies{" "}
-                        {(
-                          (Number(row.carbohydrate) / Number(row.amount)) *
-                          100
-                        ).toFixed(0)}
-                        % carbohydrate by food weight. Food weight and
-                        carbohydrate weight are different. If this is cooked
-                        rice, select the cooked-rice reference instead of
-                        copying the portion weight.
-                      </p>
-                    )
+                        <option value="25">Faster · e.g. a sugary drink</option>
+                        <option value="45">Typical · mixed meal</option>
+                        <option value="75">
+                          Slower · mixed meal with fat / fibre
+                        </option>
+                      </select>
+                      <span className="mt-1 block text-[10px]">
+                        Illustrative timing assumption, not a food-specific
+                        measured response.
+                      </span>
+                    </label>
                   )}
-                  {engine === 'physiology' && <label className="block text-[11px] text-slate-500">
-                    Assumed absorption speed
-                    <select
-                      aria-label={`Event ${index + 1} absorption`}
-                      className={input}
-                      value={row.absorption}
-                      onChange={(event) =>
-                        patch(row.id, { absorption: event.target.value })
-                      }
-                    >
-                      <option value="25">Faster · e.g. a sugary drink</option>
-                      <option value="45">Typical · mixed meal</option>
-                      <option value="75">
-                        Slower · mixed meal with fat / fibre
-                      </option>
-                    </select>
-                    <span className="mt-1 block text-[10px]">
-                      Illustrative timing assumption, not a food-specific
-                      measured response.
-                    </span>
-                  </label>}
                 </>
               )}
               {row.kind === "activity" && (

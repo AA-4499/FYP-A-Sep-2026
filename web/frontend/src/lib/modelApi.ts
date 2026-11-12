@@ -72,12 +72,24 @@ async function modelRequest(method: 'GET' | 'POST', path: string) {
 }
 
 export async function trainingRequest(method: 'GET' | 'POST'): Promise<TrainingJob> {
-  return modelRequest(method, 'retrain');
+  const result = await modelRequest(method, 'retrain');
+  if (!result || typeof result !== 'object' || typeof result.status !== 'string') {
+    throw new Error('The connected service does not provide the model retraining API. Verify the model backend is running and configured.');
+  }
+  return result as TrainingJob;
 }
 export async function retrainingReadiness(refresh = false): Promise<RetrainingReadiness> {
-  return modelRequest('GET', `readiness${refresh ? '?refresh=1' : ''}`);
+  const result = await modelRequest('GET', `readiness${refresh ? '?refresh=1' : ''}`);
+  if (!result || typeof result !== 'object' || !result.policy || !result.current || !result.quality) {
+    throw new Error('The connected service does not provide retraining readiness data. Verify the model backend is running.');
+  }
+  return result as RetrainingReadiness;
 }
 
 export async function initializeModelStorage(): Promise<{initialized:boolean;model_sha256:string}> {
-  return modelRequest("POST", "storage/initialize");
+  const result = await modelRequest("POST", "storage/initialize");
+  if (!result || typeof result !== 'object') {
+    throw new Error('Model storage initialization response was invalid.');
+  }
+  return result as {initialized:boolean;model_sha256:string};
 }

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { PanelRightClose } from "lucide-react";
 import { LabResultsView } from "./components/LabResultsView";
 import { FontSizeSettings } from "./components/FontSizeSettings";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { AuthGateway } from "./components/AuthGateway";
@@ -204,6 +205,7 @@ function Workspace({
             isDemo={isPreview}
             onOpenSupabaseModal={() => setConnectionOpen(true)}
           />
+          <ErrorBoundary key={page}>
           <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-slate-500">
             <span>
               {loading
@@ -379,6 +381,7 @@ function Workspace({
               )}
             </>
           )}
+          </ErrorBoundary>
         </main>
         {mode === "patient" && (
           !patientRightSidebarOpen ? (

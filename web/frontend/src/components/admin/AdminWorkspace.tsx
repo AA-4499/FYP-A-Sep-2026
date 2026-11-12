@@ -1,6 +1,7 @@
 import { AdminRetrainingView } from "./AdminRetrainingView";
 import { AdminInviteDoctor } from './AdminInviteDoctor';
 import { FontSizeSettings } from "../FontSizeSettings";
+import { ErrorBoundary } from "../ErrorBoundary";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, ArrowLeft, ChevronRight, LayoutDashboard, Link2, RefreshCw,
@@ -114,14 +115,16 @@ export function AdminWorkspace({ admin, onExit }: AdminWorkspaceProps) {
       <main id="admin-content" tabIndex={-1} className="mx-auto max-w-[1500px] space-y-6 px-5 py-6 outline-none sm:px-8 sm:py-8 xl:px-10">
         {fatal && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800"><ShieldAlert className="h-4 w-4 shrink-0" /><p className="min-w-0 flex-1 leading-relaxed"><strong className="font-bold">{fatal.kind === 'forbidden' ? 'Administration access denied. ' : 'Session expired. '}</strong>{fatal.message}</p><button type="button" onClick={onExit} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-700">Sign in again</button></div>}
         {notice && <Notice message={notice} onDismiss={() => setNotice('')} />}
-        {page === 'admin_overview' && <AdminOverviewPage overview={overview} loading={overviewLoading} error={overviewError} onRetry={refresh} navigate={navigate} />}
-        {page === 'admin_users' && <AdminAccountsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
-        {page === 'admin_approvals' && <AdminInviteDoctor mutate={mutate} />}
-        {page === 'admin_assignments' && <AdminAssignmentsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
-        {page === 'admin_retraining' && <AdminRetrainingView />}
-        {page === 'admin_settings' && <FontSizeSettings />}
-        {page === 'admin_activity' && <AdminActivityPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
-        {page === 'admin_kg_access' && <KGPermissionAdminView />}
+        <ErrorBoundary key={page}>
+          {page === 'admin_overview' && <AdminOverviewPage overview={overview} loading={overviewLoading} error={overviewError} onRetry={refresh} navigate={navigate} />}
+          {page === 'admin_users' && <AdminAccountsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
+          {page === 'admin_approvals' && <AdminInviteDoctor mutate={mutate} />}
+          {page === 'admin_assignments' && <AdminAssignmentsPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
+          {page === 'admin_retraining' && <AdminRetrainingView />}
+          {page === 'admin_settings' && <FontSizeSettings />}
+          {page === 'admin_activity' && <AdminActivityPage reloadToken={reloadToken} mutate={mutate} onFatal={onFatal} />}
+          {page === 'admin_kg_access' && <KGPermissionAdminView />}
+        </ErrorBoundary>
         <footer className="flex flex-wrap justify-between gap-2 border-t border-slate-200/70 pt-5 text-[10px] text-slate-400"><span>DiaTwin · Smart Diabetes Digital Twin</span><span>Admin workspace · Live platform data</span></footer>
       </main>
     </div>

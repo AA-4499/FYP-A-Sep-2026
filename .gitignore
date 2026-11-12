@@ -33,6 +33,9 @@ web/frontend/dist/
 # Artifact cache
 artifacts_notebook/twin_cache/
 
+# External research datasets (download locally; do not commit source archives)
+data/raw/CGMacros/
+
 
 # Local verification dependencies and package cache
 .test-deps/

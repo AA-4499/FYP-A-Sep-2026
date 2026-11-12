@@ -21,7 +21,7 @@ import { PatientRightSidebar } from "./PatientRightSidebar";
 import type { ClinicalRecommendation } from "../data/knowledgeGraphDemoData";
 
 const card =
-  "rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs sm:p-6";
+  "rounded-2xl border border-clinical-border bg-clinical-surface p-5 shadow-clinical-card sm:p-6";
 const pages = new Set<NavigationModule>([
   "patient_home",
   "patient_profile",

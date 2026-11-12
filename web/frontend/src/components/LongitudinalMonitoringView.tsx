@@ -766,8 +766,8 @@ export const LongitudinalMonitoringView: React.FC<LongitudinalMonitoringViewProp
                   {isCalendarOpen && (
                     <div
                       className="absolute right-0 top-full z-[100] mt-2
-                        w-[300px] rounded-xl border border-slate-200
-                        bg-white p-3 shadow-xl"
+                        w-[300px] rounded-xl border border-clinical-border
+                        bg-clinical-surface p-3 shadow-clinical-dropdown"
                     >
                       {/* Custom month navigation */}
                       <div className="mb-3 flex items-center justify-between gap-2">

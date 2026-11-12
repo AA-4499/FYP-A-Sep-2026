@@ -74,18 +74,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ mode, activeModule, onSelectMo
       <aside ref={panel} id="workspace-navigation-panel" data-testid="workspace-sidebar" className="navigation-panel" aria-label={doctor ? "Doctor navigation" : "Patient navigation"} role={mobileOpen ? "dialog" : undefined} aria-modal={mobileOpen || undefined}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white ${doctor ? "bg-teal-600" : "bg-purple-600"}`}>+</span>
-            <span className="text-base font-bold tracking-tight">DiaTwin</span>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white ${doctor ? "bg-clinical-primary" : "bg-clinical-accent"}`}>+</span>
+            <span className="text-base font-bold tracking-tight text-clinical-ink">DiaTwin</span>
           </div>
-          <button type="button" aria-label="Hide sidebar" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" onClick={() => { if (window.matchMedia("(min-width: 1024px)").matches) setDesktopOpen(false); else closeMobile(); }}>
+          <button type="button" aria-label="Hide sidebar" className="rounded-lg p-2 text-clinical-muted hover:bg-clinical-subtleBg hover:text-clinical-ink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-clinical-primary active:scale-[0.98] transition-transform" onClick={() => { if (window.matchMedia("(min-width: 1024px)").matches) setDesktopOpen(false); else closeMobile(); }}>
             <PanelLeftClose size={18} />
           </button>
         </div>
-        {!doctor && currentPatientName && <p className="mt-5 truncate text-sm font-medium text-slate-500">{currentPatientName}</p>}
+        {!doctor && currentPatientName && <p className="mt-5 truncate text-sm font-medium text-clinical-secondary">{currentPatientName}</p>}
         <nav className="sidebar-menu mt-7 flex flex-col gap-1.5">
-          {items.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-current={activeModule === id ? "page" : undefined} onClick={() => { onSelectModule(id); if (mobileOpen) closeMobile(); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] leading-6 font-medium transition ${activeModule === id ? doctor ? "bg-teal-50 text-teal-700" : "bg-purple-50 text-purple-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}><Icon size={18} className="shrink-0" /><span>{label}</span></button>)}
+          {items.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-current={activeModule === id ? "page" : undefined} onClick={() => { onSelectModule(id); if (mobileOpen) closeMobile(); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[13px] leading-6 font-medium transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-clinical-primary active:scale-[0.98] ${activeModule === id ? doctor ? "bg-clinical-primarySubtle text-clinical-primary font-semibold border border-clinical-primaryBorder" : "bg-clinical-accentSubtle text-clinical-accent font-semibold" : "text-clinical-secondary hover:bg-clinical-subtleBg hover:text-clinical-ink"}`}><Icon size={18} className="shrink-0" /><span>{label}</span></button>)}
         </nav>
-        {!doctor && onReturnToCareTeam && !selfService && <button type="button" onClick={() => { onReturnToCareTeam(); if (mobileOpen) closeMobile(); }} className="mt-7 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-5 text-sm font-medium text-slate-600"><ArrowLeft size={16} />Doctor dashboard</button>}
+        {!doctor && onReturnToCareTeam && !selfService && <button type="button" onClick={() => { onReturnToCareTeam(); if (mobileOpen) closeMobile(); }} className="mt-7 flex w-full items-center gap-2 border-t border-clinical-border px-3 pt-5 text-sm font-medium text-clinical-secondary hover:text-clinical-ink focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-clinical-primary"><ArrowLeft size={16} />Doctor dashboard</button>}
       </aside>
     </div>
   );

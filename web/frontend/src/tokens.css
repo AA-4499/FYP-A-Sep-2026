@@ -1,0 +1,47 @@
+/**
+ * Clinical Intelligence Design System Tokens (Hallmark Restyle)
+ * Pure OKLCH calibrated for medical safety, high data density, and clinical authority.
+ */
+
+:root {
+  /* Surfaces & Grounds */
+  --clinical-ground: oklch(0.985 0.006 195);
+  --clinical-surface: oklch(0.998 0.005 195);
+  --clinical-elevated: oklch(0.995 0.005 195);
+  --clinical-subtle-bg: oklch(0.968 0.008 195);
+  --clinical-overlay: oklch(0.180 0.025 240 / 0.45);
+
+  /* Hairlines & Structural Edges */
+  --clinical-border: oklch(0.915 0.008 195);
+  --clinical-border-strong: oklch(0.820 0.015 195);
+  --clinical-border-subtle: oklch(0.940 0.005 195);
+
+  /* Typography & Ink Contrasts */
+  --clinical-ink: oklch(0.190 0.025 240);
+  --clinical-ink-secondary: oklch(0.360 0.020 220);
+  --clinical-ink-muted: oklch(0.520 0.015 210);
+  --clinical-ink-faint: oklch(0.680 0.010 200);
+
+  /* Clinical Signal Accents */
+  --clinical-primary: oklch(0.460 0.120 188);
+  --clinical-primary-hover: oklch(0.390 0.130 188);
+  --clinical-primary-subtle: oklch(0.965 0.025 188);
+  --clinical-primary-border: oklch(0.880 0.045 188);
+
+  --clinical-accent: oklch(0.480 0.140 250);
+  --clinical-accent-subtle: oklch(0.965 0.025 250);
+
+  /* Metabolic Status Signals */
+  --clinical-safe: oklch(0.520 0.140 152);
+  --clinical-safe-subtle: oklch(0.965 0.030 152);
+  --clinical-caution: oklch(0.720 0.150 78);
+  --clinical-caution-subtle: oklch(0.970 0.035 78);
+  --clinical-critical: oklch(0.550 0.200 26);
+  --clinical-critical-subtle: oklch(0.965 0.035 26);
+
+  /* Optical Shadow Stacks (Layered Depth) */
+  --shadow-clinical-subtle: 0 1px 2px 0 oklch(0.20 0.02 240 / 0.04);
+  --shadow-clinical-card: 0 1px 3px 0 oklch(0.20 0.02 240 / 0.05), 0 4px 12px -2px oklch(0.20 0.02 240 / 0.03);
+  --shadow-clinical-dropdown: 0 4px 6px -1px oklch(0.20 0.02 240 / 0.07), 0 10px 24px -4px oklch(0.20 0.02 240 / 0.06);
+  --shadow-clinical-modal: 0 12px 32px -6px oklch(0.20 0.02 240 / 0.12), 0 4px 12px -2px oklch(0.20 0.02 240 / 0.06);
+}

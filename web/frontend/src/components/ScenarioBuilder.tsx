@@ -94,7 +94,7 @@ export function ScenarioBuilder({
             : "Waiting for the seed observation."}
         </p>
         <p className="mt-1 text-slate-400">
-          Use the record date, not today's date. Next-day events are supported.
+          Use the record date, not today’s date. Next-day events are supported.
         </p>
       </div>
       <label className="block text-xs font-semibold text-slate-600">
@@ -126,7 +126,7 @@ export function ScenarioBuilder({
             setError("");
           }}
         >
-          <option value="">Choose an event...</option>
+          <option value="">Choose an event…</option>
           {Object.entries(eventNames).filter(([kind]) => !allowedKinds || allowedKinds.includes(kind as ScenarioKind)).map(([kind, label]) => (
             <option key={kind} value={kind}>
               {engine === 'conditional' && kind === 'insulin' ? 'Insulin bolus (rapid / regular)' : label}

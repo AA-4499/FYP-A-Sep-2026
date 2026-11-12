@@ -50,14 +50,14 @@ export const TopBar: React.FC<TopBarProps> = ({
   );
 
   return (
-    <header className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <header className="bg-clinical-surface rounded-2xl border border-clinical-border shadow-clinical-card p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Left: Mode Context */}
       {mode === "doctor" && !showPatientSearch ? (
-        <p className="text-sm font-semibold text-slate-600">Doctor workspace</p>
+        <p className="text-sm font-semibold text-clinical-secondary">Doctor workspace</p>
       ) : mode === "doctor" || !currentPatient ? (
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="relative w-full sm:w-64 xl:w-80">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-clinical-faint absolute left-3 top-2.5 pointer-events-none" />
             <input
               type="text"
               aria-label="Search patient records"
@@ -68,13 +68,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                 setIsDropdownOpen(true);
               }}
               onFocus={() => setIsDropdownOpen(true)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:bg-white transition"
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-clinical-ground border border-clinical-border rounded-lg text-clinical-ink placeholder-clinical-faint focus:outline-hidden focus:ring-1 focus:ring-clinical-primary focus:bg-clinical-surface transition"
             />
 
             {/* Dropdown list if searching or opened */}
             {isDropdownOpen && (
-              <div className="absolute top-10 left-0 w-full min-w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs">
-                <div className="px-3 py-1 border-b border-slate-100 text-xs font-medium text-slate-500 flex items-center justify-between">
+              <div className="absolute top-10 left-0 w-full min-w-64 bg-clinical-surface rounded-xl shadow-clinical-dropdown border border-clinical-border py-1.5 z-50 text-xs">
+                <div className="px-3 py-1 border-b border-clinical-borderSubtle text-xs font-medium text-clinical-muted flex items-center justify-between">
                   <span>Patient Cohort Records</span>
                   {isSupabaseConnected && (
                     <span className="text-emerald-600 font-bold">Supabase</span>
@@ -218,12 +218,12 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {isProfileMenuOpen && (
-            <div className="absolute right-0 top-10 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs space-y-1">
-              <div className="px-3 py-1 border-b border-slate-100">
-                <strong className="block text-slate-900 font-bold">
+            <div className="absolute right-0 top-10 w-52 bg-clinical-surface rounded-xl shadow-clinical-dropdown border border-clinical-border py-1.5 z-50 text-xs space-y-1">
+              <div className="px-3 py-1 border-b border-clinical-borderSubtle">
+                <strong className="block text-clinical-ink font-bold">
                   {roleLabel} workspace
                 </strong>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-clinical-faint">
                   {isDemo
                     ? "Sample dashboard preview"
                     : "Connected clinical records"}
@@ -234,9 +234,9 @@ export const TopBar: React.FC<TopBarProps> = ({
                   onOpenSupabaseModal();
                   setIsProfileMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-clinical-subtleBg flex items-center gap-2 text-clinical-secondary focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-clinical-primary"
               >
-                <Database className="w-3.5 h-3.5 text-emerald-600" />
+                <Database className="w-3.5 h-3.5 text-clinical-safe" />
                 <span>Supabase Database Settings</span>
               </button>
               <button
@@ -244,12 +244,12 @@ export const TopBar: React.FC<TopBarProps> = ({
                   onOpenAuth();
                   setIsProfileMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                className="w-full text-left px-3 py-1.5 hover:bg-clinical-subtleBg flex items-center gap-2 text-clinical-secondary focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-clinical-primary"
               >
                 {isDemo ? (
-                  <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                  <KeyRound className="w-3.5 h-3.5 text-clinical-primary" />
                 ) : (
-                  <LogOut className="w-3.5 h-3.5 text-blue-600" />
+                  <LogOut className="w-3.5 h-3.5 text-clinical-primary" />
                 )}
                 <span>{isDemo ? "Sign in / Register" : "Sign out"}</span>
               </button>

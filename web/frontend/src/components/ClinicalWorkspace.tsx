@@ -15,9 +15,9 @@ import type { Patient, NavigationModule } from "../types";
 import { clinicalValue } from "../lib/clinicalData";
 
 const panel =
-  "rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6";
+  "rounded-3xl border border-clinical-border bg-clinical-surface p-5 shadow-clinical-card sm:p-6";
 const action =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-clinical-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-clinical-primaryHover active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-clinical-primary";
 const observed = (value: unknown) =>
   value != null && String(value).trim() !== "";
 const dateLabel = (value?: string) =>

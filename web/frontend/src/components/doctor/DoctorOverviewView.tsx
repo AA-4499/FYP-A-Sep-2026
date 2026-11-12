@@ -105,33 +105,33 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
         {/* Assigned Patients */}
         <div
           onClick={onViewAllPatients}
-          className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-teal-500 hover:shadow-md transition group"
+          className="cursor-pointer bg-clinical-surface rounded-2xl p-4 sm:p-5 border border-clinical-border shadow-clinical-card hover:border-clinical-primary hover:shadow-clinical-dropdown transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-xs font-semibold text-clinical-muted">
               Assigned Patients
             </span>
-            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center group-hover:scale-110 transition">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center transition">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">128</span>
-            <span className="text-[11px] font-semibold text-slate-500">Active</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-clinical-ink">128</span>
+            <span className="text-[11px] font-semibold text-clinical-muted">Active</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Dr. Sarah Wong & Team</span>
+          <span className="text-[11px] text-clinical-faint mt-1 block">Dr. Sarah Wong & Team</span>
         </div>
 
         {/* Need Clinical Review */}
         <div
           onClick={onViewAllPatients}
-          className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-amber-500 hover:shadow-md transition group"
+          className="cursor-pointer bg-clinical-surface rounded-2xl p-4 sm:p-5 border border-clinical-border shadow-clinical-card hover:border-amber-500 hover:shadow-clinical-dropdown transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-xs font-semibold text-clinical-muted">
               Need Review
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center transition">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
@@ -139,19 +139,19 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
             <span className="text-2xl sm:text-3xl font-extrabold text-amber-600">18</span>
             <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Action required</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Exceeded glycemic thresholds</span>
+          <span className="text-[11px] text-clinical-faint mt-1 block">Exceeded glycemic thresholds</span>
         </div>
 
         {/* Worsening Trends */}
         <div
           onClick={onViewMonitoring}
-          className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-red-500 hover:shadow-md transition group"
+          className="cursor-pointer bg-clinical-surface rounded-2xl p-4 sm:p-5 border border-clinical-border shadow-clinical-card hover:border-red-500 hover:shadow-clinical-dropdown transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-xs font-semibold text-clinical-muted">
               Worsening Trends
             </span>
-            <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition">
+            <div className="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center transition">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -159,27 +159,27 @@ export const DoctorOverviewView: React.FC<DoctorOverviewViewProps> = ({
             <span className="text-2xl sm:text-3xl font-extrabold text-red-600">12</span>
             <span className="text-[11px] font-semibold text-red-700 bg-red-50 px-1.5 py-0.5 rounded">TIR &lt; 50%</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Consecutive visits deteriorating</span>
+          <span className="text-[11px] text-clinical-faint mt-1 block">Consecutive visits deteriorating</span>
         </div>
 
         {/* Missing Data */}
         <div
           onClick={onViewAllPatients}
-          className="cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-2xs hover:border-slate-400 hover:shadow-md transition group"
+          className="cursor-pointer bg-clinical-surface rounded-2xl p-4 sm:p-5 border border-clinical-border shadow-clinical-card hover:border-clinical-primary hover:shadow-clinical-dropdown transition group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-xs font-semibold text-clinical-muted">
               Missing Data / Overdue
             </span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center group-hover:scale-110 transition">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center transition">
               <FileText className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-800">9</span>
-            <span className="text-[11px] font-semibold text-slate-500">Patients</span>
+            <span className="text-2xl sm:text-3xl font-extrabold text-clinical-ink">9</span>
+            <span className="text-[11px] font-semibold text-clinical-muted">Patients</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">&gt;30 days without lab or CGM sync</span>
+          <span className="text-[11px] text-clinical-faint mt-1 block">&gt;30 days without lab or CGM sync</span>
         </div>
       </div>
 

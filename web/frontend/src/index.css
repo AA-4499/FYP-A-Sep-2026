@@ -1,16 +1,18 @@
-/* Hallmark · built: the project · redesign: polish */
+/* Hallmark · built: the project · redesign: restyle */
+
+@import './tokens.css';
 
 :root {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --color-canvas-bg: #f8fafc;
-  --color-model-bg: #f1f5f9;
-  --color-thumb: #cbd5e1;
-  --color-thumb-hover: #94a3b8;
-  --color-admin-focus: #818cf8;
-  --color-border-subtle: #e2e8f0;
-  --color-toggle-ink: #475569;
-  --color-backdrop: rgb(15 23 42 / 35%);
-  --color-panel-bg: #fcfdfd;
+  --color-canvas-bg: oklch(0.985 0.006 195);
+  --color-model-bg: oklch(0.968 0.008 195);
+  --color-thumb: oklch(0.850 0.010 195);
+  --color-thumb-hover: oklch(0.700 0.015 195);
+  --color-admin-focus: oklch(0.600 0.160 270);
+  --color-border-subtle: oklch(0.915 0.008 195);
+  --color-toggle-ink: oklch(0.420 0.020 220);
+  --color-backdrop: oklch(0.180 0.025 240 / 0.45);
+  --color-panel-bg: oklch(0.995 0.004 195);
 }
 
 @tailwind base;
@@ -19,7 +21,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-clinical-ground text-clinical-ink;
     font-family: var(--font-sans);
   }
 }

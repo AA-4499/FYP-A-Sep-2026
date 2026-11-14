@@ -17,6 +17,8 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
+      - key: DOCTOR_INVITE_REDIRECT_URL
+        sync: false
       - key: CLINICAL_KG_NEO4J_URI
         value: neo4j+s://e72f4649.databases.neo4j.io
       - key: CLINICAL_KG_NEO4J_USER

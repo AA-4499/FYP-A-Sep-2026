@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import type { AuthFlow } from '../types';
 import { getSupabaseClient } from '../lib/supabase';
+import { authErrorMessage } from '../lib/accountAuth';
+import { AuthCaptcha, useAuthCaptcha } from './AuthCaptcha';
 
 interface AuthViewProps {
   initialFlow?: AuthFlow;
@@ -45,6 +47,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [rememberMe, setRememberMe] = useState(true);
   const [authError, setAuthError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const captcha = useAuthCaptcha(currentFlow);
 
   // Patient registration states
   const [patientName, setPatientName] = useState('Elena Morales');
@@ -237,14 +240,19 @@ export const AuthView: React.FC<AuthViewProps> = ({
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (isSubmitting) return;
                   setAuthError('');
+                  if (captcha.enabled && !captcha.token) { setAuthError('Please complete the security check.'); return; }
                   setIsSubmitting(true);
-                  const client = getSupabaseClient();
-                  if (!client) { setAuthError('Supabase is not configured.'); setIsSubmitting(false); return; }
-                  const { data, error } = await client.auth.signInWithPassword({ email, password });
-                  setIsSubmitting(false);
-                  if (error || !data.session) { setAuthError(error?.message || 'Sign in failed.'); return; }
-                  onSuccessLogin();
+                  try {
+                    const client = getSupabaseClient();
+                    if (!client) throw new Error('Supabase is not configured.');
+                    const { data, error } = await client.auth.signInWithPassword({ email, password, options: { captchaToken: captcha.token || undefined } });
+                    if (error) throw error;
+                    if (!data.session) throw new Error('Sign in failed.');
+                    onSuccessLogin();
+                  } catch (failure) { setAuthError(authErrorMessage(failure)); }
+                  finally { captcha.reset(); setIsSubmitting(false); }
                 }}
                 className="space-y-4 text-xs"
               >
@@ -296,8 +304,10 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   </label>
                 </div>
 
+                {captcha.enabled && <AuthCaptcha key={captcha.widgetKey} onVerify={captcha.verify} />}
                 <button
                   type="submit"
+                  disabled={isSubmitting || (captcha.enabled && !captcha.token)}
                   className="w-full py-3 bg-[#2563eb] hover:bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                 >
                   <span>{isSubmitting ? 'Signing in�' : 'Sign in'}</span>

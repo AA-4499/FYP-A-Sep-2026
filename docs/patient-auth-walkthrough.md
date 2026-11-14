@@ -11,6 +11,39 @@ Opening or reloading the app starts at the login page. Supabase sessions are hel
 
 ## 1. Supabase setup (you do this once)
 
+### hCaptcha protection
+
+The sign-in form shared by Patients, Doctors and Admins includes hCaptcha when
+`VITE_HCAPTCHA_SITE_KEY` is set. The same integration covers Patient signup,
+password-reset email requests and confirmation-email resends. Tokens expire,
+are cleared when changing forms, and are replaced after every submission attempt.
+The authenticated new-password/invitation form does not require another challenge.
+
+1. In hCaptcha, allow the deployed frontend hostname on the site associated with
+   public key `e3980150-1606-42a2-9cdc-d554494a3e58`.
+2. Set `VITE_HCAPTCHA_SITE_KEY` in `web/frontend/.env.local` and in the frontend
+   hosting environment (including Vercel Production/Preview as applicable).
+   Restart Vite or rebuild/redeploy after changing it; Vite embeds this public value
+   at build time. `.env.example` alone does not configure a deployment.
+3. In Supabase, open Authentication settings → Bot and Abuse Protection, enable
+   CAPTCHA protection, choose hCaptcha, and save the corresponding **secret** there.
+   Never put that secret in a `VITE_*` variable or commit it. Supabase verifies
+   `options.captchaToken` server-side; a client-only widget is not enforcement.
+4. Check sign-in, signup, password recovery and email resend on the configured
+   hostname. An omitted/invalid token sent directly to Supabase Auth must fail with
+   CAPTCHA protection enabled. After invalid credentials or an expired challenge,
+   complete a fresh check before retrying.
+
+Without the public key, the widget is omitted for existing development setups.
+If server-side protection is enabled while that key is missing, Supabase rejects
+the requests. For local testing, use a hostname supported by hCaptcha and allow it
+in both hCaptcha and Supabase redirect URLs; see the
+[hCaptcha local-development guide](https://docs.hcaptcha.com/#local-development).
+Only use hCaptcha's test keys with a separate test Supabase project, never production.
+See [Supabase CAPTCHA setup](https://supabase.com/docs/guides/auth/auth-captcha).
+
+### Account setup
+
 1. In your existing Supabase project, keep Email sign-in, signups, and Confirm email enabled.
 2. Under Authentication → URL Configuration, allow `http://localhost:3000/` and
    `http://localhost:3000/**`. Keep your deployed URL as Site URL if already configured.

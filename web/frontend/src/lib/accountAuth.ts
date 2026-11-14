@@ -71,14 +71,14 @@ export function confirmationUrl(origin: string): string {
   return new URL('/', origin).href;
 }
 
-export async function registerPatient(client: SupabaseClient, input: { name: string; identityNumber: string; email: string; password: string; confirm: string }, origin: string) {
+export async function registerPatient(client: SupabaseClient, input: { name: string; identityNumber: string; email: string; password: string; confirm: string }, origin: string, captchaToken?: string) {
   validateRegistration(input.name, input.password, input.confirm);
   const identityNumber = input.identityNumber.trim();
   if (!identityNumber) throw new Error('Enter your NRIC / Passport No.');
   if (identityNumber.length > 64 || /[\u0000-\u001f\u007f]/.test(identityNumber)) throw new Error('Enter a valid NRIC / Passport No. of up to 64 characters.');
   const { data, error } = await client.auth.signUp({
     email: input.email.trim(), password: input.password,
-    options: { emailRedirectTo: confirmationUrl(origin), data: { full_name: input.name.trim(), nric_passport_no: identityNumber, requested_role: 'patient' } },
+    options: { ...(captchaToken ? { captchaToken } : {}), emailRedirectTo: confirmationUrl(origin), data: { full_name: input.name.trim(), nric_passport_no: identityNumber, requested_role: 'patient' } },
   });
   if (error) throw error;
   return data;
@@ -132,6 +132,7 @@ export async function acceptDoctorInvitation(client: SupabaseClient, password: s
 
 export function authErrorMessage(error: unknown): string {
   const value = error as { code?: string; message?: string };
+  if (value?.code === 'captcha_failed') return 'Security verification failed or expired. Please complete the security check again.';
   if (value?.code === 'email_address_not_authorized') return 'Email delivery is limited to your Supabase project team while default email delivery is enabled. Use an existing team email for this test.';
   if (value?.code === 'over_email_send_rate_limit' || value?.code === 'over_request_rate_limit') return 'Too many requests. Please wait before trying again; confirmation emails are rate limited.';
   if (value?.code === 'email_not_confirmed') return 'Please confirm your email before signing in. You can request another confirmation link below.';

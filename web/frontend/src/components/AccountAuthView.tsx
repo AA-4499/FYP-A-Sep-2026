@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { ArrowLeft, ArrowRight, Mail, ShieldCheck } from 'lucide-react';
 import { getSupabaseClient } from '../lib/supabase';
 import { authErrorMessage, acceptDoctorInvitation, confirmationUrl, registerPatient, validateRegistration } from '../lib/accountAuth';
+import { AuthCaptcha, useAuthCaptcha } from './AuthCaptcha';
 
 type Flow = 'signin' | 'register' | 'verify' | 'forgot' | 'reset';
 interface Props { recovery: boolean; invitation?: boolean; initialError?: string; initialNotice?: string; onSignedIn: (session: Session) => void; onPasswordUpdated: () => void; onPreview: () => void }
@@ -19,26 +20,29 @@ export function AccountAuthView({ recovery, invitation = false, initialError = '
   const [notice, setNotice] = useState(initialNotice);
   const [resendAfter, setResendAfter] = useState(0);
   const activeFlow = recovery ? 'reset' : flow;
+  const captcha = useAuthCaptcha(activeFlow);
+  const requiresCaptcha = captcha.enabled && activeFlow !== 'reset';
   const changeFlow = (next: Flow) => { setFlow(next); setError(''); setNotice(''); setPassword(''); setConfirm(''); setIdentityNumber(''); };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (busy) return;
+    if (requiresCaptcha && !captcha.token) { setError('Please complete the security check.'); return; }
     setBusy(true); setError(''); setNotice('');
     try {
       const client = getSupabaseClient();
       if (!client) throw new Error('Supabase is not configured.');
       if (activeFlow === 'register') {
-        await registerPatient(client, { name, identityNumber, email, password, confirm }, window.location.origin);
+        await registerPatient(client, { name, identityNumber, email, password, confirm }, window.location.origin, captcha.token || undefined);
         setPassword(''); setConfirm(''); setIdentityNumber(''); setFlow('verify'); setResendAfter(Date.now() + 60000);
         setNotice('If this address can be registered, a confirmation link will be emailed to you. For an existing account, try signing in or resetting your password.');
       } else if (activeFlow === 'signin') {
-        const { data, error: failure } = await client.auth.signInWithPassword({ email: email.trim(), password });
+        const { data, error: failure } = await client.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken: captcha.token || undefined } });
         if (failure) throw failure;
         if (!data.session) throw new Error('Sign-in did not return a session. Please try again.');
         setPassword('');
         onSignedIn(data.session);
       } else if (activeFlow === 'forgot') {
-        const { error: failure } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${confirmationUrl(window.location.origin)}?auth=recovery` });
+        const { error: failure } = await client.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${confirmationUrl(window.location.origin)}?auth=recovery`, captchaToken: captcha.token || undefined });
         if (failure) throw failure;
         setNotice('If an account exists for this email, you will receive a password reset link. Check your inbox and spam folder.');
       } else if (activeFlow === 'reset') {
@@ -57,13 +61,13 @@ export function AccountAuthView({ recovery, invitation = false, initialError = '
         onPasswordUpdated();
       } else {
         if (Date.now() < resendAfter) throw new Error('Please wait at least one minute before requesting another email.');
-        const { error: failure } = await client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: confirmationUrl(window.location.origin) } });
+        const { error: failure } = await client.auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: confirmationUrl(window.location.origin), captchaToken: captcha.token || undefined } });
         if (failure) throw failure;
         setResendAfter(Date.now() + 60000);
         setNotice('If this account is awaiting confirmation, a new link will be emailed to you.');
       }
     } catch (failure) { setError(authErrorMessage(failure)); }
-    finally { setBusy(false); }
+    finally { if (requiresCaptcha) captcha.reset(); setBusy(false); }
   };
   const title = { signin: 'Welcome back', register: 'Create your Patient account', verify: 'Check your inbox', forgot: 'Forgot your password?', reset: invitation ? 'Set up your Doctor account' : 'Choose a new password' }[activeFlow];
   const action = { signin: 'Sign in', register: 'Create Patient account', verify: 'Resend confirmation link', forgot: 'Send reset link', reset: invitation ? 'Set password and continue' : 'Update password' }[activeFlow];
@@ -80,7 +84,8 @@ export function AccountAuthView({ recovery, invitation = false, initialError = '
           {['signin', 'register', 'reset'].includes(activeFlow) && <label className="block text-xs font-semibold text-slate-600">Password<input required type="password" minLength={activeFlow === 'signin' ? undefined : 8} autoComplete={activeFlow === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} className={inputClass} /></label>}
           {['register', 'reset'].includes(activeFlow) && <label className="block text-xs font-semibold text-slate-600">Confirm password<input required type="password" minLength={8} autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} className={inputClass} /></label>}
           {activeFlow === 'signin' && <button type="button" onClick={() => changeFlow('forgot')} className="text-xs font-semibold text-blue-600">Forgot password?</button>}
-          <button disabled={busy} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{activeFlow === 'verify' && <Mail className="h-4 w-4" />}{busy ? 'Please wait…' : action}</button>
+          {requiresCaptcha && <AuthCaptcha key={captcha.widgetKey} onVerify={captcha.verify} />}
+          <button disabled={busy || (requiresCaptcha && !captcha.token)} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{activeFlow === 'verify' && <Mail className="h-4 w-4" />}{busy ? 'Please wait…' : action}</button>
         </fieldset></form>
         {recovery && <a href="/" className="mt-5 block text-xs font-semibold text-blue-600">Back to sign in</a>}
         {activeFlow === 'signin' && <div className="mt-6 space-y-3 border-t border-slate-100 pt-5 text-xs"><button onClick={() => changeFlow('register')} className="block font-semibold text-blue-600">New here? Create a Patient account</button><p className="text-slate-500">Doctor? Ask your administrator for an invitation.</p><button onClick={() => changeFlow('verify')} className="block text-slate-500">Need another confirmation email?</button></div>}

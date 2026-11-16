@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 const root = new URL('../', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('src/lib/conditionalManifest.json', root), 'utf8'));
 const entries = [...Object.entries(manifest.models).map(([cohort,entry]) => ({...entry,cohort})),manifest.food_reference];
+const auxiliary = JSON.parse(readFileSync(new URL('src/lib/auxiliaryManifest.json', root), 'utf8'));
+entries.push(auxiliary);
 for (const entry of entries) {
   assert.match(entry.path, /^\/conditional-models\/[A-Za-z0-9_-]+\.json$/, 'Invalid model asset path');
   const bytes = readFileSync(new URL(`public${entry.path}`,root));
@@ -14,6 +16,12 @@ for (const entry of entries) {
     const model = JSON.parse(bytes.toString('utf8'));
     assert.equal(model.cohort,entry.cohort);
     assert.equal(model.checkpoint_sha256,entry.checkpoint_sha256);
+  }
+  if (entry === auxiliary) {
+    const model = JSON.parse(bytes.toString('utf8'));
+    assert.equal(model.checkpoint_sha256,entry.checkpoint_sha256);
+    assert.equal(model.mode,entry.mode);
+    assert.equal(model.shanghai_transfer_validated,false);
   }
 }
 console.log(`Verified ${entries.length} conditional model/reference assets against the deployment manifest.`);

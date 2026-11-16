@@ -18,7 +18,7 @@ test('existing event editor compiles total carbohydrate and typed boluses into t
  assert.equal(future[0][2],0);assert.ok(Math.abs(future[1][2]-56.3)<.00001);
  assert.equal(future[0][7],1);assert.ok(Math.abs(future[0][6]-2*remainingAction(10,'regular'))<.00001);
  assert.deepEqual(compiled.schedule.map(row=>row.id),['b','a']);
- assert.deepEqual(buildFuturePlan(history,withoutPlannedEvents(plan,'bolus')).map(row=>row[6]),Array(16).fill(0));
+ assert.deepEqual(buildFuturePlan(history,withoutPlannedEvents(plan,'bolus')).map(row=>row[6]),Array(24).fill(0));
  assert.ok(buildFuturePlan(history,withoutPlannedEvents(plan,'meal')).every(row=>row[2]===0));
 });
 test('multiple meal events sum by bin; dose action keeps each timestamp and formulation',()=>{
@@ -29,7 +29,7 @@ test('multiple meal events sum by bin; dose action keeps each timestamp and form
  assert.ok(Math.abs(future[2][6]-(2*remainingAction(40,'regular')+1))<.00001);
 });
 test('unsupported medicine/activity, missing formulation, stale units and untrained horizons fail closed',()=>{
- assert.throws(()=>compileScenario([meal],origin,6,'conditional'),/four-hour/);
+ assert.throws(()=>compileScenario([meal],origin,12,'conditional'),/four-hour/);
  for(const kind of ['medication','activity','stress','illness'])assert.throws(()=>compileScenario([{...meal,kind}],origin,4,'conditional'),/supports meal/);
  assert.throws(()=>compileScenario([{...bolus,insulinFormulation:undefined}],origin,4,'conditional'),/rapid or regular/);
  assert.throws(()=>compileScenario([{...meal,carbohydrate:'55.5'}],origin,4,'conditional'),/no longer matches/);

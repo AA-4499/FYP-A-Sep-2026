@@ -18,23 +18,23 @@ export function cohortForPatient(patient: Pick<Patient, 'recordedFields' | 'cond
 
 export function conditionalForecast(patientId: string, source: string, cohort: Cohort, digest: string, version: string, history: ConditionalHistory, result: ConditionalResult, baseline: Plan, scenario: Plan): GlucoseForecast {
   if (history.recordId !== patientId) throw Error('The model history belongs to a different record.');
-  const horizons = [15, 30, 60, 240];
-  if ([...result.baseline, ...result.scenario].some(n => !Number.isFinite(n) || n <= 0) || result.baseline.length !== 4 || result.scenario.length !== 4) throw Error('The decoder returned invalid glucose estimates; this comparison is unavailable.');
+  const horizons = Array.from({length:24},(_,i)=>(i+1)*15);
+  if ([...result.baseline, ...result.scenario].some(n => !Number.isFinite(n) || n <= 0) || result.baseline.length !== 24 || result.scenario.length !== 24) throw Error('The decoder returned invalid glucose estimates; this comparison is unavailable.');
   const origin = new Date(history.origin).toISOString();
   const anchor = { timestamp: origin, value: history.features[23][0] };
   const points = (values: number[]) => [anchor, ...horizons.map((minutes, i) => ({timestamp: new Date(history.origin + minutes * 60000).toISOString(), value: values[i]}))];
   return {
-    patient_id: patientId, record_id: patientId, source, horizon_hours: 4,
+    patient_id: patientId, record_id: patientId, source, horizon_hours: 6,
     model_sha256: digest, model_family: 'conditional-v3', model_version: version,
     horizons_minutes: horizons, delivery: 'browser', generated_at: new Date().toISOString(),
     sequence_length: 24, forecast_start: origin, latest_glucose: anchor.value,
-    baseline_end: result.baseline[3], scenario_end: result.scenario[3],
+    baseline_end: result.baseline[23], scenario_end: result.scenario[23],
     scenario_enabled: JSON.stringify(baseline) !== JSON.stringify(scenario),
     baseline: points(result.baseline), scenario: points(result.scenario),
     observed: history.features.map((row, i) => ({timestamp: new Date(history.origin - (23-i)*900000).toISOString(), value: row[0]})),
     metrics: null, training: [], validation: [], testing: [], testing_actual: [],
     exposure: {iob_units: history.features[23][10], described_meals: history.coverage.describedMeals, converted_meals: history.coverage.convertedMeals, excluded_insulin: history.coverage.excludedInsulin, warmup_incomplete: history.coverage.warmupIncomplete},
-    uncertainty: 'No calibrated prediction interval is available. Four sampled horizons do not describe every intervening glucose value. Experimental conditional prediction does not identify treatment effects or recommend insulin doses.',
+    uncertainty: 'No calibrated prediction interval is available. 15-minute sampled estimates do not describe every intervening glucose value. Experimental conditional prediction does not identify treatment effects or recommend insulin doses.',
     plans: {cohort, baseline, scenario, assumptions: 'Only supplied future events are encoded; unrecorded intake and insulin exposure remain unknown. Estimated IOB covers supported boluses only.'},
   };
 }

@@ -50,7 +50,7 @@ export function compileScenario(
   engine: 'physiology' | 'conditional' = 'physiology',
 ) {
   const origin = recordTime(start);
-  if (!Number.isFinite(origin) || !(engine === 'conditional' ? hours === 4 : engine === 'physiology' && [6, 12].includes(hours)))
+  if (!Number.isFinite(origin) || !(engine === 'conditional' ? [4,6].includes(hours) : engine === 'physiology' && [6, 12].includes(hours)))
     throw new Error(
       engine === 'conditional' ? 'A valid record time and four-hour model window are required.' : "A valid record time and 6- or 12-hour horizon are required.",
     );

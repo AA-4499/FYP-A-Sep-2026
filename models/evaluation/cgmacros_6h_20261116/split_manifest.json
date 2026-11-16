@@ -1,0 +1,61 @@
+{
+  "policy": "participant-disjoint, HbA1c-group stratified; seed fixed before outcomes",
+  "partitions": {
+    "train": {
+      "windows": 6855,
+      "subjects": [
+        2,
+        3,
+        10,
+        11,
+        12,
+        13,
+        15,
+        16,
+        17,
+        19,
+        20,
+        21,
+        22,
+        26,
+        29,
+        30,
+        31,
+        33,
+        36,
+        38,
+        39,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48
+      ]
+    },
+    "validation": {
+      "windows": 5129,
+      "subjects": [
+        6,
+        14,
+        27,
+        28,
+        45
+      ]
+    },
+    "test": {
+      "windows": 7474,
+      "subjects": [
+        5,
+        8,
+        9,
+        23,
+        32,
+        34,
+        35,
+        49
+      ]
+    }
+  }
+}

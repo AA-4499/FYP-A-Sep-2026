@@ -1,6 +1,5 @@
 import { getSupabaseClient } from "./supabase";
 import { verifyForecastReadback } from "./forecastReadback";
-import { loadForecastPreview } from "./forecastPreview";
 import { requestModelService } from './modelServiceRequest';
 import { isRetiredModelOrigin, readForecastApiOverride } from './retiredModelConnection';
 import { resolveMainApiOrigin } from './mainApiOrigin';
@@ -17,7 +16,8 @@ export interface ForecastEvent {
   minutes_ahead: number;
 }
 export interface GlucoseForecast {
-  model_family?: 'conditional-v3';
+  model_family?: 'conditional-v3' | 'cgmacros-auxiliary';
+  result_label?: string;
   model_version?: string;
   model_evaluation?: { scope: string; mae_mg_dl: Record<string, number> };
   horizons_minutes?: number[];
@@ -114,22 +114,7 @@ export async function fetchGlucoseForecast(
   },
   signal: AbortSignal,
 ): Promise<GlucoseForecast> {
-  if (options.source === "browser") {
-    const { runBrowserForecast } = await import("./browserForecast");
-    return runBrowserForecast(
-      patientId,
-      options.horizon_hours,
-      options.events,
-      signal,
-    );
-  }
-  if (options.source === "preview") {
-    if (options.events.length)
-      throw new Error(
-        "Choose the repository browser GRU or online service to calculate new what-if scenarios.",
-      );
-    return loadForecastPreview(patientId, options.horizon_hours, signal);
-  }
+  if (options.source === 'browser' || options.source === 'preview') throw new Error('The previous model is retired. Use conditional GRU v3 in the CGM forecast workspace.');
   const base = getForecastApiUrl();
   if (!base && !import.meta.env.DEV)
     throw new Error(

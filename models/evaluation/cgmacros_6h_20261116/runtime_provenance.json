@@ -1,0 +1,12 @@
+{
+  "python": "3.13.13",
+  "torch": "2.9.1+cpu",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3",
+  "training_threads": 2,
+  "seed": 20261116,
+  "source_archive_sha256": "05c8b0e6f1a2757050aced55ce4bf6ab2ac9b30f2fd8ca193056812d9c621d4d",
+  "source_doi": "10.13026/3z8q-x658",
+  "source_csv_fingerprints": "source_audit.json",
+  "raw_files_uploaded": false
+}

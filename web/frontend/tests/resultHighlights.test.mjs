@@ -24,11 +24,11 @@ test('model cohort comes from an exact source label or an explicit diagnosis, ne
 });
 const plan={carbs:0,mealAt:30,bolus:0,bolusAt:30,formulation:'rapid'};
 const history={recordId:'record-a',origin:Date.parse('2021-01-01T12:00:00Z'),features:Array.from({length:24},()=>[120,0,1,0,0,0,0,0,0,0,2]),coverage:{describedMeals:3,convertedMeals:1,excludedInsulin:2,warmupIncomplete:true}};
-const result={baseline:[110,100,80,65],scenario:[115,130,185,200]};
-test('four trained points keep identity, exposure and event assumptions in saved forecasts',()=>{
+const result={baseline:Array.from({length:24},(_,i)=>i===23?65:100),scenario:Array.from({length:24},(_,i)=>i===23?200:i===3?185:130)};
+test('24 trained points keep identity, exposure and event assumptions in saved forecasts',()=>{
   const output=conditionalForecast('record-a','supabase','ShanghaiT2DM','a'.repeat(64),'test-v3',history,result,plan,{...plan,carbs:30});
-  assert.equal(output.baseline.length,5);assert.equal(output.horizon_hours,4);
-  assert.equal(Date.parse(output.scenario[4].timestamp)-history.origin,240*60000);
+  assert.equal(output.baseline.length,25);assert.equal(output.horizon_hours,6);
+  assert.equal(Date.parse(output.scenario[24].timestamp)-history.origin,360*60000);
   const lines=predictionHighlights(output).join('\n');
   assert.match(lines,/0 displayed future point\(s\) below 70 mg\/dL; 2 above 180/);
   assert.match(lines,/2.00 U/);assert.match(lines,/1\/3 meal descriptions/);
@@ -39,10 +39,10 @@ test('four trained points keep identity, exposure and event assumptions in saved
   assert.throws(()=>conditionalForecast('other','supabase','ShanghaiT2DM','a','v3',history,result,plan,plan),/different record/);
   assert.throws(()=>conditionalForecast('record-a','supabase','ShanghaiT2DM','a','v3',history,{...result,scenario:[1,2,3,NaN]},plan,plan),/invalid glucose/);
 });
-test('clinical lab facts and saved prediction highlights precede optional charts',()=>{
-  const page=readFileSync(new URL('../src/components/LabResultsView.tsx',import.meta.url),'utf8');
-  assert.ok(page.indexOf('Key recorded findings')<page.indexOf('Saved prediction highlights'));
-  assert.ok(page.indexOf('Prediction highlights')<page.indexOf('Show prediction chart'));
-  const forecast=readFileSync(new URL('../src/components/ConditionalForecastPanel.tsx',import.meta.url),'utf8');
-  assert.ok(forecast.indexOf('What the model estimates')<forecast.indexOf('Show supporting prediction chart'));
+test('saved results use selection and keep explanations collapsed',()=>{
+ const page=readFileSync(new URL('../src/components/LabResultsView.tsx',import.meta.url),'utf8');
+ assert.ok(page.includes('Select a saved result'));
+ assert.ok(page.includes('selected-saved-result'));
+ assert.ok(page.includes('Explanation, saved inputs'));
+ assert.equal(/<details[^>]*\bopen[\s=>]/.test(page),false);
 });

@@ -16,7 +16,7 @@ for(const cohort of Object.keys(models))test(`${cohort}: exact saved checkpoint 
  const bytes=readFileSync(new URL(`../public/conditional-models/${cohort}.json`,import.meta.url));
  assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.models[cohort].artifact_sha256);
  assert.equal(bytes.includes(Buffer.from('\r\n')),false,'hashed deployment assets use canonical LF bytes');
- const checkpoint=readFileSync(new URL(`../../../models/evaluation/shanghai_v3_20261104/${cohort}/gru_future_event_decoder/checkpoint.pt`,import.meta.url));
+ const checkpoint=readFileSync(new URL(`../../../models/evaluation/conditional_6h_20261116/${cohort}/gru_future_event_decoder/checkpoint.pt`,import.meta.url));
  assert.equal(createHash('sha256').update(checkpoint).digest('hex'),models[cohort].checkpoint_sha256);
  for(const key of ['patient_split','patient_id','history','test_predictions'])assert.equal(key in models[cohort],false);
 });
@@ -58,7 +58,7 @@ test('decoder later plans cannot change earlier horizon outputs',()=>{
  const h=features.syntheticConditionalHistory('ShanghaiT2DM',foods),plan={carbs:0,mealAt:120,bolus:0,bolusAt:120,formulation:'rapid'};
  const baseline=predictConditional(models.ShanghaiT2DM,h.features,h.staticContext,features.buildFuturePlan(h,plan));
  const changed=predictConditional(models.ShanghaiT2DM,h.features,h.staticContext,features.buildFuturePlan(h,{...plan,carbs:60,bolus:2}));
- assert.deepEqual(baseline.slice(0,3),changed.slice(0,3));assert.notEqual(baseline[3],changed[3]);
+ assert.deepEqual(baseline.slice(0,7),changed.slice(0,7));assert.notEqual(baseline[23],changed[23]);
 });
 test('patient mismatch, invalid latest CGM and corrupted decoder contracts fail closed',()=>{
  const fixture=read('./fixtures/conditional-feature-reference.json').cases[0];

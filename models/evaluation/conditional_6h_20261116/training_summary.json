@@ -1,0 +1,1447 @@
+[
+  {
+    "architecture": "chronological-history-and-event-gru-v1",
+    "family": "future_event_conditional",
+    "recurrent_kind": "GRU",
+    "input_dim": 14,
+    "hidden_dim": 32,
+    "head_dim": 16,
+    "horizons_minutes": [
+      15,
+      30,
+      45,
+      60,
+      75,
+      90,
+      105,
+      120,
+      135,
+      150,
+      165,
+      180,
+      195,
+      210,
+      225,
+      240,
+      255,
+      270,
+      285,
+      300,
+      315,
+      330,
+      345,
+      360
+    ],
+    "num_layers": 2,
+    "sequence_length": 24,
+    "static_context": true,
+    "conditional": true,
+    "dynamic_features": [
+      "glucose_mg_dl",
+      "hour_sin",
+      "hour_cos",
+      "reference_complete_meal_carb_g",
+      "recorded_complete_meal_carb_0_1h_g",
+      "recorded_complete_meal_carb_1_3h_g",
+      "recorded_complete_meal_carb_3_6h_g",
+      "meal_description_present",
+      "meal_conversion_unresolved",
+      "meal_explicit_unavailable",
+      "modeled_bolus_iob_units",
+      "modeled_bolus_annotation_present",
+      "excluded_insulin_annotation_8h",
+      "iob_session_warmup_incomplete"
+    ],
+    "static_features": [
+      "age_years",
+      "bmi_kg_m2",
+      "age_missing",
+      "bmi_missing"
+    ],
+    "future_features": [
+      "hour_sin",
+      "hour_cos",
+      "reference_complete_meal_carb_g",
+      "meal_description_present",
+      "meal_conversion_unresolved",
+      "meal_explicit_unavailable",
+      "modeled_bolus_iob_units",
+      "modeled_bolus_annotation_present",
+      "excluded_insulin_annotation_8h",
+      "iob_session_warmup_incomplete"
+    ],
+    "future_steps": 24,
+    "cohort": "ShanghaiT1DM",
+    "variant": "gru_future_event_decoder",
+    "scalers": {
+      "history_mean": [
+        170.099609375,
+        -0.0002781381772365421,
+        0.011489249765872955,
+        0.01786348968744278,
+        0.07145395874977112,
+        0.14290791749954224,
+        0.21436187624931335,
+        0.0,
+        0.0,
+        0.0,
+        2.665755033493042,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "history_scale": [
+        75.99272918701172,
+        0.7079015374183655,
+        0.7062176465988159,
+        0.9161695241928101,
+        1.8312932252883911,
+        2.5878682136535645,
+        3.167060613632202,
+        1.0,
+        1.0,
+        1.0,
+        2.995246171951294,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "static_median": [
+        58.0,
+        20.52389907836914
+      ],
+      "static_mean": [
+        61.77777862548828,
+        21.65715217590332
+      ],
+      "static_scale": [
+        6.908574104309082,
+        2.885111093521118
+      ],
+      "future_mean": [
+        -0.0002781381772365421,
+        0.011489249765872955,
+        0.01786348968744278,
+        0.0,
+        0.0,
+        0.0,
+        2.665755033493042,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "future_scale": [
+        0.7079015374183655,
+        0.7062176465988159,
+        0.9161695241928101,
+        1.0,
+        1.0,
+        1.0,
+        2.995246171951294,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "target_mean": [
+        0.1655365377664566,
+        0.5183464884757996,
+        0.3904314637184143,
+        0.19814205169677734,
+        0.34528568387031555,
+        0.6905716061592102,
+        0.5568047165870667,
+        0.3528105318546295,
+        0.48741281032562256,
+        0.8193215131759644,
+        0.6671618223190308,
+        0.4255461096763611,
+        0.5150027275085449,
+        0.8151413202285767,
+        0.6144917011260986,
+        0.3143521249294281,
+        0.35197436809539795,
+        0.625359833240509,
+        0.42972639203071594,
+        0.14965201914310455,
+        0.19396184384822845,
+        0.47988879680633545,
+        0.3110080659389496,
+        0.05350695922970772
+      ],
+      "target_scale": [
+        10.858498573303223,
+        20.227313995361328,
+        28.5850887298584,
+        36.01261520385742,
+        42.62532043457031,
+        48.52204895019531,
+        53.97957992553711,
+        59.073001861572266,
+        63.72199630737305,
+        67.71002197265625,
+        71.28007507324219,
+        74.69766235351562,
+        77.94702911376953,
+        80.66423797607422,
+        82.9473648071289,
+        85.20939636230469,
+        87.60809326171875,
+        89.6596908569336,
+        91.20954895019531,
+        92.74169921875,
+        94.42861938476562,
+        95.72334289550781,
+        96.53003692626953,
+        97.41930389404297
+      ]
+    },
+    "patient_split": {
+      "train": [
+        "1002",
+        "1004",
+        "1005",
+        "1006",
+        "1008",
+        "1011"
+      ],
+      "validation": [
+        "1001",
+        "1007",
+        "1009"
+      ],
+      "test": [
+        "1002",
+        "1003",
+        "1010",
+        "1012"
+      ]
+    },
+    "seed": 20261029,
+    "best_epoch": 1,
+    "split_policy": "cohort-global calendar chronology; whole sessions crossing cutoffs purged",
+    "split_manifest": "../../ShanghaiT1DM_split_manifest.json",
+    "future_action_inputs_supported": true,
+    "causal_treatment_effect_validated": false,
+    "status": "research_candidate_not_activated",
+    "patients": {
+      "train": 6,
+      "validation": 3,
+      "test": 4
+    },
+    "sessions": {
+      "train": 9,
+      "validation": 3,
+      "test": 4
+    },
+    "windows": {
+      "train": 2153,
+      "validation": 2535,
+      "test": 3765
+    },
+    "test_metrics": {
+      "15": {
+        "mae_mg_dl": 8.374779210590905,
+        "rmse_mg_dl": 11.867004000559545,
+        "persistence_mae_mg_dl": 8.321593658730961,
+        "persistence_rmse_mg_dl": 11.871616109139019,
+        "mae_improvement_pct": -0.6391269994797406
+      },
+      "30": {
+        "mae_mg_dl": 15.938806533306877,
+        "rmse_mg_dl": 22.439414757787194,
+        "persistence_mae_mg_dl": 15.804143409678344,
+        "persistence_rmse_mg_dl": 22.435379794940964,
+        "mae_improvement_pct": -0.8520748017641134
+      },
+      "45": {
+        "mae_mg_dl": 22.420171025898036,
+        "rmse_mg_dl": 31.456353046066546,
+        "persistence_mae_mg_dl": 22.255936299155593,
+        "persistence_rmse_mg_dl": 31.44431172914881,
+        "mae_improvement_pct": -0.7379367218474374
+      },
+      "60": {
+        "mae_mg_dl": 28.074806756454002,
+        "rmse_mg_dl": 39.1598853556581,
+        "persistence_mae_mg_dl": 27.902629565559376,
+        "persistence_rmse_mg_dl": 39.12947200745064,
+        "mae_improvement_pct": -0.6170643898994621
+      },
+      "75": {
+        "mae_mg_dl": 33.079676745897274,
+        "rmse_mg_dl": 45.7790116662972,
+        "persistence_mae_mg_dl": 32.82023904504054,
+        "persistence_rmse_mg_dl": 45.71508343118578,
+        "mae_improvement_pct": -0.7904808386700034
+      },
+      "90": {
+        "mae_mg_dl": 37.457986845343235,
+        "rmse_mg_dl": 51.47393148609299,
+        "persistence_mae_mg_dl": 37.09721120198568,
+        "persistence_rmse_mg_dl": 51.36692014648449,
+        "mae_improvement_pct": -0.9725141908733155
+      },
+      "105": {
+        "mae_mg_dl": 41.196921135039915,
+        "rmse_mg_dl": 56.37053236735093,
+        "persistence_mae_mg_dl": 40.806693283020266,
+        "persistence_rmse_mg_dl": 56.23601666438764,
+        "mae_improvement_pct": -0.9562839343858901
+      },
+      "120": {
+        "mae_mg_dl": 44.533952075203416,
+        "rmse_mg_dl": 60.59483448378568,
+        "persistence_mae_mg_dl": 44.14709174167587,
+        "persistence_rmse_mg_dl": 60.43488223685192,
+        "mae_improvement_pct": -0.8762985697704266
+      },
+      "135": {
+        "mae_mg_dl": 47.524701292486306,
+        "rmse_mg_dl": 64.22259154710073,
+        "persistence_mae_mg_dl": 47.074422403160796,
+        "persistence_rmse_mg_dl": 64.02856892032055,
+        "mae_improvement_pct": -0.9565255744811354
+      },
+      "150": {
+        "mae_mg_dl": 50.21617247846181,
+        "rmse_mg_dl": 67.2995846102313,
+        "persistence_mae_mg_dl": 49.70772912682765,
+        "persistence_rmse_mg_dl": 67.06778122532745,
+        "mae_improvement_pct": -1.022865780765964
+      },
+      "165": {
+        "mae_mg_dl": 52.48958539722133,
+        "rmse_mg_dl": 69.86443853301458,
+        "persistence_mae_mg_dl": 52.01976104270256,
+        "persistence_rmse_mg_dl": 69.61250340575931,
+        "mae_improvement_pct": -0.9031651532060982
+      },
+      "180": {
+        "mae_mg_dl": 54.53061857692116,
+        "rmse_mg_dl": 72.01054163803282,
+        "persistence_mae_mg_dl": 54.090358612546886,
+        "persistence_rmse_mg_dl": 71.74177005366307,
+        "mae_improvement_pct": -0.8139342678939958
+      },
+      "195": {
+        "mae_mg_dl": 56.3533811196863,
+        "rmse_mg_dl": 73.83237611666063,
+        "persistence_mae_mg_dl": 55.89227087317235,
+        "persistence_rmse_mg_dl": 73.53908017056636,
+        "mae_improvement_pct": -0.8249982319742789
+      },
+      "210": {
+        "mae_mg_dl": 57.94969386066573,
+        "rmse_mg_dl": 75.41019920247562,
+        "persistence_mae_mg_dl": 57.47235064462203,
+        "persistence_rmse_mg_dl": 75.08963193800139,
+        "mae_improvement_pct": -0.8305614972934242
+      },
+      "225": {
+        "mae_mg_dl": 59.35825847914494,
+        "rmse_mg_dl": 76.79249532682609,
+        "persistence_mae_mg_dl": 58.89418336176777,
+        "persistence_rmse_mg_dl": 76.46308142280328,
+        "mae_improvement_pct": -0.787981241757795
+      },
+      "240": {
+        "mae_mg_dl": 60.652935125343355,
+        "rmse_mg_dl": 78.0421130074417,
+        "persistence_mae_mg_dl": 60.22326701697442,
+        "persistence_rmse_mg_dl": 77.70810918884908,
+        "mae_improvement_pct": -0.7134586508696563
+      },
+      "255": {
+        "mae_mg_dl": 61.80024626226539,
+        "rmse_mg_dl": 79.19410722142078,
+        "persistence_mae_mg_dl": 61.35155386247166,
+        "persistence_rmse_mg_dl": 78.84873401370729,
+        "mae_improvement_pct": -0.7313464314197108
+      },
+      "270": {
+        "mae_mg_dl": 62.9550412506063,
+        "rmse_mg_dl": 80.23340284702256,
+        "persistence_mae_mg_dl": 62.50852603887024,
+        "persistence_rmse_mg_dl": 79.87470139128706,
+        "mae_improvement_pct": -0.7143268927160473
+      },
+      "285": {
+        "mae_mg_dl": 64.07506065014033,
+        "rmse_mg_dl": 81.14032372140178,
+        "persistence_mae_mg_dl": 63.664063891123334,
+        "persistence_rmse_mg_dl": 80.78601760031266,
+        "mae_improvement_pct": -0.6455710394483646
+      },
+      "300": {
+        "mae_mg_dl": 65.12611568091242,
+        "rmse_mg_dl": 81.93704221065987,
+        "persistence_mae_mg_dl": 64.7411953210514,
+        "persistence_rmse_mg_dl": 81.59050636118273,
+        "mae_improvement_pct": -0.5945524452432399
+      },
+      "315": {
+        "mae_mg_dl": 66.03912106902793,
+        "rmse_mg_dl": 82.64522359381921,
+        "persistence_mae_mg_dl": 65.66820727851128,
+        "persistence_rmse_mg_dl": 82.29903894971986,
+        "mae_improvement_pct": -0.564830084280415
+      },
+      "330": {
+        "mae_mg_dl": 66.84308465296529,
+        "rmse_mg_dl": 83.28044198154352,
+        "persistence_mae_mg_dl": 66.46374514454389,
+        "persistence_rmse_mg_dl": 82.9312973738629,
+        "mae_improvement_pct": -0.5707465139023031
+      },
+      "345": {
+        "mae_mg_dl": 67.40302648860937,
+        "rmse_mg_dl": 83.86623553362838,
+        "persistence_mae_mg_dl": 67.04366540490868,
+        "persistence_rmse_mg_dl": 83.52906990033998,
+        "mae_improvement_pct": -0.5360104963389719
+      },
+      "360": {
+        "mae_mg_dl": 67.85206295889846,
+        "rmse_mg_dl": 84.4686059762207,
+        "persistence_mae_mg_dl": 67.51410361666129,
+        "persistence_rmse_mg_dl": 84.14692285613484,
+        "mae_improvement_pct": -0.5005759154503052
+      }
+    },
+    "test_metrics_by_patient_overlap": {
+      "seen_in_development": {
+        "15": {
+          "mae_mg_dl": 5.067950980894027,
+          "rmse_mg_dl": 7.016768033676502,
+          "persistence_mae_mg_dl": 4.999354750110257,
+          "persistence_rmse_mg_dl": 7.013967680748516,
+          "mae_improvement_pct": -1.372101685367644
+        },
+        "30": {
+          "mae_mg_dl": 9.42349139798072,
+          "rmse_mg_dl": 12.792366061886936,
+          "persistence_mae_mg_dl": 9.243870839764995,
+          "persistence_rmse_mg_dl": 12.772187614914536,
+          "mae_improvement_pct": -1.9431314146346559
+        },
+        "45": {
+          "mae_mg_dl": 12.816289384903447,
+          "rmse_mg_dl": 17.251711972772874,
+          "persistence_mae_mg_dl": 12.646451519381616,
+          "persistence_rmse_mg_dl": 17.245004920528707,
+          "mae_improvement_pct": -1.3429685415038546
+        },
+        "60": {
+          "mae_mg_dl": 15.454101956275201,
+          "rmse_mg_dl": 20.797687274259328,
+          "persistence_mae_mg_dl": 15.352258079282699,
+          "persistence_rmse_mg_dl": 20.807895577868535,
+          "mae_improvement_pct": -0.663380438672646
+        },
+        "75": {
+          "mae_mg_dl": 17.596708691504695,
+          "rmse_mg_dl": 23.69005603268028,
+          "persistence_mae_mg_dl": 17.34967754733178,
+          "persistence_rmse_mg_dl": 23.70001236073789,
+          "mae_improvement_pct": -1.4238370914905347
+        },
+        "90": {
+          "mae_mg_dl": 19.584929718509798,
+          "rmse_mg_dl": 26.051412921598025,
+          "persistence_mae_mg_dl": 19.22516137399981,
+          "persistence_rmse_mg_dl": 26.054610250292498,
+          "mae_improvement_pct": -1.8713410905176575
+        },
+        "105": {
+          "mae_mg_dl": 21.270789927821006,
+          "rmse_mg_dl": 27.962273823349427,
+          "persistence_mae_mg_dl": 20.909032390963645,
+          "persistence_rmse_mg_dl": 28.006840312931146,
+          "mae_improvement_pct": -1.7301495836493304
+        },
+        "120": {
+          "mae_mg_dl": 22.701063783707156,
+          "rmse_mg_dl": 29.63026449301094,
+          "persistence_mae_mg_dl": 22.401290450557585,
+          "persistence_rmse_mg_dl": 29.73209422971262,
+          "mae_improvement_pct": -1.3381967159936923
+        },
+        "135": {
+          "mae_mg_dl": 24.097256814279863,
+          "rmse_mg_dl": 31.195290841144864,
+          "persistence_mae_mg_dl": 23.823871341828376,
+          "persistence_rmse_mg_dl": 31.34024949720521,
+          "mae_improvement_pct": -1.1475274884124098
+        },
+        "150": {
+          "mae_mg_dl": 25.642134660290132,
+          "rmse_mg_dl": 32.67555013528047,
+          "persistence_mae_mg_dl": 25.3567746316233,
+          "persistence_rmse_mg_dl": 32.853122188655846,
+          "mae_improvement_pct": -1.125379835615808
+        },
+        "165": {
+          "mae_mg_dl": 26.98838782771941,
+          "rmse_mg_dl": 34.04053900394753,
+          "persistence_mae_mg_dl": 26.76193616313319,
+          "persistence_rmse_mg_dl": 34.29384456017286,
+          "mae_improvement_pct": -0.8461707075520856
+        },
+        "180": {
+          "mae_mg_dl": 28.27648406490203,
+          "rmse_mg_dl": 35.4488941610978,
+          "persistence_mae_mg_dl": 28.09161347419985,
+          "persistence_rmse_mg_dl": 35.78685345190565,
+          "mae_improvement_pct": -0.6580988695148084
+        },
+        "195": {
+          "mae_mg_dl": 29.762932254422097,
+          "rmse_mg_dl": 36.960582730592435,
+          "persistence_mae_mg_dl": 29.57225848782447,
+          "persistence_rmse_mg_dl": 37.35792244605157,
+          "mae_improvement_pct": -0.6447724196517863
+        },
+        "210": {
+          "mae_mg_dl": 31.442442518664944,
+          "rmse_mg_dl": 38.503480779461405,
+          "persistence_mae_mg_dl": 31.273548913771105,
+          "persistence_rmse_mg_dl": 38.942638339108115,
+          "mae_improvement_pct": -0.5400525708147806
+        },
+        "225": {
+          "mae_mg_dl": 32.92228491998488,
+          "rmse_mg_dl": 40.03516230332183,
+          "persistence_mae_mg_dl": 32.82967787711851,
+          "persistence_rmse_mg_dl": 40.55860325292231,
+          "mae_improvement_pct": -0.28208331258380726
+        },
+        "240": {
+          "mae_mg_dl": 34.171130604897776,
+          "rmse_mg_dl": 41.64026396245557,
+          "persistence_mae_mg_dl": 34.234839113297,
+          "persistence_rmse_mg_dl": 42.26001582020492,
+          "mae_improvement_pct": 0.18609261807361183
+        },
+        "255": {
+          "mae_mg_dl": 35.62485213741179,
+          "rmse_mg_dl": 43.411163448169134,
+          "persistence_mae_mg_dl": 35.680645628898375,
+          "persistence_rmse_mg_dl": 44.1023110366419,
+          "mae_improvement_pct": 0.15636906368475129
+        },
+        "270": {
+          "mae_mg_dl": 37.331132987237744,
+          "rmse_mg_dl": 45.26240561412161,
+          "persistence_mae_mg_dl": 37.41677467592301,
+          "persistence_rmse_mg_dl": 46.00195543503574,
+          "mae_improvement_pct": 0.22888581238503447
+        },
+        "285": {
+          "mae_mg_dl": 38.95405640140657,
+          "rmse_mg_dl": 46.956193542801586,
+          "persistence_mae_mg_dl": 39.14709713843561,
+          "persistence_rmse_mg_dl": 47.78390094635455,
+          "mae_improvement_pct": 0.4931163512492261
+        },
+        "300": {
+          "mae_mg_dl": 40.44629282797536,
+          "rmse_mg_dl": 48.43208897001635,
+          "persistence_mae_mg_dl": 40.738064845915765,
+          "persistence_rmse_mg_dl": 49.35541959556119,
+          "mae_improvement_pct": 0.7162147221375803
+        },
+        "315": {
+          "mae_mg_dl": 41.93052905913322,
+          "rmse_mg_dl": 49.820830233238105,
+          "persistence_mae_mg_dl": 42.25354867750598,
+          "persistence_rmse_mg_dl": 50.81110009174046,
+          "mae_improvement_pct": 0.7644792650154932
+        },
+        "330": {
+          "mae_mg_dl": 43.23308987771311,
+          "rmse_mg_dl": 51.11423273357158,
+          "persistence_mae_mg_dl": 43.54838736749465,
+          "persistence_rmse_mg_dl": 52.14470952329797,
+          "mae_improvement_pct": 0.7240164535159793
+        },
+        "345": {
+          "mae_mg_dl": 44.149966701384514,
+          "rmse_mg_dl": 52.19649681146091,
+          "persistence_mae_mg_dl": 44.53548401863344,
+          "persistence_rmse_mg_dl": 53.29867169718007,
+          "mae_improvement_pct": 0.8656407935021594
+        },
+        "360": {
+          "mae_mg_dl": 44.91483385639806,
+          "rmse_mg_dl": 53.15382450639578,
+          "persistence_mae_mg_dl": 45.42967763100901,
+          "persistence_rmse_mg_dl": 54.33380711670853,
+          "mae_improvement_pct": 1.1332763106809443
+        }
+      },
+      "unseen_in_development": {
+        "15": {
+          "mae_mg_dl": 8.671484493139683,
+          "rmse_mg_dl": 12.208348263980767,
+          "persistence_mae_mg_dl": 8.61968166500373,
+          "persistence_rmse_mg_dl": 12.213377967194287,
+          "mae_improvement_pct": -0.6009830774409536
+        },
+        "30": {
+          "mae_mg_dl": 16.523393419544533,
+          "rmse_mg_dl": 23.10894464690665,
+          "persistence_mae_mg_dl": 16.39276410336087,
+          "persistence_rmse_mg_dl": 23.10567664338998,
+          "mae_improvement_pct": -0.7968718110015353
+        },
+        "45": {
+          "mae_mg_dl": 23.281879653599432,
+          "rmse_mg_dl": 32.428092098024,
+          "persistence_mae_mg_dl": 23.118147668686685,
+          "persistence_rmse_mg_dl": 32.415683730560104,
+          "mae_improvement_pct": -0.7082400686215905
+        },
+        "60": {
+          "mae_mg_dl": 29.207199951260204,
+          "rmse_mg_dl": 40.40148082846944,
+          "persistence_mae_mg_dl": 29.02871210123109,
+          "persistence_rmse_mg_dl": 40.368884854286016,
+          "mae_improvement_pct": -0.614866582460421
+        },
+        "75": {
+          "mae_mg_dl": 34.468886614742914,
+          "rmse_mg_dl": 47.25887113845299,
+          "persistence_mae_mg_dl": 34.20833573513887,
+          "persistence_rmse_mg_dl": 47.19093878527258,
+          "mae_improvement_pct": -0.7616590342815432
+        },
+        "90": {
+          "mae_mg_dl": 39.06164754268575,
+          "rmse_mg_dl": 53.163932839795216,
+          "persistence_mae_mg_dl": 38.700781519402646,
+          "persistence_rmse_mg_dl": 53.0508834342438,
+          "mae_improvement_pct": -0.9324515141953428
+        },
+        "105": {
+          "mae_mg_dl": 42.9847939785241,
+          "rmse_mg_dl": 58.2459913632814,
+          "persistence_mae_mg_dl": 42.59201162644647,
+          "persistence_rmse_mg_dl": 58.10219667942359,
+          "mae_improvement_pct": -0.922197231543163
+        },
+        "120": {
+          "mae_mg_dl": 46.49290876705981,
+          "rmse_mg_dl": 62.629115454469314,
+          "persistence_mae_mg_dl": 46.0982345492726,
+          "persistence_rmse_mg_dl": 62.45612674544675,
+          "mae_improvement_pct": -0.8561590734355795
+        },
+        "135": {
+          "mae_mg_dl": 49.626729595885436,
+          "rmse_mg_dl": 66.38750111190447,
+          "persistence_mae_mg_dl": 49.160578938331,
+          "persistence_rmse_mg_dl": 66.17681337871473,
+          "mae_improvement_pct": -0.9482204392653605
+        },
+        "150": {
+          "mae_mg_dl": 52.42107891077243,
+          "rmse_mg_dl": 69.56882287232945,
+          "persistence_mae_mg_dl": 51.892619399914004,
+          "persistence_rmse_mg_dl": 69.31692153407475,
+          "mae_improvement_pct": -1.018371238471923
+        },
+        "165": {
+          "mae_mg_dl": 54.7776812717642,
+          "rmse_mg_dl": 72.2151065333596,
+          "persistence_mae_mg_dl": 54.28602029383614,
+          "persistence_rmse_mg_dl": 71.93869971140032,
+          "mae_improvement_pct": -0.9056861697852047
+        },
+        "180": {
+          "mae_mg_dl": 56.88627174587222,
+          "rmse_mg_dl": 74.41799691051644,
+          "persistence_mae_mg_dl": 56.42309696070537,
+          "persistence_rmse_mg_dl": 74.12000372510221,
+          "mae_improvement_pct": -0.8208957149045136
+        },
+        "195": {
+          "mae_mg_dl": 58.73921010614994,
+          "rmse_mg_dl": 76.2742332412016,
+          "persistence_mae_mg_dl": 58.25383493669126,
+          "persistence_rmse_mg_dl": 75.94739908200133,
+          "mae_improvement_pct": -0.8332072386069872
+        },
+        "210": {
+          "mae_mg_dl": 60.328057946344536,
+          "rmse_mg_dl": 77.8711651150625,
+          "persistence_mae_mg_dl": 59.82303907778087,
+          "persistence_rmse_mg_dl": 77.5131768257731,
+          "mae_improvement_pct": -0.8441879188167793
+        },
+        "225": {
+          "mae_mg_dl": 61.73022716317956,
+          "rmse_mg_dl": 79.26153638042659,
+          "persistence_mae_mg_dl": 61.232822059377405,
+          "persistence_rmse_mg_dl": 78.88974432107088,
+          "mae_improvement_pct": -0.8123177849288497
+        },
+        "240": {
+          "mae_mg_dl": 63.02901599403746,
+          "rmse_mg_dl": 80.5075950617065,
+          "persistence_mae_mg_dl": 62.55507965087891,
+          "persistence_rmse_mg_dl": 80.12564276122934,
+          "mae_improvement_pct": -0.757630468706293
+        },
+        "255": {
+          "mae_mg_dl": 64.14883444712925,
+          "rmse_mg_dl": 81.64157200293185,
+          "persistence_mae_mg_dl": 63.65487703248837,
+          "persistence_rmse_mg_dl": 81.24307965395296,
+          "mae_improvement_pct": -0.7759930388189533
+        },
+        "270": {
+          "mae_mg_dl": 65.25414734659596,
+          "rmse_mg_dl": 82.65093112785338,
+          "persistence_mae_mg_dl": 64.75988433771644,
+          "persistence_rmse_mg_dl": 82.23464267915753,
+          "mae_improvement_pct": -0.7632240451542208
+        },
+        "285": {
+          "mae_mg_dl": 66.32904366522207,
+          "rmse_mg_dl": 83.52632055391649,
+          "persistence_mae_mg_dl": 65.86384962001861,
+          "persistence_rmse_mg_dl": 83.10891105584028,
+          "mae_improvement_pct": -0.7062964705027963
+        },
+        "300": {
+          "mae_mg_dl": 67.34051367929462,
+          "rmse_mg_dl": 84.2947144786814,
+          "persistence_mae_mg_dl": 66.89487707135301,
+          "persistence_rmse_mg_dl": 83.87934720162102,
+          "mae_improvement_pct": -0.6661744926540084
+        },
+        "315": {
+          "mae_mg_dl": 68.20226535935133,
+          "rmse_mg_dl": 84.97274866079653,
+          "persistence_mae_mg_dl": 67.76908836861595,
+          "persistence_rmse_mg_dl": 84.55295436214632,
+          "mae_improvement_pct": -0.6391955405674032
+        },
+        "330": {
+          "mae_mg_dl": 68.96149228837142,
+          "rmse_mg_dl": 85.57751110916278,
+          "persistence_mae_mg_dl": 68.51982645015468,
+          "persistence_rmse_mg_dl": 85.1511848464202,
+          "mae_improvement_pct": -0.6445810812700016
+        },
+        "345": {
+          "mae_mg_dl": 69.48940811930103,
+          "rmse_mg_dl": 86.14044944388128,
+          "persistence_mae_mg_dl": 69.06321279412586,
+          "persistence_rmse_mg_dl": 85.7218776631533,
+          "mae_improvement_pct": -0.617109033785671
+        },
+        "360": {
+          "mae_mg_dl": 69.91010666997664,
+          "rmse_mg_dl": 86.72730756356408,
+          "persistence_mae_mg_dl": 69.49562953722632,
+          "persistence_rmse_mg_dl": 86.31997572519813,
+          "mae_improvement_pct": -0.5964074798808753
+        }
+      }
+    },
+    "completed_epochs": 7,
+    "checkpoint_sha256": "88d57cc032747fb6a4ddebd8fb960da7ce44d68adb703714a53e42e8576b4360",
+    "runtime_seconds": 13.920027299998765,
+    "verification": {
+      "safe_checkpoint_full_test_max_abs_difference": 0.0,
+      "decoder_later_event_early_output_max_difference": 0.0
+    },
+    "limitations": [
+      "Retrospective chronological evaluation; some subjects may repeat across partitions; report overlap groups.",
+      "Whole sessions crossing date boundaries are excluded, so effective proportions differ from requested 56/14/30.",
+      "No randomized/causal or clinical treatment-effect validation; no exercise.",
+      "Only 96 completely mapped meals in source cohort; reference preparation and insulin-action assumptions remain.",
+      "Future-event decoder test is oracle-conditional on recorded future event annotations, not a forecast with unknown future intake."
+    ]
+  },
+  {
+    "architecture": "chronological-history-and-event-gru-v1",
+    "family": "future_event_conditional",
+    "recurrent_kind": "GRU",
+    "input_dim": 14,
+    "hidden_dim": 32,
+    "head_dim": 16,
+    "horizons_minutes": [
+      15,
+      30,
+      45,
+      60,
+      75,
+      90,
+      105,
+      120,
+      135,
+      150,
+      165,
+      180,
+      195,
+      210,
+      225,
+      240,
+      255,
+      270,
+      285,
+      300,
+      315,
+      330,
+      345,
+      360
+    ],
+    "num_layers": 2,
+    "sequence_length": 24,
+    "static_context": true,
+    "conditional": true,
+    "dynamic_features": [
+      "glucose_mg_dl",
+      "hour_sin",
+      "hour_cos",
+      "reference_complete_meal_carb_g",
+      "recorded_complete_meal_carb_0_1h_g",
+      "recorded_complete_meal_carb_1_3h_g",
+      "recorded_complete_meal_carb_3_6h_g",
+      "meal_description_present",
+      "meal_conversion_unresolved",
+      "meal_explicit_unavailable",
+      "modeled_bolus_iob_units",
+      "modeled_bolus_annotation_present",
+      "excluded_insulin_annotation_8h",
+      "iob_session_warmup_incomplete"
+    ],
+    "static_features": [
+      "age_years",
+      "bmi_kg_m2",
+      "age_missing",
+      "bmi_missing"
+    ],
+    "future_features": [
+      "hour_sin",
+      "hour_cos",
+      "reference_complete_meal_carb_g",
+      "meal_description_present",
+      "meal_conversion_unresolved",
+      "meal_explicit_unavailable",
+      "modeled_bolus_iob_units",
+      "modeled_bolus_annotation_present",
+      "excluded_insulin_annotation_8h",
+      "iob_session_warmup_incomplete"
+    ],
+    "future_steps": 24,
+    "cohort": "ShanghaiT2DM",
+    "variant": "gru_future_event_decoder",
+    "scalers": {
+      "history_mean": [
+        139.30218505859375,
+        -0.0032361652702093124,
+        0.0059511917643249035,
+        0.015424918383359909,
+        0.061699673533439636,
+        0.12339934706687927,
+        0.18509899079799652,
+        0.0,
+        0.0,
+        0.0,
+        0.32132861018180847,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "history_scale": [
+        49.36845779418945,
+        0.70820152759552,
+        0.7059777975082397,
+        0.7119802236557007,
+        1.4229576587677002,
+        2.0104732513427734,
+        2.4753079414367676,
+        1.0,
+        1.0,
+        1.0,
+        1.4275015592575073,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "static_median": [
+        63.0,
+        23.469999313354492
+      ],
+      "static_mean": [
+        59.98181915283203,
+        23.985172271728516
+      ],
+      "static_scale": [
+        12.404531478881836,
+        3.2967469692230225
+      ],
+      "future_mean": [
+        -0.0032361652702093124,
+        0.0059511917643249035,
+        0.015424918383359909,
+        0.0,
+        0.0,
+        0.0,
+        0.32132861018180847,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "future_scale": [
+        0.70820152759552,
+        0.7059777975082397,
+        0.7119802236557007,
+        1.0,
+        1.0,
+        1.0,
+        1.4275015592575073,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "target_mean": [
+        -0.09073856472969055,
+        -0.07166021317243576,
+        -0.029780903831124306,
+        -0.12075230479240417,
+        -0.21323657035827637,
+        -0.18868958950042725,
+        -0.13052448630332947,
+        -0.2029993236064911,
+        -0.2766370177268982,
+        -0.23359405994415283,
+        -0.16821520030498505,
+        -0.2422025501728058,
+        -0.32107552886009216,
+        -0.287339448928833,
+        -0.22242653369903564,
+        -0.2938537001609802,
+        -0.36458322405815125,
+        -0.3229373097419739,
+        -0.2561623156070709,
+        -0.3250299096107483,
+        -0.38214996457099915,
+        -0.32142373919487,
+        -0.2451108992099762,
+        -0.30106496810913086
+      ],
+      "target_scale": [
+        9.358695030212402,
+        17.196733474731445,
+        23.452917098999023,
+        28.69086456298828,
+        33.17605972290039,
+        36.99665451049805,
+        40.25524139404297,
+        43.072444915771484,
+        45.41849899291992,
+        47.361976623535156,
+        48.93976593017578,
+        50.217308044433594,
+        51.183712005615234,
+        51.920745849609375,
+        52.483577728271484,
+        52.980560302734375,
+        53.33879470825195,
+        53.594482421875,
+        53.79363250732422,
+        54.04888916015625,
+        54.27001190185547,
+        54.454917907714844,
+        54.684913635253906,
+        54.994991302490234
+      ]
+    },
+    "patient_split": {
+      "train": [
+        "2000",
+        "2001",
+        "2002",
+        "2014",
+        "2015",
+        "2016",
+        "2017",
+        "2018",
+        "2019",
+        "2020",
+        "2022",
+        "2024",
+        "2025",
+        "2027",
+        "2028",
+        "2029",
+        "2037",
+        "2043",
+        "2045",
+        "2046",
+        "2047",
+        "2048",
+        "2049",
+        "2050",
+        "2051",
+        "2052",
+        "2053",
+        "2054",
+        "2055",
+        "2056",
+        "2057",
+        "2058",
+        "2059",
+        "2060",
+        "2083",
+        "2085",
+        "2086",
+        "2087",
+        "2088",
+        "2089",
+        "2090",
+        "2091",
+        "2092",
+        "2093",
+        "2094",
+        "2095",
+        "2096",
+        "2097",
+        "2098",
+        "2099"
+      ],
+      "validation": [
+        "2003",
+        "2033",
+        "2034",
+        "2038",
+        "2039",
+        "2063",
+        "2064",
+        "2065",
+        "2066",
+        "2067",
+        "2068"
+      ],
+      "test": [
+        "2004",
+        "2005",
+        "2006",
+        "2007",
+        "2008",
+        "2009",
+        "2010",
+        "2011",
+        "2012",
+        "2013",
+        "2021",
+        "2023",
+        "2026",
+        "2032",
+        "2035",
+        "2036",
+        "2040",
+        "2041",
+        "2042",
+        "2044",
+        "2069",
+        "2070",
+        "2071",
+        "2072",
+        "2073",
+        "2074",
+        "2075",
+        "2076",
+        "2077",
+        "2078",
+        "2079",
+        "2080",
+        "2081",
+        "2082",
+        "2084"
+      ]
+    },
+    "seed": 20261029,
+    "best_epoch": 10,
+    "split_policy": "cohort-global calendar chronology; whole sessions crossing cutoffs purged",
+    "split_manifest": "../../ShanghaiT2DM_split_manifest.json",
+    "future_action_inputs_supported": true,
+    "causal_treatment_effect_validated": false,
+    "status": "research_candidate_not_activated",
+    "patients": {
+      "train": 50,
+      "validation": 11,
+      "test": 35
+    },
+    "sessions": {
+      "train": 55,
+      "validation": 11,
+      "test": 38
+    },
+    "windows": {
+      "train": 15473,
+      "validation": 9442,
+      "test": 30624
+    },
+    "test_metrics": {
+      "15": {
+        "mae_mg_dl": 5.963718471357691,
+        "rmse_mg_dl": 8.629572134235332,
+        "persistence_mae_mg_dl": 6.679349563213974,
+        "persistence_rmse_mg_dl": 9.868026982525006,
+        "mae_improvement_pct": 10.714083535881535
+      },
+      "30": {
+        "mae_mg_dl": 10.745101061858852,
+        "rmse_mg_dl": 15.633111202796774,
+        "persistence_mae_mg_dl": 12.300587794250081,
+        "persistence_rmse_mg_dl": 18.186888413882155,
+        "mae_improvement_pct": 12.645629285442295
+      },
+      "45": {
+        "mae_mg_dl": 14.470455596252668,
+        "rmse_mg_dl": 20.988719522290186,
+        "persistence_mae_mg_dl": 16.86118733309902,
+        "persistence_rmse_mg_dl": 24.903879774732758,
+        "mae_improvement_pct": 14.178905017876616
+      },
+      "60": {
+        "mae_mg_dl": 17.517503591976446,
+        "rmse_mg_dl": 25.25214729899356,
+        "persistence_mae_mg_dl": 20.790693600847927,
+        "persistence_rmse_mg_dl": 30.508736466249953,
+        "mae_improvement_pct": 15.74353444724897
+      },
+      "75": {
+        "mae_mg_dl": 20.068367812327082,
+        "rmse_mg_dl": 28.736510302384396,
+        "persistence_mae_mg_dl": 24.220826827869395,
+        "persistence_rmse_mg_dl": 35.28274262271587,
+        "mae_improvement_pct": 17.144167063546888
+      },
+      "90": {
+        "mae_mg_dl": 22.18512278029164,
+        "rmse_mg_dl": 31.575298487063773,
+        "persistence_mae_mg_dl": 27.226410670963077,
+        "persistence_rmse_mg_dl": 39.34781130357573,
+        "mae_improvement_pct": 18.516167818066315
+      },
+      "105": {
+        "mae_mg_dl": 23.939921186884618,
+        "rmse_mg_dl": 33.87093988881227,
+        "persistence_mae_mg_dl": 29.84030176130831,
+        "persistence_rmse_mg_dl": 42.78458803056125,
+        "mae_improvement_pct": 19.77319338665092
+      },
+      "120": {
+        "mae_mg_dl": 25.352007021475487,
+        "rmse_mg_dl": 35.72158436357668,
+        "persistence_mae_mg_dl": 32.10017637611058,
+        "persistence_rmse_mg_dl": 45.65762469628853,
+        "mae_improvement_pct": 21.02221892979124
+      },
+      "135": {
+        "mae_mg_dl": 26.47607777024013,
+        "rmse_mg_dl": 37.2003644133134,
+        "persistence_mae_mg_dl": 33.99516069951351,
+        "persistence_rmse_mg_dl": 48.02477973407501,
+        "mae_improvement_pct": 22.118097913215582
+      },
+      "150": {
+        "mae_mg_dl": 27.3593880755276,
+        "rmse_mg_dl": 38.35645885704803,
+        "persistence_mae_mg_dl": 35.53324847410714,
+        "persistence_rmse_mg_dl": 49.93253851517756,
+        "mae_improvement_pct": 23.003414406469986
+      },
+      "165": {
+        "mae_mg_dl": 28.03489969616275,
+        "rmse_mg_dl": 39.24111043707851,
+        "persistence_mae_mg_dl": 36.754643455692715,
+        "persistence_rmse_mg_dl": 51.42341516046692,
+        "mae_improvement_pct": 23.724196291120364
+      },
+      "180": {
+        "mae_mg_dl": 28.566329952442285,
+        "rmse_mg_dl": 39.927217605399164,
+        "persistence_mae_mg_dl": 37.672923224473074,
+        "persistence_rmse_mg_dl": 52.56060456323474,
+        "mae_improvement_pct": 24.172781118601826
+      },
+      "195": {
+        "mae_mg_dl": 28.98371456546345,
+        "rmse_mg_dl": 40.454832352170946,
+        "persistence_mae_mg_dl": 38.366967123877664,
+        "persistence_rmse_mg_dl": 53.412141156243344,
+        "mae_improvement_pct": 24.456591859653535
+      },
+      "210": {
+        "mae_mg_dl": 29.28588272293284,
+        "rmse_mg_dl": 40.840111778275286,
+        "persistence_mae_mg_dl": 38.880681860035864,
+        "persistence_rmse_mg_dl": 54.023938696593135,
+        "mae_improvement_pct": 24.677548535909793
+      },
+      "225": {
+        "mae_mg_dl": 29.505438555370677,
+        "rmse_mg_dl": 41.1157847381266,
+        "persistence_mae_mg_dl": 39.22006273070348,
+        "persistence_rmse_mg_dl": 54.44277137783957,
+        "mae_improvement_pct": 24.76952737693532
+      },
+      "240": {
+        "mae_mg_dl": 29.688711950335506,
+        "rmse_mg_dl": 41.34110700374838,
+        "persistence_mae_mg_dl": 39.44994125109606,
+        "persistence_rmse_mg_dl": 54.73648920761827,
+        "mae_improvement_pct": 24.743330385794554
+      },
+      "255": {
+        "mae_mg_dl": 29.826245241092913,
+        "rmse_mg_dl": 41.525735193380356,
+        "persistence_mae_mg_dl": 39.64678685667622,
+        "persistence_rmse_mg_dl": 54.968978730761364,
+        "mae_improvement_pct": 24.770082002066715
+      },
+      "270": {
+        "mae_mg_dl": 29.93054122311942,
+        "rmse_mg_dl": 41.669539745489814,
+        "persistence_mae_mg_dl": 39.84780567280302,
+        "persistence_rmse_mg_dl": 55.1797922134855,
+        "mae_improvement_pct": 24.887855886258613
+      },
+      "285": {
+        "mae_mg_dl": 30.024582037046287,
+        "rmse_mg_dl": 41.79077451587126,
+        "persistence_mae_mg_dl": 40.04694357847595,
+        "persistence_rmse_mg_dl": 55.382959082134285,
+        "mae_improvement_pct": 25.026532978203072
+      },
+      "300": {
+        "mae_mg_dl": 30.12737368086164,
+        "rmse_mg_dl": 41.93807156681904,
+        "persistence_mae_mg_dl": 40.274412236990976,
+        "persistence_rmse_mg_dl": 55.600651990925584,
+        "mae_improvement_pct": 25.19475267924469
+      },
+      "315": {
+        "mae_mg_dl": 30.24659493051726,
+        "rmse_mg_dl": 42.101371181610375,
+        "persistence_mae_mg_dl": 40.510638724673875,
+        "persistence_rmse_mg_dl": 55.8424751931357,
+        "mae_improvement_pct": 25.33666246023684
+      },
+      "330": {
+        "mae_mg_dl": 30.36188298781464,
+        "rmse_mg_dl": 42.257351225706046,
+        "persistence_mae_mg_dl": 40.747276654562356,
+        "persistence_rmse_mg_dl": 56.09998712867686,
+        "mae_improvement_pct": 25.48733196279731
+      },
+      "345": {
+        "mae_mg_dl": 30.4706547091498,
+        "rmse_mg_dl": 42.41680468044938,
+        "persistence_mae_mg_dl": 40.99302508788672,
+        "persistence_rmse_mg_dl": 56.38024671516541,
+        "mae_improvement_pct": 25.668684748631147
+      },
+      "360": {
+        "mae_mg_dl": 30.593518155869273,
+        "rmse_mg_dl": 42.6094093812821,
+        "persistence_mae_mg_dl": 41.33164188443306,
+        "persistence_rmse_mg_dl": 56.70291362285367,
+        "mae_improvement_pct": 25.980394774997173
+      }
+    },
+    "test_metrics_by_patient_overlap": {
+      "unseen_in_development": {
+        "15": {
+          "mae_mg_dl": 5.963718471357691,
+          "rmse_mg_dl": 8.629572134235332,
+          "persistence_mae_mg_dl": 6.679349563213974,
+          "persistence_rmse_mg_dl": 9.868026982525006,
+          "mae_improvement_pct": 10.714083535881535
+        },
+        "30": {
+          "mae_mg_dl": 10.745101061858852,
+          "rmse_mg_dl": 15.633111202796774,
+          "persistence_mae_mg_dl": 12.300587794250081,
+          "persistence_rmse_mg_dl": 18.186888413882155,
+          "mae_improvement_pct": 12.645629285442295
+        },
+        "45": {
+          "mae_mg_dl": 14.470455596252668,
+          "rmse_mg_dl": 20.988719522290186,
+          "persistence_mae_mg_dl": 16.86118733309902,
+          "persistence_rmse_mg_dl": 24.903879774732758,
+          "mae_improvement_pct": 14.178905017876616
+        },
+        "60": {
+          "mae_mg_dl": 17.517503591976446,
+          "rmse_mg_dl": 25.25214729899356,
+          "persistence_mae_mg_dl": 20.790693600847927,
+          "persistence_rmse_mg_dl": 30.508736466249953,
+          "mae_improvement_pct": 15.74353444724897
+        },
+        "75": {
+          "mae_mg_dl": 20.068367812327082,
+          "rmse_mg_dl": 28.736510302384396,
+          "persistence_mae_mg_dl": 24.220826827869395,
+          "persistence_rmse_mg_dl": 35.28274262271587,
+          "mae_improvement_pct": 17.144167063546888
+        },
+        "90": {
+          "mae_mg_dl": 22.18512278029164,
+          "rmse_mg_dl": 31.575298487063773,
+          "persistence_mae_mg_dl": 27.226410670963077,
+          "persistence_rmse_mg_dl": 39.34781130357573,
+          "mae_improvement_pct": 18.516167818066315
+        },
+        "105": {
+          "mae_mg_dl": 23.939921186884618,
+          "rmse_mg_dl": 33.87093988881227,
+          "persistence_mae_mg_dl": 29.84030176130831,
+          "persistence_rmse_mg_dl": 42.78458803056125,
+          "mae_improvement_pct": 19.77319338665092
+        },
+        "120": {
+          "mae_mg_dl": 25.352007021475487,
+          "rmse_mg_dl": 35.72158436357668,
+          "persistence_mae_mg_dl": 32.10017637611058,
+          "persistence_rmse_mg_dl": 45.65762469628853,
+          "mae_improvement_pct": 21.02221892979124
+        },
+        "135": {
+          "mae_mg_dl": 26.47607777024013,
+          "rmse_mg_dl": 37.2003644133134,
+          "persistence_mae_mg_dl": 33.99516069951351,
+          "persistence_rmse_mg_dl": 48.02477973407501,
+          "mae_improvement_pct": 22.118097913215582
+        },
+        "150": {
+          "mae_mg_dl": 27.3593880755276,
+          "rmse_mg_dl": 38.35645885704803,
+          "persistence_mae_mg_dl": 35.53324847410714,
+          "persistence_rmse_mg_dl": 49.93253851517756,
+          "mae_improvement_pct": 23.003414406469986
+        },
+        "165": {
+          "mae_mg_dl": 28.03489969616275,
+          "rmse_mg_dl": 39.24111043707851,
+          "persistence_mae_mg_dl": 36.754643455692715,
+          "persistence_rmse_mg_dl": 51.42341516046692,
+          "mae_improvement_pct": 23.724196291120364
+        },
+        "180": {
+          "mae_mg_dl": 28.566329952442285,
+          "rmse_mg_dl": 39.927217605399164,
+          "persistence_mae_mg_dl": 37.672923224473074,
+          "persistence_rmse_mg_dl": 52.56060456323474,
+          "mae_improvement_pct": 24.172781118601826
+        },
+        "195": {
+          "mae_mg_dl": 28.98371456546345,
+          "rmse_mg_dl": 40.454832352170946,
+          "persistence_mae_mg_dl": 38.366967123877664,
+          "persistence_rmse_mg_dl": 53.412141156243344,
+          "mae_improvement_pct": 24.456591859653535
+        },
+        "210": {
+          "mae_mg_dl": 29.28588272293284,
+          "rmse_mg_dl": 40.840111778275286,
+          "persistence_mae_mg_dl": 38.880681860035864,
+          "persistence_rmse_mg_dl": 54.023938696593135,
+          "mae_improvement_pct": 24.677548535909793
+        },
+        "225": {
+          "mae_mg_dl": 29.505438555370677,
+          "rmse_mg_dl": 41.1157847381266,
+          "persistence_mae_mg_dl": 39.22006273070348,
+          "persistence_rmse_mg_dl": 54.44277137783957,
+          "mae_improvement_pct": 24.76952737693532
+        },
+        "240": {
+          "mae_mg_dl": 29.688711950335506,
+          "rmse_mg_dl": 41.34110700374838,
+          "persistence_mae_mg_dl": 39.44994125109606,
+          "persistence_rmse_mg_dl": 54.73648920761827,
+          "mae_improvement_pct": 24.743330385794554
+        },
+        "255": {
+          "mae_mg_dl": 29.826245241092913,
+          "rmse_mg_dl": 41.525735193380356,
+          "persistence_mae_mg_dl": 39.64678685667622,
+          "persistence_rmse_mg_dl": 54.968978730761364,
+          "mae_improvement_pct": 24.770082002066715
+        },
+        "270": {
+          "mae_mg_dl": 29.93054122311942,
+          "rmse_mg_dl": 41.669539745489814,
+          "persistence_mae_mg_dl": 39.84780567280302,
+          "persistence_rmse_mg_dl": 55.1797922134855,
+          "mae_improvement_pct": 24.887855886258613
+        },
+        "285": {
+          "mae_mg_dl": 30.024582037046287,
+          "rmse_mg_dl": 41.79077451587126,
+          "persistence_mae_mg_dl": 40.04694357847595,
+          "persistence_rmse_mg_dl": 55.382959082134285,
+          "mae_improvement_pct": 25.026532978203072
+        },
+        "300": {
+          "mae_mg_dl": 30.12737368086164,
+          "rmse_mg_dl": 41.93807156681904,
+          "persistence_mae_mg_dl": 40.274412236990976,
+          "persistence_rmse_mg_dl": 55.600651990925584,
+          "mae_improvement_pct": 25.19475267924469
+        },
+        "315": {
+          "mae_mg_dl": 30.24659493051726,
+          "rmse_mg_dl": 42.101371181610375,
+          "persistence_mae_mg_dl": 40.510638724673875,
+          "persistence_rmse_mg_dl": 55.8424751931357,
+          "mae_improvement_pct": 25.33666246023684
+        },
+        "330": {
+          "mae_mg_dl": 30.36188298781464,
+          "rmse_mg_dl": 42.257351225706046,
+          "persistence_mae_mg_dl": 40.747276654562356,
+          "persistence_rmse_mg_dl": 56.09998712867686,
+          "mae_improvement_pct": 25.48733196279731
+        },
+        "345": {
+          "mae_mg_dl": 30.4706547091498,
+          "rmse_mg_dl": 42.41680468044938,
+          "persistence_mae_mg_dl": 40.99302508788672,
+          "persistence_rmse_mg_dl": 56.38024671516541,
+          "mae_improvement_pct": 25.668684748631147
+        },
+        "360": {
+          "mae_mg_dl": 30.593518155869273,
+          "rmse_mg_dl": 42.6094093812821,
+          "persistence_mae_mg_dl": 41.33164188443306,
+          "persistence_rmse_mg_dl": 56.70291362285367,
+          "mae_improvement_pct": 25.980394774997173
+        }
+      }
+    },
+    "completed_epochs": 16,
+    "checkpoint_sha256": "4687aec0a72c08f93707a28c729c9c5a8bf1955ca0098cc694e31c197b1f7462",
+    "runtime_seconds": 151.26414110000042,
+    "verification": {
+      "safe_checkpoint_full_test_max_abs_difference": 0.0,
+      "decoder_later_event_early_output_max_difference": 0.0
+    },
+    "limitations": [
+      "Retrospective chronological evaluation; some subjects may repeat across partitions; report overlap groups.",
+      "Whole sessions crossing date boundaries are excluded, so effective proportions differ from requested 56/14/30.",
+      "No randomized/causal or clinical treatment-effect validation; no exercise.",
+      "Only 96 completely mapped meals in source cohort; reference preparation and insulin-action assumptions remain.",
+      "Future-event decoder test is oracle-conditional on recorded future event annotations, not a forecast with unknown future intake."
+    ]
+  }
+]

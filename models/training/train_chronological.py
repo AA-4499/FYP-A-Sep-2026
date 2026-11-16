@@ -29,10 +29,11 @@ VARIANTS={
 }
 
 class ChronologicalForecast(nn.Module):
-    def __init__(self,kind,input_dim,static_context=False,conditional=False,future_dim=10,hidden_dim=32,num_layers=2,head_dim=16):
+    def __init__(self,kind,input_dim,static_context=False,conditional=False,future_dim=10,hidden_dim=32,num_layers=2,head_dim=16,horizons_minutes=None):
         super().__init__();self.conditional=conditional;self.static_context=static_context
         self.encoder=(nn.GRU if kind=='GRU' else nn.LSTM)(input_dim,hidden_dim,num_layers=num_layers,dropout=.15,batch_first=True)
         self.hidden_dim=hidden_dim;self.num_layers=num_layers
+        self.output_steps=[h//15-1 for h in (horizons_minutes or HORIZONS)]
         if conditional:
             self.static_initial=nn.Linear(4,hidden_dim*num_layers)
             self.decoder=nn.GRU(future_dim,hidden_dim,num_layers=num_layers,dropout=.15,batch_first=True)
@@ -44,7 +45,7 @@ class ChronologicalForecast(nn.Module):
         if self.conditional:
             initial=state+self.static_initial(static).reshape(-1,self.num_layers,self.hidden_dim).transpose(0,1)
             decoded,_=self.decoder(future,initial)
-            return self.head(decoded)[:,[0,1,3,15],0]
+            return self.head(decoded)[:,self.output_steps,0]
         last=encoded[:,-1]
         return self.head(torch.cat([last,static],dim=1) if self.static_context else last)
 
@@ -149,6 +150,7 @@ def predict(model,batch,prepared,scalers):
 
 def train_variant(cohort,variant,assignments,manifest,output,args):
     family,kind,indices,static_context,horizons,conditional=VARIANTS[variant]
+    if conditional and getattr(args,'dense_six_hours',False): horizons=list(range(15,361,15))
     source_kind='exposure_dynamic' if family in ['carbohydrate_estimated_bolus_iob','future_event_conditional'] else 'observed_dynamic'
     names=exposure.FEATURES if source_kind=='exposure_dynamic' else supported.DYNAMIC
     flags=exposure.FLAGS if source_kind=='exposure_dynamic' else list(range(7,15))
@@ -160,7 +162,7 @@ def train_variant(cohort,variant,assignments,manifest,output,args):
     train=batches['train'];target=((train['y']-train['x'][:,-1,0,None]-scalers['target_mean'])/scalers['target_scale']).astype(np.float32)
     loader=DataLoader(TensorDataset(*[torch.from_numpy(v) for v in prepared['train']],torch.from_numpy(target)),
         batch_size=args.batch_size,shuffle=True,generator=torch.Generator().manual_seed(args.seed))
-    dimensions={'hidden_dim':getattr(args,'hidden_dim',32),'head_dim':getattr(args,'head_dim',16)}
+    dimensions={'hidden_dim':getattr(args,'hidden_dim',32),'head_dim':getattr(args,'head_dim',16),'horizons_minutes':horizons}
     model=ChronologicalForecast(kind,len(indices),static_context,conditional,**dimensions);optimizer=torch.optim.Adam(model.parameters(),lr=.001)
     criterion=nn.HuberLoss();best=float('inf');state=None;stale=0;history=[];started=time.monotonic()
     for epoch in range(1,args.epochs+1):
@@ -182,7 +184,7 @@ def train_variant(cohort,variant,assignments,manifest,output,args):
         **dimensions,'num_layers':2,'sequence_length':24,'static_context':static_context,'conditional':conditional,
         'dynamic_features':[names[i] for i in indices],'static_features':supported.STATIC if static_context else [],
         'future_features':[exposure.FEATURES[i] for i in FUTURE_INDICES] if conditional else [],
-        'horizons_minutes':horizons,'future_steps':16 if conditional else 0,'cohort':cohort,'variant':variant,
+        'horizons_minutes':horizons,'future_steps':max(horizons)//15 if conditional else 0,'cohort':cohort,'variant':variant,
         'scalers':{k:v.tolist() for k,v in scalers.items()},'patient_split':manifest['patients'],'seed':args.seed,'best_epoch':best_epoch,
         'split_policy':manifest['policy'],'split_manifest':'../../'+cohort+'_split_manifest.json',
         'future_action_inputs_supported':conditional,'causal_treatment_effect_validated':False}
@@ -190,7 +192,7 @@ def train_variant(cohort,variant,assignments,manifest,output,args):
     write_json(folder/'model.json',{**contract,'weights':{k:{'shape':list(v.shape),'values':v.numpy().ravel().tolist()} for k,v in state.items()}})
     write_json(folder/'preprocessing_contract.json',{'history_features':contract['dynamic_features'],'future_features':contract['future_features'],
         'normalization':'Apply saved per-feature training means/scales. Static imputation and scaling use training sessions only. Predict glucose delta, undo horizon-specific target scaling, add last observed glucose.',
-        'future_schedule':'16 consecutive 15-minute future bins. Event-conditioned test uses actual recorded future meal/insulin annotations: oracle scenario evaluation, not ordinary prospective forecasting.' if conditional else 'No future schedule input.',
+        'future_schedule':f'{max(horizons)//15} consecutive 15-minute future bins. Event-conditioned test uses actual recorded future meal/insulin annotations: oracle scenario evaluation, not ordinary prospective forecasting.' if conditional else 'No future schedule input.',
         'exposure_assumptions':'USDA reference complete meals only; modeled rapid/regular bolus IOB only; source-row timing; excluded exposure and missing meal flags retained.',
         'scenario_consistency':'Recompute future IOB from past doses plus supplied scenario doses; never read future measured glucose. Future clocks are known at forecast origin.'})
     rows=[]
@@ -272,6 +274,7 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--archive',required=True);p.add_argument('--nutrients',required=True);p.add_argument('--output',required=True)
     p.add_argument('--epochs',type=int,default=30);p.add_argument('--patience',type=int,default=6);p.add_argument('--batch-size',type=int,default=256)
     p.add_argument('--training-stride',type=int,default=4);p.add_argument('--seed',type=int,default=20261029);p.add_argument('--threads',type=int,default=2)
+    p.add_argument('--dense-six-hours',action='store_true')
     p.add_argument('--variants',nargs='+',choices=list(VARIANTS),default=list(VARIANTS));args=p.parse_args()
     torch.set_num_threads(args.threads);torch.set_num_interop_threads(1);torch.use_deterministic_algorithms(True)
     warnings.filterwarnings('ignore',category=UserWarning,module='openpyxl')

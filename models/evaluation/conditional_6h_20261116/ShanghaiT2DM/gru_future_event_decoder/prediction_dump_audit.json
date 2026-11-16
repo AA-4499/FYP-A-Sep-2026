@@ -1,0 +1,7 @@
+{
+  "original_prediction_rows": 734976,
+  "original_csv_bytes": 76544696,
+  "original_csv_sha256": "35c8ea93a04422c4e428f9054a743f5a62fc29b68c477a0f5421c1aa6a740c62",
+  "retained_example_rows": 24,
+  "retirement_reason": "Full prediction dumps are not runtime model inputs; keep aggregate per-horizon metrics, source/split audits and a reproducible checkpoint instead."
+}

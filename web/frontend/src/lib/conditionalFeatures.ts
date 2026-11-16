@@ -68,12 +68,12 @@ export function buildFuturePlan(history:ConditionalHistory,plan:Plan){
   if(!Array.isArray(plan.events)||plan.events.length>12)throw Error('Provide at most 12 planned events.');
   events=plan.events;
  }else{
-  if(![plan.carbs,plan.bolus,plan.mealAt,plan.bolusAt].every(Number.isFinite)||plan.carbs<0||plan.carbs>150||plan.bolus<0||plan.bolus>50||![15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240].includes(plan.mealAt)||![15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240].includes(plan.bolusAt)||!['rapid','regular'].includes(plan.formulation))throw Error('Choose a valid four-hour scenario.');
+  if(![plan.carbs,plan.bolus,plan.mealAt,plan.bolusAt].every(Number.isFinite)||plan.carbs<0||plan.carbs>150||plan.bolus<0||plan.bolus>50||!Array.from({length:24},(_,i)=>(i+1)*15).includes(plan.mealAt)||!Array.from({length:24},(_,i)=>(i+1)*15).includes(plan.bolusAt)||!['rapid','regular'].includes(plan.formulation))throw Error('Choose a valid six-hour scenario.');
   events=[];if(plan.carbs>0)events.push({kind:'meal',minutesAhead:plan.mealAt,amount:plan.carbs});if(plan.bolus>0)events.push({kind:'bolus',minutesAhead:plan.bolusAt,amount:plan.bolus,formulation:plan.formulation});
  }
- const doses=[...history.boluses],carbs=new Array<number>(16).fill(0),annotations=new Array<number>(16).fill(0);
+ const doses=[...history.boluses],carbs=new Array<number>(24).fill(0),annotations=new Array<number>(24).fill(0);
  for(const event of events){
-  if(!event||!['meal','bolus'].includes(event.kind)||!Number.isFinite(event.minutesAhead)||event.minutesAhead<=0||event.minutesAhead>240||!Number.isFinite(event.amount)||event.amount<=0)throw Error('Events need a positive amount and a time within the four-hour forecast.');
+  if(!event||!['meal','bolus'].includes(event.kind)||!Number.isFinite(event.minutesAhead)||event.minutesAhead<=0||event.minutesAhead>360||!Number.isFinite(event.amount)||event.amount<=0)throw Error('Events need a positive amount and a time within the six-hour forecast.');
   const bin=Math.ceil(event.minutesAhead/15)-1;
   if(event.kind==='meal'){
    carbs[bin]+=event.amount;if(carbs[bin]>150)throw Error('The research model supports at most 150 g carbohydrate in one 15-minute bin.');
@@ -82,7 +82,7 @@ export function buildFuturePlan(history:ConditionalHistory,plan:Plan){
    doses.push({time:history.origin+event.minutesAhead*60000,units:event.amount,formulation:event.formulation!});annotations[bin]=1;
   }
  }
- return Array.from({length:16},(_,i)=>{const minute=(i+1)*15,time=history.origin+minute*60000,date=new Date(time),hour=date.getUTCHours()+date.getUTCMinutes()/60;
+ return Array.from({length:24},(_,i)=>{const minute=(i+1)*15,time=history.origin+minute*60000,date=new Date(time),hour=date.getUTCHours()+date.getUTCMinutes()/60;
   return [Math.sin(2*Math.PI*hour/24),Math.cos(2*Math.PI*hour/24),carbs[i],Number(carbs[i]>0),0,0,iobAt(time,doses),annotations[i],Number(history.excluded.some(t=>t<=time&&t>time-480*60000)),Number(time-history.start<480*60000)].map(Math.fround);
  });
 }

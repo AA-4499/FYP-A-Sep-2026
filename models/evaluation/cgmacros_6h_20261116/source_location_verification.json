@@ -1,0 +1,51 @@
+{
+  "read_only": true,
+  "tables": {
+    "cgmacros_participants": {
+      "http_status": 404,
+      "count": "",
+      "error_code": "PGRST205"
+    },
+    "cgmacros_glucose_readings": {
+      "http_status": 404,
+      "count": "",
+      "error_code": "PGRST205"
+    },
+    "cgmacros_activity_readings": {
+      "http_status": 404,
+      "count": "",
+      "error_code": "PGRST205"
+    },
+    "cgmacros_meal_events": {
+      "http_status": 404,
+      "count": "",
+      "error_code": "PGRST205"
+    },
+    "cgmacros_import_audit": {
+      "http_status": 404,
+      "count": "",
+      "error_code": "PGRST205"
+    }
+  },
+  "schema_http_status": 200,
+  "matching_exposed_tables": [],
+  "cgmacros_in_patient_summary": {
+    "http_status": 400,
+    "count": ""
+  },
+  "github": {
+    "checked_branches": {
+      "TrainingModel": "fb81b560e984fae6155d56e020fdfd6d618bb30b",
+      "KnowledgeGraph": "825e356eaf57859b39cdab4fe2a95098c05e29a3",
+      "main": "716c24e89d8b50485c1ceea73185a8a63a584bf2"
+    },
+    "found": [
+      "data/loaders/cgmacros_supabase_loader.py",
+      "docs/cgmacros-supabase-dataset.md"
+    ],
+    "cgmacros_raw_data_found": false
+  },
+  "training_source": "User-provided ZIP, verified inner archive SHA256 05c8b0e6f1a2757050aced55ce4bf6ab2ac9b30f2fd8ca193056812d9c621d4d",
+  "limitation": "Checks cover the configured project and accessible GitHub branches, not other private projects or offline uploads.",
+  "saved_results_table_http_status": 200
+}

@@ -1,3 +1,5 @@
+> Historical audit. Its v2/old multi-variant checkpoints were retired during the six-hour cleanup. See [current model update](six-hour-model-update.md) for active weights, UI and verification.
+
 # CGM model audit and conditional forecasting candidate
 
 This audit checks how meals, insulin, time and patient summary features enter forecasts, and fixes reproducible implementation defects. The candidate improves longer-horizon conditional prediction. It does not establish credible causal counterfactuals for the same patient without food or medication.

@@ -67,7 +67,7 @@ export async function forecastConditionalSession(session: ConditionalSession, ba
     return {forecast,comparison:result.comparison as ConditionalResult};
   }
   if (!session.model || !session.history) throw Error('The browser model session is incomplete.');
-  const comparison = await runConditionalComparison(session.model,session.history,baseline,scenario,240,signal);
+  const comparison = await runConditionalComparison(session.model,session.history,baseline,scenario,360,signal);
   if (signal.aborted) throw new DOMException('Cancelled', 'AbortError');
   const entry = decoderManifest[session.cohort];
   const forecast = {...conditionalForecast(session.patientId,session.source,session.cohort,session.model.checkpoint_sha256,entry.version,session.history,comparison,baseline,scenario),

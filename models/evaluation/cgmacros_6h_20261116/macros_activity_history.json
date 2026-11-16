@@ -1,0 +1,117 @@
+[
+  {
+    "epoch": 1,
+    "loss": 0.35233379734887016,
+    "validation_participant_mae": 21.80431874593099
+  },
+  {
+    "epoch": 2,
+    "loss": 0.32518558811258386,
+    "validation_participant_mae": 19.924355149269104
+  },
+  {
+    "epoch": 3,
+    "loss": 0.26872180181520955,
+    "validation_participant_mae": 17.73650626341502
+  },
+  {
+    "epoch": 4,
+    "loss": 0.24617960883511436,
+    "validation_participant_mae": 17.093969305356342
+  },
+  {
+    "epoch": 5,
+    "loss": 0.23597078963562293,
+    "validation_participant_mae": 16.929131269454956
+  },
+  {
+    "epoch": 6,
+    "loss": 0.22772025675685317,
+    "validation_participant_mae": 16.26369535923004
+  },
+  {
+    "epoch": 7,
+    "loss": 0.2221921240841901,
+    "validation_participant_mae": 15.776031653086344
+  },
+  {
+    "epoch": 8,
+    "loss": 0.21650323823646264,
+    "validation_participant_mae": 15.772121647993723
+  },
+  {
+    "epoch": 9,
+    "loss": 0.21275485444951941,
+    "validation_participant_mae": 16.112675110499065
+  },
+  {
+    "epoch": 10,
+    "loss": 0.20881449845102099,
+    "validation_participant_mae": 15.706754982471466
+  },
+  {
+    "epoch": 11,
+    "loss": 0.20844076463469752,
+    "validation_participant_mae": 15.662747979164124
+  },
+  {
+    "epoch": 12,
+    "loss": 0.20541796860871492,
+    "validation_participant_mae": 15.930326302846273
+  },
+  {
+    "epoch": 13,
+    "loss": 0.20424225705641288,
+    "validation_participant_mae": 15.840857863426208
+  },
+  {
+    "epoch": 14,
+    "loss": 0.20238033985650097,
+    "validation_participant_mae": 15.605603098869324
+  },
+  {
+    "epoch": 15,
+    "loss": 0.19997027240417622,
+    "validation_participant_mae": 15.855534990628561
+  },
+  {
+    "epoch": 16,
+    "loss": 0.19977884270526744,
+    "validation_participant_mae": 15.479006191094717
+  },
+  {
+    "epoch": 17,
+    "loss": 0.19798517779067712,
+    "validation_participant_mae": 15.604991793632507
+  },
+  {
+    "epoch": 18,
+    "loss": 0.19562809390050392,
+    "validation_participant_mae": 15.89546545346578
+  },
+  {
+    "epoch": 19,
+    "loss": 0.19560406495023658,
+    "validation_participant_mae": 15.588818788528442
+  },
+  {
+    "epoch": 20,
+    "loss": 0.19438716548460502,
+    "validation_participant_mae": 16.038616319497425
+  },
+  {
+    "epoch": 21,
+    "loss": 0.1921392243217539,
+    "validation_participant_mae": 15.60819923877716
+  },
+  {
+    "epoch": 22,
+    "loss": 0.1915147199674889,
+    "validation_participant_mae": 15.769047995408377
+  },
+  {
+    "epoch": 23,
+    "loss": 0.19191028895201506,
+    "validation_participant_mae": 15.764727095762888
+  }
+]

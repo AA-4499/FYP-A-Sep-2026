@@ -26,5 +26,6 @@ export async function listPredictionResults(patientId: string, offset = 0): Prom
   const { data, error } = await client.from('patient_prediction_results').select('*')
     .eq('patient_id', patientId).order('created_at', { ascending: false }).order('id').range(offset, offset + 19);
   if (error) throw new Error(`Unable to load lab results: ${error.message}`);
+  if(!Array.isArray(data)||data.some(row=>row.patient_id!==patientId)) throw new Error('Saved results do not match the selected patient.');
   return data as SavedPrediction[];
 }

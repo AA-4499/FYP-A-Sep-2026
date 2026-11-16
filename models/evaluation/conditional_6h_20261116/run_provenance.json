@@ -1,0 +1,22 @@
+{
+  "arguments": {
+    "archive": ".model-data/diabetes_datasets.zip",
+    "nutrients": ".model-data/usda-sr-legacy.zip",
+    "output": "models/evaluation/conditional_6h_20261116",
+    "epochs": 30,
+    "patience": 6,
+    "batch_size": 256,
+    "training_stride": 4,
+    "seed": 20261029,
+    "threads": 2,
+    "dense_six_hours": true,
+    "variants": [
+      "gru_future_event_decoder"
+    ]
+  },
+  "torch": "2.9.1+cpu",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3",
+  "nutrient_archive_sha256": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+  "exercise_included": false
+}

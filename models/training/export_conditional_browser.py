@@ -15,7 +15,7 @@ def write_json(path, value):
     path.write_bytes((json.dumps(value, indent=2, allow_nan=False)+'\n').encode('utf-8'))
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--archive');p.add_argument('--run',default='models/evaluation/shanghai_v3_20261104');p.add_argument('--version',default='shanghai-v3-20261104');args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--archive');p.add_argument('--run',default='models/evaluation/conditional_6h_20261116');p.add_argument('--version',default='conditional-v3-6h-20261116');args=p.parse_args()
     torch.set_num_threads(2)
     run=Path(args.run).resolve();public=ROOT/'web/frontend/public/conditional-models'
     public.mkdir(parents=True,exist_ok=True);manifest={'version':1,'models':{}}
@@ -31,10 +31,10 @@ def main():
         metrics=json.loads((folder/'metrics.json').read_text())
         manifest['models'][cohort]={'path':'/conditional-models/'+path.name,'artifact_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
             'checkpoint_sha256':model['checkpoint_sha256'],'name':cohort+' conditional GRU','version':args.version,
-            'horizons_minutes':[15,30,60,240],'evaluation_scope':'Retrospective conditional on recorded future events; research only.',
+            'horizons_minutes':model['horizons_minutes'],'evaluation_scope':'Retrospective conditional on recorded future events; research only.',
             'test_metrics':metrics['test_metrics']}
         original=json.loads((folder/'test_input_example.json').read_text())
-        prediction=pd.read_csv(folder/'test_predictions.csv',nrows=1).iloc[0]
+        prediction=pd.read_csv(folder/('test_predictions.csv' if (folder/'test_predictions.csv').exists() else 'test_predictions_example.csv'),nrows=1).iloc[0]
         with zipfile.ZipFile(archive_path) as archive:
             name=next(n for n in archive.namelist() if '__MACOSX' not in n and Path(n).stem==prediction['record_id'])
             frame=pd.read_excel(io.BytesIO(archive.read(name)),keep_default_na=False)
@@ -61,7 +61,7 @@ def main():
                 if plan=='mixed_formulations':
                     meals=[{'timestamp':'2021-01-01T12:30:00Z','carbohydrate_g':40}]
                     boluses=[{'timestamp':'2021-01-01T12:45:00Z','units':2,'formulation':'regular'},{'timestamp':'2021-01-01T13:10:00Z','units':1,'formulation':'rapid'}]
-                future=build_future_schedule(origin,[{'timestamp':'2021-01-01T11:00:00Z','units':3,'formulation':'rapid'}],meals,boluses,history_start='2021-01-01T00:00:00Z')
+                future=build_future_schedule(origin,[{'timestamp':'2021-01-01T11:00:00Z','units':3,'formulation':'rapid'}],meals,boluses,history_start='2021-01-01T00:00:00Z',horizon_minutes=max(model['horizons_minutes']))
                 payload={'history':history,'static_context':static,'future_schedule':future.tolist()}
                 result=forecast(folder/'checkpoint.pt',payload)
                 planned_events=[{'kind':'meal','minutesAhead':(pd.Timestamp(e['timestamp'])-pd.Timestamp(origin)).total_seconds()/60,'amount':e['carbohydrate_g']} for e in meals]

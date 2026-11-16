@@ -8,7 +8,7 @@ from models.training.train_chronological import ChronologicalForecast
 from models.training.train_shanghai_carb_iob import modeled_iob
 
 def build_future_schedule(origin,historical_boluses,planned_meals=(),planned_boluses=(),
-                          history_start=None,excluded_insulin_times=()):
+                          history_start=None,excluded_insulin_times=(),horizon_minutes=240):
     """Return 16 bins of engineered future covariates; never takes future glucose.
 
     Bolus: timestamp, units, formulation ('rapid' or 'regular'). Meal: timestamp,
@@ -16,11 +16,11 @@ def build_future_schedule(origin,historical_boluses,planned_meals=(),planned_bol
     unknown insulin is assigned a made-up curve. Existing IOB needs preceding
     doses; six hours of encoder history alone do not establish complete IOB.
     """
-    origin=pd.Timestamp(origin);times=pd.date_range(origin+pd.Timedelta(minutes=15),periods=16,freq='15min')
-    doses=[];annotation=np.zeros(16);carbs=np.zeros(16);meal=np.zeros(16)
+    origin=pd.Timestamp(origin);times=pd.date_range(origin+pd.Timedelta(minutes=15),periods=horizon_minutes//15,freq='15min')
+    doses=[];annotation=np.zeros(horizon_minutes//15);carbs=np.zeros(horizon_minutes//15);meal=np.zeros(horizon_minutes//15)
     def bin_index(event):
         offset=(pd.Timestamp(event['timestamp'])-origin).total_seconds()/60
-        if not 0<offset<=240:raise ValueError('Planned events must be within (origin, origin + 4h]')
+        if not 0<offset<=horizon_minutes:raise ValueError('Planned events must be within (origin, origin + forecast horizon]')
         return int(math.ceil(offset/15))-1
     for historical,events in [(True,historical_boluses),(False,planned_boluses)]:
         for event in events:
@@ -39,10 +39,10 @@ def build_future_schedule(origin,historical_boluses,planned_meals=(),planned_bol
     iob,_=modeled_iob(times,doses)
     excluded=[pd.Timestamp(t) for t in excluded_insulin_times]
     coverage=np.asarray([float(any(t-pd.Timedelta(hours=8)<u<=t for u in excluded)) for t in times])
-    warmup=np.ones(16) if history_start is None else np.asarray([(t-pd.Timestamp(history_start)).total_seconds()<8*3600 for t in times],dtype=float)
+    warmup=np.ones(horizon_minutes//15) if history_start is None else np.asarray([(t-pd.Timestamp(history_start)).total_seconds()<8*3600 for t in times],dtype=float)
     hour=times.hour+times.minute/60
     return np.column_stack([np.sin(2*np.pi*hour/24),np.cos(2*np.pi*hour/24),carbs,meal,
-        np.zeros(16),np.zeros(16),iob,annotation,coverage,warmup]).astype(np.float32)
+        np.zeros(horizon_minutes//15),np.zeros(horizon_minutes//15),iob,annotation,coverage,warmup]).astype(np.float32)
 
 def forecast(checkpoint_path,payload):
     saved=torch.load(checkpoint_path,map_location='cpu',weights_only=True)
@@ -55,14 +55,14 @@ def forecast(checkpoint_path,payload):
     missing=~np.isfinite(raw)
     if np.any(np.isfinite(raw)&(raw<=0)):raise ValueError('Age/BMI must be positive or unavailable')
     static=np.r_[(np.where(missing,scale['static_median'],raw)-scale['static_mean'])/scale['static_scale'],missing.astype(float)].astype(np.float32)
-    future=np.zeros((16,10),dtype=np.float32)
+    future=np.zeros((saved['future_steps'],10),dtype=np.float32)
     if saved['conditional']:
         future=np.asarray(payload['future_schedule'],dtype=np.float32)
-        if future.shape!=(16,10) or not np.isfinite(future).all() or np.any(future[:,2:]<0):raise ValueError('Invalid 16-bin future schedule')
+        if future.shape!=(saved['future_steps'],10) or not np.isfinite(future).all() or np.any(future[:,2:]<0):raise ValueError('Invalid 16-bin future schedule')
         if not np.isin(future[:,[3,4,5,7,8,9]],[0,1]).all():raise ValueError('Future annotation/coverage flags must be binary')
         future=((future-scale['future_mean'])/scale['future_scale']).astype(np.float32)
     history=((x-scale['history_mean'])/scale['history_scale']).astype(np.float32)
-    model=ChronologicalForecast(saved['recurrent_kind'],saved['input_dim'],saved['static_context'],saved['conditional'],hidden_dim=saved.get('hidden_dim',32),num_layers=saved.get('num_layers',2),head_dim=saved.get('head_dim',16))
+    model=ChronologicalForecast(saved['recurrent_kind'],saved['input_dim'],saved['static_context'],saved['conditional'],hidden_dim=saved.get('hidden_dim',32),num_layers=saved.get('num_layers',2),head_dim=saved.get('head_dim',16),horizons_minutes=saved['horizons_minutes'])
     model.load_state_dict(saved['state_dict']);model.eval()
     with torch.inference_mode():prediction=model(torch.from_numpy(history[None]),torch.from_numpy(static[None]),torch.from_numpy(future[None])).numpy()[0]*scale['target_scale']+scale['target_mean']+x[-1,0]
     return {'cohort':saved['cohort'],'variant':saved['variant'],'predictions_mg_dl':{str(h):float(v) for h,v in zip(saved['horizons_minutes'],prediction)},

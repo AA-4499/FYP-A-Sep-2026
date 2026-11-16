@@ -35,6 +35,7 @@ artifacts_notebook/twin_cache/
 
 # External research datasets (download locally; do not commit source archives)
 data/raw/CGMacros/
+cgmacros-a-scientific-dataset-for-personalized-nutrition-and-diet-monitoring-1.0.0.zip
 
 
 # Local verification dependencies and package cache
@@ -54,15 +55,14 @@ models/weights/.retraining-lock/
 models/weights/training-runs/
 
 # Versioned experimental models; not the legacy production checkpoint
-!models/weights/conditional_gru_v2.pt
-!models/weights/conditional_gru_v2_retrospective.pt
-!models/evaluation/shanghai_v3_20261104/**/checkpoint.pt
 !models/evaluation/local_v3_medium_20261106/**/checkpoint.pt
-models/evaluation/t2dm/conditional_v2/*_test.npz
-models/evaluation/t2dm/conditional_v2/retrospective_labs/*_test.npz
 
 # Private persistent model releases and local development state
 .model-state/
 models/weights/active.json
 models/weights/versions/
 models/weights/*.tmp
+
+# Current six-hour model checkpoints
+!models/evaluation/conditional_6h_20261116/**/checkpoint.pt
+!models/evaluation/cgmacros_6h_20261116/macros_activity.pt

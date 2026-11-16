@@ -4,7 +4,7 @@ import { FoodCompositionPicker } from "./FoodCompositionPicker";
 import { foodCarbohydrate } from "../lib/scenario";
 import type {FoodReference} from '../lib/foodComposition';
 import React, { useState } from "react";
-import { Plus, Trash2, CalendarClock, ChevronDown } from "lucide-react";
+import { Plus, Trash2, CalendarClock, ChevronDown, Utensils, Syringe, Footprints } from "lucide-react";
 import {
   clockInput,
   compileScenario,
@@ -160,12 +160,13 @@ export function ScenarioBuilder({
           <details
             key={row.id}
             open
-            className="group min-w-0 rounded-2xl border border-slate-200/90 bg-white transition open:border-teal-200"
+            className={`group min-w-0 rounded-2xl border bg-white shadow-sm transition ${row.kind==='meal'?'border-teal-200/70':row.kind==='insulin'?'border-blue-200/70':row.kind==='activity'?'border-orange-200/70':'border-slate-200'}`}
             data-testid="scenario-event"
           >
-            <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3.5 text-xs font-semibold text-slate-700">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-[11px] font-bold text-teal-700">
-                {index + 1}
+            <summary className={`flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 text-xs font-semibold text-slate-700 group-open:rounded-b-none bg-gradient-to-r to-white ${row.kind==='meal'?'from-teal-50':row.kind==='insulin'?'from-blue-50':row.kind==='activity'?'from-orange-50':'from-slate-50'}`}>
+              <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm ${row.kind==='meal'?'border-teal-100 text-teal-700':row.kind==='insulin'?'border-blue-100 text-blue-600':row.kind==='activity'?'border-orange-100 text-amber-700':'border-slate-100 text-slate-500'}`}>
+                {row.kind==='meal'?<Utensils size={19}/>:row.kind==='insulin'?<Syringe size={19}/>:row.kind==='activity'?<Footprints size={19}/>:<CalendarClock size={19}/>}
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[9px] font-bold text-white">{index+1}</span>
               </span>
               <span className="min-w-0 flex-1">
                 {['conditional','integrated'].includes(engine) && row.kind === 'insulin' ? `${row.insulinFormulation === 'regular' ? 'Regular' : 'Rapid-acting'} insulin bolus` : eventNames[row.kind]}

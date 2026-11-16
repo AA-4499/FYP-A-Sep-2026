@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {EventCatalogPicker} from './EventCatalogPicker';
+import {EventCatalogPicker,type CatalogIcon} from './EventCatalogPicker';
 import {searchFoodCatalog,type FoodCatalogPage} from '../lib/foodCatalog';
 import {foodCarbohydrate} from '../lib/scenario';
 import type {FoodReference} from '../lib/foodComposition';
@@ -119,14 +119,14 @@ export function FoodCompositionPicker({portion,carbohydrate,description='',foodR
   const calculated=foodReference?foodCarbohydrate(foodReference,value,engine):Number((value*(quick?.carbsPer100g??(Number(carbohydrate)||0)/grams*100)/100).toFixed(1));
   if(calculated!==null)onUpdatePortion?.(value,calculated,foodReference);
  }
- const numeric='mt-1.5 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs';
+ const numeric='mt-1.5 w-full min-w-0 rounded-xl border border-teal-200/80 bg-white px-3 py-2.5 text-sm font-semibold text-teal-950 shadow-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100';
  return <div className="min-w-0 space-y-3">
   <EventCatalogPicker label="Choose food" searchLabel="Search food catalog" placeholder="Search foods in English or Chinese" selectedId={foodReference?.id??quick?.id} query={query} onQuery={value=>{setQuery(value);setOffset(0);setPage(null);setEnabled(true);}} onOpen={()=>setEnabled(true)}
-   quick={QUICK_FOODS.slice(0,3).map(row=>({id:row.id,name:row.name,detail:`${row.carbsPer100g} g carbs / 100 g`}))}
+   quick={QUICK_FOODS.map(row=>({id:row.id,name:row.name,detail:`${row.carbsPer100g} g carbs / 100 g`,icon:row.icon as CatalogIcon}))}
    options={(page?.foods??[]).map(row=>({id:row.id,name:row.name,detail:`${row.chinese_name} / ${row.category} / ${foodCarbohydrate(row,100,engine)??'Unknown'} g ${engine==='conditional'?'total':'available'} carbs / 100 g`,disabled:foodCarbohydrate(row,grams,engine)===null}))}
    disabled={disabled} loading={loading} error={error} onSelect={select} footer={page?.total!=null?`${page.total.toLocaleString()} ${query.trim()?'matching foods':'foods in Supabase'}`:'Supabase food catalog'} more={page?.has_more} onMore={()=>setOffset((page?.offset??0)+30)} onRetry={()=>{setOffset(0);setRetry(value=>value+1);}}/>
   {foodReference&&<p className="text-xs leading-5 text-slate-600"><strong className="text-slate-800">{foodReference.name}</strong><span className="mt-1 block">Supabase food reference / per 100 g edible portion</span></p>}
-  <div className="grid grid-cols-2 gap-3">
+  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/80 to-emerald-50/40 p-4">
    <label className="text-[11px] text-slate-500">Portion (g)<input aria-label="Food portion grams" className={numeric} type="number" min={1} max={2000} step={1} required disabled={disabled} value={portion} onChange={e=>{const value=Number(e.target.value);if(!e.target.value||!Number.isFinite(value)||value<1||value>2000)onPortionDraft?.(e.target.value);else updatePortion(value);}}/></label>
    <label className="text-[11px] text-slate-500">{engine==='conditional'?'Total carbohydrate':'Available carbohydrate'} (g)<input aria-label="Food carbohydrate grams" className={numeric} type="number" min={0} max={engine==='conditional'?150:200} step={0.1} required disabled={disabled} value={carbohydrate??''} onChange={e=>onUpdateCarbs?.(Number(e.target.value))}/></label>
   </div>

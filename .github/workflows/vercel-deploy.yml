@@ -22,9 +22,6 @@ jobs:
     # Secrets are unavailable on pull requests from external forks.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web/frontend
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -35,9 +32,6 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Install Vercel CLI
         run: npm install -g vercel

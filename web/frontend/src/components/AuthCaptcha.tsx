@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
+import { getSupabaseCredentials } from '../lib/supabase';
+import { resolveAuthCaptchaSiteKey } from '../lib/authCaptchaConfig';
 
-const siteKey = import.meta.env.VITE_HCAPTCHA_SITE_KEY?.trim() || '';
+const configuredSiteKey = import.meta.env.VITE_HCAPTCHA_SITE_KEY;
 
 /** Tokens belong to one form and one submission; never persist them. */
 export function useAuthCaptcha(flow: string) {
+  const siteKey = resolveAuthCaptchaSiteKey(configuredSiteKey, getSupabaseCredentials().url);
   const [response, setResponse] = useState({ flow, token: '' });
   const [attempt, setAttempt] = useState(0);
   const token = response.flow === flow ? response.token : '';
   useEffect(() => { setResponse({ flow, token: '' }); }, [flow]);
   return {
     enabled: Boolean(siteKey),
+    siteKey,
     token,
     widgetKey: `${flow}:${attempt}`,
     verify: (value: string) => setResponse({ flow, token: value }),
@@ -18,7 +22,7 @@ export function useAuthCaptcha(flow: string) {
   };
 }
 
-export function AuthCaptcha({ onVerify }: { onVerify: (token: string) => void }) {
+export function AuthCaptcha({ onVerify, siteKey }: { onVerify: (token: string) => void; siteKey: string }) {
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   const [size, setSize] = useState<'normal' | 'compact'>('normal');
@@ -47,7 +51,7 @@ export function AuthCaptcha({ onVerify }: { onVerify: (token: string) => void })
   return <div className="space-y-2 py-1" aria-label="Security verification">
     <div ref={containerRef} className="flex w-full justify-center">
     <HCaptcha
-      key={attempt}
+      key={`${siteKey}:${size}:${attempt}`}
       sitekey={siteKey}
       size={size}
       reCaptchaCompat={false}

@@ -22,16 +22,21 @@ function load(relativePath, mocks = {}, siteKey = 'public-test-key') {
   return module.exports;
 }
 const accountAuth = load('../src/lib/accountAuth.ts');
+const captchaConfig = load('../src/lib/authCaptchaConfig.ts');
 globalThis.window = { location: { origin: 'https://app.example.test' } };
 
-function setup({ siteKey = 'public-test-key', recovery = false, failure = null } = {}) {
+function setup({ siteKey = 'public-test-key', supabaseUrl = 'https://custom-project.supabase.co', recovery = false, failure = null } = {}) {
   const calls = [];
   const session = { user: { id: 'patient' } };
   const client = { auth: Object.fromEntries(['signInWithPassword', 'signUp', 'resetPasswordForEmail', 'resend', 'updateUser', 'signOut'].map((method) => [method, async (...args) => {
     calls.push({ method, args });
     return { data: { session }, error: failure };
   }])) };
-  const captcha = load('../src/components/AuthCaptcha.tsx', { '@hcaptcha/react-hcaptcha': 'hcaptcha' }, siteKey);
+  const captcha = load('../src/components/AuthCaptcha.tsx', {
+    '@hcaptcha/react-hcaptcha': 'hcaptcha',
+    '../lib/supabase': { getSupabaseCredentials: () => ({url:supabaseUrl}) },
+    '../lib/authCaptchaConfig': captchaConfig,
+  }, siteKey);
   const { AccountAuthView } = load('../src/components/AccountAuthView.tsx', {
     '../lib/supabase': { getSupabaseClient: () => client },
     '../lib/accountAuth': accountAuth,
@@ -141,4 +146,32 @@ test('authenticated password reset and unconfigured development omit the widget'
   await development.submit();
   assert.equal(development.calls[0].args[0].options.captchaToken, undefined);
   act(() => development.tree.unmount());
+});
+
+test('default project renders its real challenge even when Vercel omits the public site key', async () => {
+  const form=setup({siteKey:'',supabaseUrl:captchaConfig.defaultAuthProject});
+  assert.equal(form.widget().props.sitekey,captchaConfig.defaultAuthCaptchaSiteKey);
+  assert.equal(form.tree.root.findByProps({type:'submit'}).props.disabled,true);
+  await form.submit();assert.deepEqual(form.calls,[]);
+  form.verify('real-provider-response');await form.submit();
+  assert.equal(form.calls[0].args[0].options.captchaToken,'real-provider-response');
+  assert.equal(form.signedIn.length,1);
+  act(()=>form.tree.unmount());
+});
+
+test('project fallback is isolated and an explicit site key retains priority',()=>{
+  const resolve=captchaConfig.resolveAuthCaptchaSiteKey;
+  assert.equal(resolve(' custom-key ',captchaConfig.defaultAuthProject),'custom-key');
+  assert.equal(resolve(undefined,captchaConfig.defaultAuthProject+'/'),captchaConfig.defaultAuthCaptchaSiteKey);
+  assert.equal(resolve(undefined,'https://other.supabase.co'),'');
+  assert.equal(resolve(undefined,'https://dgtaujhgwxmoghqdqkti.supabase.co.attacker.test'),'');
+  assert.equal(resolve(undefined,'not-a-url'),'');
+});
+
+test('custom project missing a challenge gives a useful configuration error instead of an impossible retry',async()=>{
+  const form=setup({siteKey:'',failure:{code:'captcha_failed'}});
+  await form.submit();
+  assert.match(JSON.stringify(form.tree.toJSON()),/Security verification is unavailable on this site/);
+  assert.equal(form.signedIn.length,0);
+  act(()=>form.tree.unmount());
 });

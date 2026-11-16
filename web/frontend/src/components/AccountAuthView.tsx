@@ -66,7 +66,11 @@ export function AccountAuthView({ recovery, invitation = false, initialError = '
         setResendAfter(Date.now() + 60000);
         setNotice('If this account is awaiting confirmation, a new link will be emailed to you.');
       }
-    } catch (failure) { setError(authErrorMessage(failure)); }
+    } catch (failure) {
+      setError((failure as {code?:string})?.code === 'captcha_failed' && !captcha.enabled
+        ? 'Security verification is unavailable on this site. Please contact support.'
+        : authErrorMessage(failure));
+    }
     finally { if (requiresCaptcha) captcha.reset(); setBusy(false); }
   };
   const title = { signin: 'Welcome back', register: 'Create your Patient account', verify: 'Check your inbox', forgot: 'Forgot your password?', reset: invitation ? 'Set up your Doctor account' : 'Choose a new password' }[activeFlow];
@@ -84,7 +88,7 @@ export function AccountAuthView({ recovery, invitation = false, initialError = '
           {['signin', 'register', 'reset'].includes(activeFlow) && <label className="block text-xs font-semibold text-slate-600">Password<input required type="password" minLength={activeFlow === 'signin' ? undefined : 8} autoComplete={activeFlow === 'signin' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} className={inputClass} /></label>}
           {['register', 'reset'].includes(activeFlow) && <label className="block text-xs font-semibold text-slate-600">Confirm password<input required type="password" minLength={8} autoComplete="new-password" value={confirm} onChange={(event) => setConfirm(event.target.value)} className={inputClass} /></label>}
           {activeFlow === 'signin' && <button type="button" onClick={() => changeFlow('forgot')} className="text-xs font-semibold text-blue-600">Forgot password?</button>}
-          {requiresCaptcha && <AuthCaptcha key={captcha.widgetKey} onVerify={captcha.verify} />}
+          {requiresCaptcha && <AuthCaptcha key={captcha.widgetKey} siteKey={captcha.siteKey} onVerify={captcha.verify} />}
           <button disabled={busy || (requiresCaptcha && !captcha.token)} type="submit" className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:scale-98 disabled:opacity-50">{activeFlow === 'verify' && <Mail className="h-4 w-4" />}{busy ? 'Please wait…' : action}</button>
         </fieldset></form>
         {recovery && <a href="/" className="mt-5 block text-xs font-semibold text-blue-600">Back to sign in</a>}

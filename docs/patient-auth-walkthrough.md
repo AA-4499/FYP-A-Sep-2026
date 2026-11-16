@@ -13,8 +13,12 @@ Opening or reloading the app starts at the login page. Supabase sessions are hel
 
 ### hCaptcha protection
 
-The sign-in form shared by Patients, Doctors and Admins includes hCaptcha when
-`VITE_HCAPTCHA_SITE_KEY` is set. The same integration covers Patient signup,
+The sign-in form shared by Patients, Doctors and Admins includes hCaptcha for
+the default Supabase project using its documented public site key, even when
+`VITE_HCAPTCHA_SITE_KEY` is missing from a Vercel Preview build. An explicit
+environment key takes priority. Custom Supabase projects must supply their own
+matching key; the default key is never reused for another project.
+The same integration covers Patient signup,
 password-reset email requests and confirmation-email resends. Tokens expire,
 are cleared when changing forms, and are replaced after every submission attempt.
 The authenticated new-password/invitation form does not require another challenge.
@@ -24,7 +28,8 @@ The authenticated new-password/invitation form does not require another challeng
 2. Set `VITE_HCAPTCHA_SITE_KEY` in `web/frontend/.env.local` and in the frontend
    hosting environment (including Vercel Production/Preview as applicable).
    Restart Vite or rebuild/redeploy after changing it; Vite embeds this public value
-   at build time. `.env.example` alone does not configure a deployment.
+   at build time. `.env.example` alone does not configure a deployment; the
+   default-project fallback is implemented in `src/lib/authCaptchaConfig.ts`.
 3. In Supabase, open Authentication settings → Bot and Abuse Protection, enable
    CAPTCHA protection, choose hCaptcha, and save the corresponding **secret** there.
    Never put that secret in a `VITE_*` variable or commit it. Supabase verifies
@@ -34,9 +39,12 @@ The authenticated new-password/invitation form does not require another challeng
    CAPTCHA protection enabled. After invalid credentials or an expired challenge,
    complete a fresh check before retrying.
 
-Without the public key, the widget is omitted for existing development setups.
-If server-side protection is enabled while that key is missing, Supabase rejects
-the requests. For local testing, use a hostname supported by hCaptcha and allow it
+For a custom project without a public key, the widget is omitted for setups
+that do not enable server-side CAPTCHA. If protection is enabled there,
+Supabase rejects requests; the form reports unavailable verification rather than
+asking the user to repeat a challenge that is not visible. Reverting to a
+pre-CAPTCHA login page cannot fix a server that still requires CAPTCHA.
+For local testing, use a hostname supported by hCaptcha and allow it
 in both hCaptcha and Supabase redirect URLs; see the
 [hCaptcha local-development guide](https://docs.hcaptcha.com/#local-development).
 Only use hCaptcha's test keys with a separate test Supabase project, never production.

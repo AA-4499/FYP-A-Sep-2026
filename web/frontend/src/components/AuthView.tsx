@@ -298,7 +298,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   </label>
                 </div>
 
-                {captcha.enabled && <AuthCaptcha key={captcha.widgetKey} onVerify={captcha.verify} />}
+                {captcha.enabled && <AuthCaptcha key={captcha.widgetKey} siteKey={captcha.siteKey} onVerify={captcha.verify} />}
                 <button
                   type="submit"
                   disabled={isSubmitting || (captcha.enabled && !captcha.token)}

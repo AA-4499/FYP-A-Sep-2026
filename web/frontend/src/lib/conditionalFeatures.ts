@@ -1,8 +1,31 @@
 import type {Cohort} from './conditionalDecoder';
 export type Formulation='rapid'|'regular';
 export interface Bolus{time:number;units:number;formulation:Formulation}
-export interface PlannedEvent {kind:'meal'|'bolus';minutesAhead:number;amount:number;formulation?:Formulation}
+export interface PlannedEvent {kind:'meal'|'bolus'|'activity';minutesAhead:number;amount:number;formulation?:Formulation;protein?:number;fat?:number;fiber?:number;activityId?:string;met?:number}
 export interface Plan{carbs:number;mealAt:number;bolus:number;bolusAt:number;formulation:Formulation;events?:PlannedEvent[]}
+// Names are reference presets, not sport labels observed in CGMacros.
+export const ACTIVITY_CATALOG = [
+ {id:'17152',name:'Walking - slow, level (2.0-2.4 mph)',category:'Walking',met:2.8,source:'https://pacompendium.com/walking/'},
+ {id:'17190',name:'Walking - moderate, level (2.8-3.4 mph)',category:'Walking',met:3.8,source:'https://pacompendium.com/walking/'},
+ {id:'17200',name:'Walking - brisk, level (3.5-3.9 mph)',category:'Walking',met:4.8,source:'https://pacompendium.com/walking/'},
+ {id:'01010',name:'Cycling - leisure, below 10 mph',category:'Cycling',met:4,source:'https://pacompendium.com/bicycling/'},
+ {id:'01214',name:'Stationary cycling - 50 watts',category:'Cycling',met:4,source:'https://pacompendium.com/bicycling/'},
+ {id:'01216',name:'Stationary cycling - 60 watts',category:'Cycling',met:5,source:'https://pacompendium.com/bicycling/'},
+ {id:'02024',name:'Calisthenics - light effort',category:'Conditioning',met:2.8,source:'https://pacompendium.com/conditioning-exercise/'},
+ {id:'02022',name:'Calisthenics - moderate effort',category:'Conditioning',met:3.8,source:'https://pacompendium.com/conditioning-exercise/'},
+ {id:'02054',name:'Resistance exercise - multiple exercises, 8-15 repetitions',category:'Conditioning',met:3.5,source:'https://pacompendium.com/conditioning-exercise/'},
+];
+export function activityReference(id:string|undefined) {
+ return ACTIVITY_CATALOG.find(row=>row.id===id);
+}
+export function searchActivities(query:string,category='all') {
+ const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+ return ACTIVITY_CATALOG.filter(row=>(category==='all'||row.category===category)&&terms.every(term=>`${row.name} ${row.category}`.toLowerCase().includes(term)));
+}
+export function activityDose(met:number,minutes:number) {
+ if(!Number.isFinite(met)||met<1||met>8||!Number.isInteger(minutes)||minutes<1||minutes>120)throw Error('Use 1-120 whole minutes and a supported MET intensity.');
+ return {metMinutes:met*minutes,aboveRestMetMinutes:(met-1)*minutes};
+}
 export interface ConditionalHistory{recordId:string;origin:number;timestamps:string[];features:number[][];staticContext:(number|null)[];boluses:Bolus[];excluded:number[];start:number;coverage:{describedMeals:number;convertedMeals:number;excludedInsulin:number;modeledBoluses:number;warmupIncomplete:boolean};}
 export const normalizeFood=(value:unknown)=>String(value??'').normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
 export function sourceTime(value:unknown){const text=String(value??'').trim().replace(' ','T');return Date.parse(/Z$|[+-]\d\d:\d\d$/i.test(text)?text:text+'Z');}
@@ -62,7 +85,7 @@ export function buildConditionalHistory(rows:Record<string,unknown>[],recordId:s
  return {recordId,origin,start,timestamps:recent.map(r=>String(r.row.Date)),features,staticContext:[age,bmi].map(v=>Number.isFinite(v)&&v>0?v:null),boluses,excluded,
   coverage:{describedMeals:window.reduce((s,e)=>s+e.meal.described,0),convertedMeals:window.filter(e=>e.meal.described&&!e.meal.unresolved).length,modeledBoluses:boluses.filter(b=>b.time>origin-480*60000).length,excludedInsulin:events.filter(e=>e.time>origin-480*60000).reduce((s,e)=>s+e.insulin.excluded,0),warmupIncomplete:origin-start<480*60000}};
 }
-export function buildFuturePlan(history:ConditionalHistory,plan:Plan){
+export function buildFuturePlan(history:ConditionalHistory,plan:Plan,integrated=false){
  let events:PlannedEvent[];
  if(plan.events!==undefined){
   if(!Array.isArray(plan.events)||plan.events.length>12)throw Error('Provide at most 12 planned events.');
@@ -72,22 +95,45 @@ export function buildFuturePlan(history:ConditionalHistory,plan:Plan){
   events=[];if(plan.carbs>0)events.push({kind:'meal',minutesAhead:plan.mealAt,amount:plan.carbs});if(plan.bolus>0)events.push({kind:'bolus',minutesAhead:plan.bolusAt,amount:plan.bolus,formulation:plan.formulation});
  }
  const doses=[...history.boluses],carbs=new Array<number>(24).fill(0),annotations=new Array<number>(24).fill(0);
+ const macros=Array.from({length:24},()=>[0,0,0]),mealPresent=new Array<boolean>(24).fill(false),macrosMissing=new Array<boolean>(24).fill(false),activity=Array.from({length:24},()=>({minutes:0,excess:0}));
+ const intervals:{start:number;end:number}[]=[];
  for(const event of events){
-  if(!event||!['meal','bolus'].includes(event.kind)||!Number.isFinite(event.minutesAhead)||event.minutesAhead<=0||event.minutesAhead>360||!Number.isFinite(event.amount)||event.amount<=0)throw Error('Events need a positive amount and a time within the six-hour forecast.');
+  if(!event||!['meal','bolus',...(integrated?['activity']:[])].includes(event.kind)||!Number.isFinite(event.minutesAhead)||event.minutesAhead<=0||event.minutesAhead>360||!Number.isFinite(event.amount)||event.amount<0||(event.amount===0&&!(integrated&&event.kind==='meal')))throw Error('Events need a supported kind, valid amount and a time within the six-hour forecast.');
   const bin=Math.ceil(event.minutesAhead/15)-1;
   if(event.kind==='meal'){
+   mealPresent[bin]=true;
    carbs[bin]+=event.amount;if(carbs[bin]>150)throw Error('The research model supports at most 150 g carbohydrate in one 15-minute bin.');
+   const values=[event.protein,event.fat,event.fiber];
+   if(values.some(v=>v!==undefined)){
+    if(!integrated||values.some(v=>typeof v!=='number'||!Number.isFinite(v)||v<0)||event.protein!>100||event.fat!>100||event.fiber!>40||event.fiber!>event.amount)throw Error('Complete, bounded meal macros require the integrated v3 checkpoint.');
+    for(let j=0;j<3;j++)macros[bin][j]+=values[j]!;
+    if(macros[bin][0]>100||macros[bin][1]>100||macros[bin][2]>40)throw Error('Combined macros exceed the supported 15-minute bin limits.');
+   }else macrosMissing[bin]=true; // Any meal missing macros makes the bin unknown.
+  }else if(event.kind==='activity'){
+   const reference=activityReference(event.activityId);
+   if(!reference||event.met!==reference.met)throw Error('Select a listed activity; its reference MET value must match.');
+   activityDose(reference.met,event.amount);
+   const start=event.minutesAhead,end=start+event.amount;
+   if(end>360||intervals.some(v=>start<v.end&&end>v.start))throw Error('Activities must finish within six hours and cannot overlap.');
+   intervals.push({start,end});
+   for(let i=0;i<24;i++){
+    const overlap=Math.max(0,Math.min((i+1)*15,end)-Math.max(i*15,start));
+    activity[i].minutes+=overlap;activity[i].excess+=(reference.met-1)*overlap;
+   }
   }else{
    if(event.amount>50||!['rapid','regular'].includes(event.formulation??''))throw Error('Specify a supported rapid/regular bolus of at most 50 units.');
    doses.push({time:history.origin+event.minutesAhead*60000,units:event.amount,formulation:event.formulation!});annotations[bin]=1;
   }
  }
  return Array.from({length:24},(_,i)=>{const minute=(i+1)*15,time=history.origin+minute*60000,date=new Date(time),hour=date.getUTCHours()+date.getUTCMinutes()/60;
-  return [Math.sin(2*Math.PI*hour/24),Math.cos(2*Math.PI*hour/24),carbs[i],Number(carbs[i]>0),0,0,iobAt(time,doses),annotations[i],Number(history.excluded.some(t=>t<=time&&t>time-480*60000)),Number(time-history.start<480*60000)].map(Math.fround);
+  const base=[Math.sin(2*Math.PI*hour/24),Math.cos(2*Math.PI*hour/24),carbs[i],Number(mealPresent[i]),0,0,iobAt(time,doses),annotations[i],Number(history.excluded.some(t=>t<=time&&t>time-480*60000)),Number(time-history.start<480*60000)];
+  const known=mealPresent[i]&&!macrosMissing[i];
+  // Partial bins assume resting (1 MET) outside the specified interval only.
+  return [...base,...(integrated?[...(known?macros[i].slice(0,3):[0,0,0]),Number(known),activity[i].minutes?1+activity[i].excess/15:0,Number(activity[i].minutes>0),1]:[])].map(Math.fround);
  });
 }
-export function withoutPlannedEvents(plan:Plan,kind:'meal'|'bolus'):Plan{
- return {...plan,...(kind==='meal'?{carbs:0}:{bolus:0}),...(plan.events?{events:plan.events.filter(event=>event.kind!==kind)}:{})};
+export function withoutPlannedEvents(plan:Plan,kind:'meal'|'bolus'|'activity'):Plan{
+ return {...plan,...(kind==='meal'?{carbs:0}:kind==='bolus'?{bolus:0}:{}),...(plan.events?{events:plan.events.filter(event=>event.kind!==kind)}:{})};
 }
 export function syntheticConditionalHistory(cohort:Cohort,foods:Record<string,number>){
  const start=Date.UTC(2021,0,1);const rows=Array.from({length:64},(_,i)=>({'Patient Number':'synthetic',Date:new Date(start+i*900000).toISOString(),'CGM (mg / dl)':120+8*Math.sin(i/8),'Dietary intake':i===52?'Rice 100 g':'','Insulin dose - s.c.':i===48?'Novolin R, 2 IU':''}));

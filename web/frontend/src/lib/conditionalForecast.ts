@@ -35,6 +35,6 @@ export function conditionalForecast(patientId: string, source: string, cohort: C
     metrics: null, training: [], validation: [], testing: [], testing_actual: [],
     exposure: {iob_units: history.features[23][10], described_meals: history.coverage.describedMeals, converted_meals: history.coverage.convertedMeals, excluded_insulin: history.coverage.excludedInsulin, warmup_incomplete: history.coverage.warmupIncomplete},
     uncertainty: 'No calibrated prediction interval is available. 15-minute sampled estimates do not describe every intervening glucose value. Experimental conditional prediction does not identify treatment effects or recommend insulin doses.',
-    plans: {cohort, baseline, scenario, assumptions: 'Only supplied future events are encoded; unrecorded intake and insulin exposure remain unknown. Estimated IOB covers supported boluses only.'},
+    plans: {cohort, baseline, scenario, assumptions: 'Only supplied future events are encoded; unrecorded intake, macros, activity and insulin exposure remain unknown. Estimated IOB covers supported boluses only. Named activity METs are Compendium reference estimates; partial activity bins assume rest (1 MET) outside the entered interval. Combined insulin/activity intervention effects are unvalidated.'},
   };
 }

@@ -1,0 +1,453 @@
+{
+  "selection": "mean of validation domain MAE, balanced domain sampling; no test-based selection",
+  "partitions": {
+    "train": {
+      "shanghai_windows": 15473,
+      "cgmacros_windows": 2153,
+      "cgmacros_subjects": [
+        3,
+        12,
+        30,
+        36,
+        38,
+        39,
+        42,
+        46,
+        47
+      ]
+    },
+    "validation": {
+      "shanghai_windows": 9442,
+      "cgmacros_windows": 2303,
+      "cgmacros_subjects": [
+        14,
+        28
+      ]
+    },
+    "test": {
+      "shanghai_windows": 30624,
+      "cgmacros_windows": 2801,
+      "cgmacros_subjects": [
+        5,
+        35,
+        49
+      ]
+    }
+  },
+  "test_metrics_by_domain": {
+    "ShanghaiT2DM": {
+      "15": {
+        "mae_mg_dl": 5.900226268168195,
+        "persistence_mae_mg_dl": 6.679349899291992
+      },
+      "30": {
+        "mae_mg_dl": 10.626041551457792,
+        "persistence_mae_mg_dl": 12.30058765411377
+      },
+      "45": {
+        "mae_mg_dl": 14.276158565338816,
+        "persistence_mae_mg_dl": 16.861186981201172
+      },
+      "60": {
+        "mae_mg_dl": 17.256333179951955,
+        "persistence_mae_mg_dl": 20.790693283081055
+      },
+      "75": {
+        "mae_mg_dl": 19.76033922080153,
+        "persistence_mae_mg_dl": 24.220827102661133
+      },
+      "90": {
+        "mae_mg_dl": 21.835337343031473,
+        "persistence_mae_mg_dl": 27.226411819458008
+      },
+      "105": {
+        "mae_mg_dl": 23.56063036519646,
+        "persistence_mae_mg_dl": 29.840303421020508
+      },
+      "120": {
+        "mae_mg_dl": 24.967667632069922,
+        "persistence_mae_mg_dl": 32.10017395019531
+      },
+      "135": {
+        "mae_mg_dl": 26.114944759771845,
+        "persistence_mae_mg_dl": 33.99516296386719
+      },
+      "150": {
+        "mae_mg_dl": 27.0073002714512,
+        "persistence_mae_mg_dl": 35.53324508666992
+      },
+      "165": {
+        "mae_mg_dl": 27.694900927015947,
+        "persistence_mae_mg_dl": 36.754642486572266
+      },
+      "180": {
+        "mae_mg_dl": 28.242248176098045,
+        "persistence_mae_mg_dl": 37.67292404174805
+      },
+      "195": {
+        "mae_mg_dl": 28.68394097423139,
+        "persistence_mae_mg_dl": 38.366966247558594
+      },
+      "210": {
+        "mae_mg_dl": 29.022130225779094,
+        "persistence_mae_mg_dl": 38.880680084228516
+      },
+      "225": {
+        "mae_mg_dl": 29.278901993739993,
+        "persistence_mae_mg_dl": 39.22006607055664
+      },
+      "240": {
+        "mae_mg_dl": 29.5043718097314,
+        "persistence_mae_mg_dl": 39.4499397277832
+      },
+      "255": {
+        "mae_mg_dl": 29.68221034506847,
+        "persistence_mae_mg_dl": 39.646785736083984
+      },
+      "270": {
+        "mae_mg_dl": 29.809113599100108,
+        "persistence_mae_mg_dl": 39.847808837890625
+      },
+      "285": {
+        "mae_mg_dl": 29.909321260246976,
+        "persistence_mae_mg_dl": 40.04694366455078
+      },
+      "300": {
+        "mae_mg_dl": 30.024331062140508,
+        "persistence_mae_mg_dl": 40.2744140625
+      },
+      "315": {
+        "mae_mg_dl": 30.1537531173114,
+        "persistence_mae_mg_dl": 40.51063537597656
+      },
+      "330": {
+        "mae_mg_dl": 30.262078785005492,
+        "persistence_mae_mg_dl": 40.747276306152344
+      },
+      "345": {
+        "mae_mg_dl": 30.377809872091074,
+        "persistence_mae_mg_dl": 40.99302673339844
+      },
+      "360": {
+        "mae_mg_dl": 30.523926100930534,
+        "persistence_mae_mg_dl": 41.331642150878906
+      }
+    },
+    "CGMacros_T2D": {
+      "15": {
+        "mae_mg_dl": 6.806501203729093,
+        "persistence_mae_mg_dl": 7.817208290100098
+      },
+      "30": {
+        "mae_mg_dl": 12.420124778863274,
+        "persistence_mae_mg_dl": 14.551945686340332
+      },
+      "45": {
+        "mae_mg_dl": 16.63883220607985,
+        "persistence_mae_mg_dl": 20.057479858398438
+      },
+      "60": {
+        "mae_mg_dl": 19.856219754199902,
+        "persistence_mae_mg_dl": 24.75223159790039
+      },
+      "75": {
+        "mae_mg_dl": 22.305705690293475,
+        "persistence_mae_mg_dl": 28.70010757446289
+      },
+      "90": {
+        "mae_mg_dl": 24.135332740468012,
+        "persistence_mae_mg_dl": 32.15708541870117
+      },
+      "105": {
+        "mae_mg_dl": 25.43847683347763,
+        "persistence_mae_mg_dl": 35.20885467529297
+      },
+      "120": {
+        "mae_mg_dl": 26.350252344675862,
+        "persistence_mae_mg_dl": 37.87040328979492
+      },
+      "135": {
+        "mae_mg_dl": 27.013572856710436,
+        "persistence_mae_mg_dl": 40.01999282836914
+      },
+      "150": {
+        "mae_mg_dl": 27.53566695932199,
+        "persistence_mae_mg_dl": 41.82649230957031
+      },
+      "165": {
+        "mae_mg_dl": 27.970883996822455,
+        "persistence_mae_mg_dl": 43.33809280395508
+      },
+      "180": {
+        "mae_mg_dl": 28.360079757673144,
+        "persistence_mae_mg_dl": 44.5687255859375
+      },
+      "195": {
+        "mae_mg_dl": 28.64980954886649,
+        "persistence_mae_mg_dl": 45.47625732421875
+      },
+      "210": {
+        "mae_mg_dl": 28.938642654789717,
+        "persistence_mae_mg_dl": 46.069976806640625
+      },
+      "225": {
+        "mae_mg_dl": 29.202610759039935,
+        "persistence_mae_mg_dl": 46.37093734741211
+      },
+      "240": {
+        "mae_mg_dl": 29.56940639317165,
+        "persistence_mae_mg_dl": 46.56979751586914
+      },
+      "255": {
+        "mae_mg_dl": 30.047109368054038,
+        "persistence_mae_mg_dl": 46.58979034423828
+      },
+      "270": {
+        "mae_mg_dl": 30.480236558449008,
+        "persistence_mae_mg_dl": 46.50160598754883
+      },
+      "285": {
+        "mae_mg_dl": 30.860079801982327,
+        "persistence_mae_mg_dl": 46.271331787109375
+      },
+      "300": {
+        "mae_mg_dl": 31.219016924445167,
+        "persistence_mae_mg_dl": 45.87076187133789
+      },
+      "315": {
+        "mae_mg_dl": 31.566261495626186,
+        "persistence_mae_mg_dl": 45.40342712402344
+      },
+      "330": {
+        "mae_mg_dl": 31.826736189045146,
+        "persistence_mae_mg_dl": 44.80364227294922
+      },
+      "345": {
+        "mae_mg_dl": 32.02467507664553,
+        "persistence_mae_mg_dl": 44.19243240356445
+      },
+      "360": {
+        "mae_mg_dl": 32.17883532221927,
+        "persistence_mae_mg_dl": 43.669761657714844
+      }
+    }
+  },
+  "warm_start_test_metrics_by_domain": {
+    "ShanghaiT2DM": {
+      "15": {
+        "mae_mg_dl": 5.96371848646634,
+        "persistence_mae_mg_dl": 6.679349899291992
+      },
+      "30": {
+        "mae_mg_dl": 10.745101036289997,
+        "persistence_mae_mg_dl": 12.30058765411377
+      },
+      "45": {
+        "mae_mg_dl": 14.470455565208633,
+        "persistence_mae_mg_dl": 16.861186981201172
+      },
+      "60": {
+        "mae_mg_dl": 17.517503538185778,
+        "persistence_mae_mg_dl": 20.790693283081055
+      },
+      "75": {
+        "mae_mg_dl": 20.06836784789305,
+        "persistence_mae_mg_dl": 24.220827102661133
+      },
+      "90": {
+        "mae_mg_dl": 22.185122820404438,
+        "persistence_mae_mg_dl": 27.226411819458008
+      },
+      "105": {
+        "mae_mg_dl": 23.93992120404247,
+        "persistence_mae_mg_dl": 29.840303421020508
+      },
+      "120": {
+        "mae_mg_dl": 25.352007093528165,
+        "persistence_mae_mg_dl": 32.10017395019531
+      },
+      "135": {
+        "mae_mg_dl": 26.476077768371848,
+        "persistence_mae_mg_dl": 33.99516296386719
+      },
+      "150": {
+        "mae_mg_dl": 27.35938808151712,
+        "persistence_mae_mg_dl": 35.53324508666992
+      },
+      "165": {
+        "mae_mg_dl": 28.03489965287159,
+        "persistence_mae_mg_dl": 36.754642486572266
+      },
+      "180": {
+        "mae_mg_dl": 28.566329965888276,
+        "persistence_mae_mg_dl": 37.67292404174805
+      },
+      "195": {
+        "mae_mg_dl": 28.98371453265517,
+        "persistence_mae_mg_dl": 38.366966247558594
+      },
+      "210": {
+        "mae_mg_dl": 29.2858827563486,
+        "persistence_mae_mg_dl": 38.880680084228516
+      },
+      "225": {
+        "mae_mg_dl": 29.505438573037296,
+        "persistence_mae_mg_dl": 39.22006607055664
+      },
+      "240": {
+        "mae_mg_dl": 29.6887118965346,
+        "persistence_mae_mg_dl": 39.4499397277832
+      },
+      "255": {
+        "mae_mg_dl": 29.826245241035803,
+        "persistence_mae_mg_dl": 39.646785736083984
+      },
+      "270": {
+        "mae_mg_dl": 29.93054115034339,
+        "persistence_mae_mg_dl": 39.847808837890625
+      },
+      "285": {
+        "mae_mg_dl": 30.024581980741825,
+        "persistence_mae_mg_dl": 40.04694366455078
+      },
+      "300": {
+        "mae_mg_dl": 30.127373650046874,
+        "persistence_mae_mg_dl": 40.2744140625
+      },
+      "315": {
+        "mae_mg_dl": 30.246594918206334,
+        "persistence_mae_mg_dl": 40.51063537597656
+      },
+      "330": {
+        "mae_mg_dl": 30.361882891325166,
+        "persistence_mae_mg_dl": 40.747276306152344
+      },
+      "345": {
+        "mae_mg_dl": 30.470654640171336,
+        "persistence_mae_mg_dl": 40.99302673339844
+      },
+      "360": {
+        "mae_mg_dl": 30.59351811175677,
+        "persistence_mae_mg_dl": 41.331642150878906
+      }
+    },
+    "CGMacros_T2D": {
+      "15": {
+        "mae_mg_dl": 7.036676571773048,
+        "persistence_mae_mg_dl": 7.817208290100098
+      },
+      "30": {
+        "mae_mg_dl": 12.866703638388882,
+        "persistence_mae_mg_dl": 14.551945686340332
+      },
+      "45": {
+        "mae_mg_dl": 17.36251364300342,
+        "persistence_mae_mg_dl": 20.057479858398438
+      },
+      "60": {
+        "mae_mg_dl": 20.895257482291722,
+        "persistence_mae_mg_dl": 24.75223159790039
+      },
+      "75": {
+        "mae_mg_dl": 23.726689155732775,
+        "persistence_mae_mg_dl": 28.70010757446289
+      },
+      "90": {
+        "mae_mg_dl": 25.96330252092465,
+        "persistence_mae_mg_dl": 32.15708541870117
+      },
+      "105": {
+        "mae_mg_dl": 27.666451687468722,
+        "persistence_mae_mg_dl": 35.20885467529297
+      },
+      "120": {
+        "mae_mg_dl": 28.97674189566397,
+        "persistence_mae_mg_dl": 37.87040328979492
+      },
+      "135": {
+        "mae_mg_dl": 30.040994326256246,
+        "persistence_mae_mg_dl": 40.01999282836914
+      },
+      "150": {
+        "mae_mg_dl": 30.895505121365293,
+        "persistence_mae_mg_dl": 41.82649230957031
+      },
+      "165": {
+        "mae_mg_dl": 31.676511508555787,
+        "persistence_mae_mg_dl": 43.33809280395508
+      },
+      "180": {
+        "mae_mg_dl": 32.3208396418632,
+        "persistence_mae_mg_dl": 44.5687255859375
+      },
+      "195": {
+        "mae_mg_dl": 32.88847987438544,
+        "persistence_mae_mg_dl": 45.47625732421875
+      },
+      "210": {
+        "mae_mg_dl": 33.45244398127876,
+        "persistence_mae_mg_dl": 46.069976806640625
+      },
+      "225": {
+        "mae_mg_dl": 33.95563547609273,
+        "persistence_mae_mg_dl": 46.37093734741211
+      },
+      "240": {
+        "mae_mg_dl": 34.32446970857094,
+        "persistence_mae_mg_dl": 46.56979751586914
+      },
+      "255": {
+        "mae_mg_dl": 34.646170812135786,
+        "persistence_mae_mg_dl": 46.58979034423828
+      },
+      "270": {
+        "mae_mg_dl": 34.89185342088022,
+        "persistence_mae_mg_dl": 46.50160598754883
+      },
+      "285": {
+        "mae_mg_dl": 35.1242852901648,
+        "persistence_mae_mg_dl": 46.271331787109375
+      },
+      "300": {
+        "mae_mg_dl": 35.26821468949334,
+        "persistence_mae_mg_dl": 45.87076187133789
+      },
+      "315": {
+        "mae_mg_dl": 35.436578291350315,
+        "persistence_mae_mg_dl": 45.40342712402344
+      },
+      "330": {
+        "mae_mg_dl": 35.651747377958735,
+        "persistence_mae_mg_dl": 44.80364227294922
+      },
+      "345": {
+        "mae_mg_dl": 35.86170848151754,
+        "persistence_mae_mg_dl": 44.19243240356445
+      },
+      "360": {
+        "mae_mg_dl": 36.023694422639544,
+        "persistence_mae_mg_dl": 43.669761657714844
+      }
+    }
+  },
+  "checkpoint_sha256": "19e1d6677890d84d316a66a06726b42334fabb379217fb4d5aa688997d96ea5b",
+  "arguments": {
+    "archive": ".model-data/diabetes_datasets.zip",
+    "nutrients": ".model-data/usda-sr-legacy.zip",
+    "cgmacros": "data/raw/CGMacros/research",
+    "checkpoint": "models/evaluation/conditional_6h_20261116/ShanghaiT2DM/gru_future_event_decoder/checkpoint.pt",
+    "output": "models/evaluation/integrated_v3_20261116",
+    "epochs": 35,
+    "patience": 7,
+    "seed": 20261116
+  },
+  "best_epoch": 1,
+  "warm_start_checkpoint_sha256": "4687aec0a72c08f93707a28c729c9c5a8bf1955ca0098cc694e31c197b1f7462",
+  "limitations": [
+    "CGMacros activity names unavailable: model learns MET intensity, not named sport effects.",
+    "Shanghai lacks activity/macros and CGMacros lacks administered insulin; no observed joint insulin/activity labels.",
+    "Retrospective recorded-future-event evaluation, not causal or clinical validation.",
+    "Shanghai split may repeat patients across whole calendar-separated sessions; see split manifest.",
+    "CGMacros T2D-group participant-disjoint; native-grid phase exclusions retained."
+  ]
+}

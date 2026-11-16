@@ -66,3 +66,4 @@ models/weights/*.tmp
 # Current six-hour model checkpoints
 !models/evaluation/conditional_6h_20261116/**/checkpoint.pt
 !models/evaluation/cgmacros_6h_20261116/macros_activity.pt
+!models/evaluation/integrated_v3_20261116/checkpoint.pt

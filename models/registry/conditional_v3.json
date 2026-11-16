@@ -1,5 +1,5 @@
 {
-  "version": "conditional-v3-6h-20261116",
+  "version": "conditional-v3-integrated-20261116",
   "horizons_minutes": [
     15,
     30,
@@ -200,182 +200,113 @@
           "persistence_rmse_mg_dl": 84.14692285613484,
           "mae_improvement_pct": -0.5005759154503052
         }
-      }
+      },
+      "version": "conditional-v3-6h-20261116"
     },
     {
       "cohort": "ShanghaiT2DM",
-      "checkpoint": "models/evaluation/conditional_6h_20261116/ShanghaiT2DM/gru_future_event_decoder/checkpoint.pt",
-      "checkpoint_sha256": "4687aec0a72c08f93707a28c729c9c5a8bf1955ca0098cc694e31c197b1f7462",
+      "checkpoint": "models/evaluation/integrated_v3_20261116/checkpoint.pt",
+      "checkpoint_sha256": "19e1d6677890d84d316a66a06726b42334fabb379217fb4d5aa688997d96ea5b",
       "test_metrics": {
         "15": {
-          "mae_mg_dl": 5.963718471357691,
-          "rmse_mg_dl": 8.629572134235332,
-          "persistence_mae_mg_dl": 6.679349563213974,
-          "persistence_rmse_mg_dl": 9.868026982525006,
-          "mae_improvement_pct": 10.714083535881535
+          "mae_mg_dl": 5.900226268168195,
+          "persistence_mae_mg_dl": 6.679349899291992
         },
         "30": {
-          "mae_mg_dl": 10.745101061858852,
-          "rmse_mg_dl": 15.633111202796774,
-          "persistence_mae_mg_dl": 12.300587794250081,
-          "persistence_rmse_mg_dl": 18.186888413882155,
-          "mae_improvement_pct": 12.645629285442295
+          "mae_mg_dl": 10.626041551457792,
+          "persistence_mae_mg_dl": 12.30058765411377
         },
         "45": {
-          "mae_mg_dl": 14.470455596252668,
-          "rmse_mg_dl": 20.988719522290186,
-          "persistence_mae_mg_dl": 16.86118733309902,
-          "persistence_rmse_mg_dl": 24.903879774732758,
-          "mae_improvement_pct": 14.178905017876616
+          "mae_mg_dl": 14.276158565338816,
+          "persistence_mae_mg_dl": 16.861186981201172
         },
         "60": {
-          "mae_mg_dl": 17.517503591976446,
-          "rmse_mg_dl": 25.25214729899356,
-          "persistence_mae_mg_dl": 20.790693600847927,
-          "persistence_rmse_mg_dl": 30.508736466249953,
-          "mae_improvement_pct": 15.74353444724897
+          "mae_mg_dl": 17.256333179951955,
+          "persistence_mae_mg_dl": 20.790693283081055
         },
         "75": {
-          "mae_mg_dl": 20.068367812327082,
-          "rmse_mg_dl": 28.736510302384396,
-          "persistence_mae_mg_dl": 24.220826827869395,
-          "persistence_rmse_mg_dl": 35.28274262271587,
-          "mae_improvement_pct": 17.144167063546888
+          "mae_mg_dl": 19.76033922080153,
+          "persistence_mae_mg_dl": 24.220827102661133
         },
         "90": {
-          "mae_mg_dl": 22.18512278029164,
-          "rmse_mg_dl": 31.575298487063773,
-          "persistence_mae_mg_dl": 27.226410670963077,
-          "persistence_rmse_mg_dl": 39.34781130357573,
-          "mae_improvement_pct": 18.516167818066315
+          "mae_mg_dl": 21.835337343031473,
+          "persistence_mae_mg_dl": 27.226411819458008
         },
         "105": {
-          "mae_mg_dl": 23.939921186884618,
-          "rmse_mg_dl": 33.87093988881227,
-          "persistence_mae_mg_dl": 29.84030176130831,
-          "persistence_rmse_mg_dl": 42.78458803056125,
-          "mae_improvement_pct": 19.77319338665092
+          "mae_mg_dl": 23.56063036519646,
+          "persistence_mae_mg_dl": 29.840303421020508
         },
         "120": {
-          "mae_mg_dl": 25.352007021475487,
-          "rmse_mg_dl": 35.72158436357668,
-          "persistence_mae_mg_dl": 32.10017637611058,
-          "persistence_rmse_mg_dl": 45.65762469628853,
-          "mae_improvement_pct": 21.02221892979124
+          "mae_mg_dl": 24.967667632069922,
+          "persistence_mae_mg_dl": 32.10017395019531
         },
         "135": {
-          "mae_mg_dl": 26.47607777024013,
-          "rmse_mg_dl": 37.2003644133134,
-          "persistence_mae_mg_dl": 33.99516069951351,
-          "persistence_rmse_mg_dl": 48.02477973407501,
-          "mae_improvement_pct": 22.118097913215582
+          "mae_mg_dl": 26.114944759771845,
+          "persistence_mae_mg_dl": 33.99516296386719
         },
         "150": {
-          "mae_mg_dl": 27.3593880755276,
-          "rmse_mg_dl": 38.35645885704803,
-          "persistence_mae_mg_dl": 35.53324847410714,
-          "persistence_rmse_mg_dl": 49.93253851517756,
-          "mae_improvement_pct": 23.003414406469986
+          "mae_mg_dl": 27.0073002714512,
+          "persistence_mae_mg_dl": 35.53324508666992
         },
         "165": {
-          "mae_mg_dl": 28.03489969616275,
-          "rmse_mg_dl": 39.24111043707851,
-          "persistence_mae_mg_dl": 36.754643455692715,
-          "persistence_rmse_mg_dl": 51.42341516046692,
-          "mae_improvement_pct": 23.724196291120364
+          "mae_mg_dl": 27.694900927015947,
+          "persistence_mae_mg_dl": 36.754642486572266
         },
         "180": {
-          "mae_mg_dl": 28.566329952442285,
-          "rmse_mg_dl": 39.927217605399164,
-          "persistence_mae_mg_dl": 37.672923224473074,
-          "persistence_rmse_mg_dl": 52.56060456323474,
-          "mae_improvement_pct": 24.172781118601826
+          "mae_mg_dl": 28.242248176098045,
+          "persistence_mae_mg_dl": 37.67292404174805
         },
         "195": {
-          "mae_mg_dl": 28.98371456546345,
-          "rmse_mg_dl": 40.454832352170946,
-          "persistence_mae_mg_dl": 38.366967123877664,
-          "persistence_rmse_mg_dl": 53.412141156243344,
-          "mae_improvement_pct": 24.456591859653535
+          "mae_mg_dl": 28.68394097423139,
+          "persistence_mae_mg_dl": 38.366966247558594
         },
         "210": {
-          "mae_mg_dl": 29.28588272293284,
-          "rmse_mg_dl": 40.840111778275286,
-          "persistence_mae_mg_dl": 38.880681860035864,
-          "persistence_rmse_mg_dl": 54.023938696593135,
-          "mae_improvement_pct": 24.677548535909793
+          "mae_mg_dl": 29.022130225779094,
+          "persistence_mae_mg_dl": 38.880680084228516
         },
         "225": {
-          "mae_mg_dl": 29.505438555370677,
-          "rmse_mg_dl": 41.1157847381266,
-          "persistence_mae_mg_dl": 39.22006273070348,
-          "persistence_rmse_mg_dl": 54.44277137783957,
-          "mae_improvement_pct": 24.76952737693532
+          "mae_mg_dl": 29.278901993739993,
+          "persistence_mae_mg_dl": 39.22006607055664
         },
         "240": {
-          "mae_mg_dl": 29.688711950335506,
-          "rmse_mg_dl": 41.34110700374838,
-          "persistence_mae_mg_dl": 39.44994125109606,
-          "persistence_rmse_mg_dl": 54.73648920761827,
-          "mae_improvement_pct": 24.743330385794554
+          "mae_mg_dl": 29.5043718097314,
+          "persistence_mae_mg_dl": 39.4499397277832
         },
         "255": {
-          "mae_mg_dl": 29.826245241092913,
-          "rmse_mg_dl": 41.525735193380356,
-          "persistence_mae_mg_dl": 39.64678685667622,
-          "persistence_rmse_mg_dl": 54.968978730761364,
-          "mae_improvement_pct": 24.770082002066715
+          "mae_mg_dl": 29.68221034506847,
+          "persistence_mae_mg_dl": 39.646785736083984
         },
         "270": {
-          "mae_mg_dl": 29.93054122311942,
-          "rmse_mg_dl": 41.669539745489814,
-          "persistence_mae_mg_dl": 39.84780567280302,
-          "persistence_rmse_mg_dl": 55.1797922134855,
-          "mae_improvement_pct": 24.887855886258613
+          "mae_mg_dl": 29.809113599100108,
+          "persistence_mae_mg_dl": 39.847808837890625
         },
         "285": {
-          "mae_mg_dl": 30.024582037046287,
-          "rmse_mg_dl": 41.79077451587126,
-          "persistence_mae_mg_dl": 40.04694357847595,
-          "persistence_rmse_mg_dl": 55.382959082134285,
-          "mae_improvement_pct": 25.026532978203072
+          "mae_mg_dl": 29.909321260246976,
+          "persistence_mae_mg_dl": 40.04694366455078
         },
         "300": {
-          "mae_mg_dl": 30.12737368086164,
-          "rmse_mg_dl": 41.93807156681904,
-          "persistence_mae_mg_dl": 40.274412236990976,
-          "persistence_rmse_mg_dl": 55.600651990925584,
-          "mae_improvement_pct": 25.19475267924469
+          "mae_mg_dl": 30.024331062140508,
+          "persistence_mae_mg_dl": 40.2744140625
         },
         "315": {
-          "mae_mg_dl": 30.24659493051726,
-          "rmse_mg_dl": 42.101371181610375,
-          "persistence_mae_mg_dl": 40.510638724673875,
-          "persistence_rmse_mg_dl": 55.8424751931357,
-          "mae_improvement_pct": 25.33666246023684
+          "mae_mg_dl": 30.1537531173114,
+          "persistence_mae_mg_dl": 40.51063537597656
         },
         "330": {
-          "mae_mg_dl": 30.36188298781464,
-          "rmse_mg_dl": 42.257351225706046,
-          "persistence_mae_mg_dl": 40.747276654562356,
-          "persistence_rmse_mg_dl": 56.09998712867686,
-          "mae_improvement_pct": 25.48733196279731
+          "mae_mg_dl": 30.262078785005492,
+          "persistence_mae_mg_dl": 40.747276306152344
         },
         "345": {
-          "mae_mg_dl": 30.4706547091498,
-          "rmse_mg_dl": 42.41680468044938,
-          "persistence_mae_mg_dl": 40.99302508788672,
-          "persistence_rmse_mg_dl": 56.38024671516541,
-          "mae_improvement_pct": 25.668684748631147
+          "mae_mg_dl": 30.377809872091074,
+          "persistence_mae_mg_dl": 40.99302673339844
         },
         "360": {
-          "mae_mg_dl": 30.593518155869273,
-          "rmse_mg_dl": 42.6094093812821,
-          "persistence_mae_mg_dl": 41.33164188443306,
-          "persistence_rmse_mg_dl": 56.70291362285367,
-          "mae_improvement_pct": 25.980394774997173
+          "mae_mg_dl": 30.523926100930534,
+          "persistence_mae_mg_dl": 41.331642150878906
         }
-      }
+      },
+      "version": "conditional-v3-integrated-20261116",
+      "architecture": "integrated-conditional-v3-gru"
     }
   ]
 }

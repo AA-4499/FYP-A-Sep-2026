@@ -14,7 +14,7 @@ const models=Object.fromEntries(['ShanghaiT1DM','ShanghaiT2DM'].map(c=>[c,valida
 const manifest=read('../src/lib/conditionalManifest.json');
 for(const cohort of Object.keys(models))test(`${cohort}: exact saved checkpoint and asset identity; no patient metadata in public weights`,()=>{
  const bytes=readFileSync(new URL(`../public/conditional-models/${cohort}.json`,import.meta.url));
- assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.models[cohort].artifact_sha256);
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),(manifest.legacy_models?.[cohort]??manifest.models[cohort]).artifact_sha256);
  assert.equal(bytes.includes(Buffer.from('\r\n')),false,'hashed deployment assets use canonical LF bytes');
  const checkpoint=readFileSync(new URL(`../../../models/evaluation/conditional_6h_20261116/${cohort}/gru_future_event_decoder/checkpoint.pt`,import.meta.url));
  assert.equal(createHash('sha256').update(checkpoint).digest('hex'),models[cohort].checkpoint_sha256);

@@ -19,6 +19,7 @@ export interface ScenarioDraft {
   fat?: string;
   fiber?: string;
   met?: string;
+  activityId?: string;
 }
 // USDA SR28 NDB 20045: 28.17 g carbohydrate by difference and 0.4 g fibre / 100 g.
 // Subtracting fibre is an explicit approximate available-carbohydrate convention.
@@ -51,10 +52,10 @@ export function compileScenario(
   drafts: ScenarioDraft[],
   start: string,
   hours: number,
-  engine: 'physiology' | 'conditional' | 'auxiliary' = 'physiology',
+  engine: 'physiology' | 'conditional' | 'auxiliary' | 'integrated' = 'physiology',
 ) {
   const origin = recordTime(start);
-  if (!Number.isFinite(origin) || !(engine === 'auxiliary' ? hours===6 : engine === 'conditional' ? [4,6].includes(hours) : engine === 'physiology' && [6, 12].includes(hours)))
+  if (!Number.isFinite(origin) || !(['auxiliary','integrated'].includes(engine) ? hours===6 : engine === 'conditional' ? [4,6].includes(hours) : engine === 'physiology' && [6, 12].includes(hours)))
     throw new Error(
       engine === 'conditional' ? 'A valid record time and four-hour model window are required.' : "A valid record time and 6- or 12-hour horizon are required.",
     );
@@ -71,6 +72,8 @@ export function compileScenario(
         throw new Error(`${label}: this trained model supports meal carbohydrate and rapid/regular bolus events only.`);
       if (engine === 'auxiliary' && !['meal','activity'].includes(draft.kind))
         throw new Error(`${label}: auxiliary prediction supports meal nutrition and activity only. Use the main model for insulin.`);
+      if (engine === 'integrated' && !['meal','insulin','activity'].includes(draft.kind))
+        throw Error(`${label}: this v3 checkpoint supports meals, boluses and physical activity.`);
       if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(draft.at))
         throw new Error(`${label}: enter a date and clock time.`);
       const at = recordTime(draft.at);
@@ -78,7 +81,7 @@ export function compileScenario(
         throw new Error(`${label}: enter a valid calendar date and time.`);
       // Compare rounded minute boundaries, not fractional minutes in a recorded seed.
       const minute = (at - Math.floor(origin / 60000) * 60000) / 60000;
-      if (!Number.isInteger(minute) || minute < 1 || (engine==='auxiliary' ? minute > hours*60 : minute >= hours * 60))
+      if (!Number.isInteger(minute) || minute < 1 || (['auxiliary','integrated'].includes(engine) ? minute > hours*60 : minute >= hours * 60))
         throw new Error(
           `${label}: choose a time after the seed observation and inside the ${hours}-hour window.`,
         );
@@ -92,7 +95,8 @@ export function compileScenario(
         (!draft.amount.trim() || !Number.isFinite(amount) || amount <= 0)
       )
         throw new Error(`${label}: enter a positive amount.`);
-      if(engine==='auxiliary') {
+      const hasMacros=[draft.protein,draft.fat,draft.fiber].some(v=>typeof v==='string'&&v.trim()!=='');
+      if(engine==='auxiliary'||(engine==='integrated'&&((draft.kind==='meal'&&hasMacros)||draft.kind==='activity'))) {
         if(draft.kind==='meal') {
           const fields=[draft.carbohydrate,draft.protein,draft.fat,draft.fiber];
           const [carbs,protein,fat,fiber]=fields.map(Number);
@@ -102,17 +106,20 @@ export function compileScenario(
           if(draft.carbohydrateSource==='usda-cooked-white-rice'&&carbs!==cookedRiceCarbohydrate(amount,'total'))throw Error(`${label}: the cooked-rice reference no longer matches this portion.`);
         } else {
           const met=Number(draft.met);
-          if(!draft.met?.trim()||!Number.isFinite(met)||met<1||met>8||minute%15!==0||!Number.isInteger(amount)||amount<15||amount>120||amount%15!==0||minute+amount>hours*60)
+          if(engine==='integrated') {
+            if(!draft.activityId||!draft.met?.trim()||!Number.isFinite(met)||met<1||met>8||!Number.isInteger(amount)||amount<1||amount>120||minute+amount>hours*60)
+              throw Error(`${label}: choose an activity and 1-120 whole minutes, ending within six hours.`);
+          } else if(!draft.met?.trim()||!Number.isFinite(met)||met<1||met>8||minute%15!==0||!Number.isInteger(amount)||amount<15||amount>120||amount%15!==0||minute+amount>hours*60)
             throw Error(`${label}: activity needs a 15-minute start/duration grid, duration 15–120 minutes and MET 1–8, finishing within six hours.`);
         }
       } else if (draft.kind === "meal") {
         const carbohydrate = Number(draft.carbohydrate);
-        if (draft.carbohydrateSource === "food-composition" && carbohydrate !== foodCarbohydrate(draft.foodReference, amount, engine))
+        if (draft.carbohydrateSource === "food-composition" && carbohydrate !== foodCarbohydrate(draft.foodReference, amount, engine==='integrated'?'conditional':engine))
           throw new Error(`${label}: the food reference no longer matches this portion or model. Re-select the food or use manual entry.`);
         const absorptionMinutes = Number(draft.absorption);
         if (
           draft.carbohydrateSource === "usda-cooked-white-rice" &&
-          carbohydrate !== cookedRiceCarbohydrate(amount, engine === 'conditional' ? 'total' : 'available')
+          carbohydrate !== cookedRiceCarbohydrate(amount, engine !== 'physiology' ? 'total' : 'available')
         )
           throw new Error(
             `${label}: the cooked-rice estimate no longer matches the portion. Re-select the reference or choose manual entry.`,
@@ -121,13 +128,13 @@ export function compileScenario(
           !draft.carbohydrate.trim() ||
           !Number.isFinite(carbohydrate) ||
           carbohydrate <= 0 ||
-          carbohydrate > (engine === 'conditional' ? 150 : 200) ||
+          carbohydrate > (engine !== 'physiology' ? 150 : 200) ||
           carbohydrate > amount ||
           amount > 2000 ||
           (engine === 'physiology' && ![25, 45, 75].includes(absorptionMinutes))
         )
           throw new Error(
-            engine === 'conditional' ? `${label}: enter food mass up to 2,000 g and total carbohydrate up to 150 g, no greater than food mass.` : `${label}: enter food mass up to 2,000 g and available carbohydrate up to 200 g (no greater than food mass), and select absorption speed.`,
+            engine !== 'physiology' ? `${label}: enter food mass up to 2,000 g and total carbohydrate up to 150 g, no greater than food mass.` : `${label}: enter food mass up to 2,000 g and available carbohydrate up to 200 g (no greater than food mass), and select absorption speed.`,
           );
         events.push({
           kind: "carbohydrate",
@@ -136,7 +143,7 @@ export function compileScenario(
           absorptionMinutes,
         });
       } else if (draft.kind === "insulin") {
-        if (engine === 'conditional' && !['rapid','regular'].includes(draft.insulinFormulation ?? ''))
+        if (['conditional','integrated'].includes(engine) && !['rapid','regular'].includes(draft.insulinFormulation ?? ''))
           throw new Error(`${label}: specify rapid or regular insulin; do not infer its action from a medicine name.`);
         if (amount > 20)
           throw new Error(

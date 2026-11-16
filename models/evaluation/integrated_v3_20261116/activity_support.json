@@ -1,0 +1,28 @@
+{
+  "source": "CGMacros training participants, observed 15-minute mean Fitbit METs / 10",
+  "activity_type_labels_available": false,
+  "min_met": 1.0,
+  "max_met": 7.739999771118164,
+  "known_activity_bins_in_overlapping_train_windows": 34356,
+  "histogram": [
+    27012,
+    4855,
+    1525,
+    428,
+    274,
+    220,
+    42,
+    0
+  ],
+  "histogram_edges": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    18.01
+  ]
+}

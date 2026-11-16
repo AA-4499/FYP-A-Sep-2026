@@ -1,0 +1,250 @@
+{
+  "version": "conditional-v3-integrated-20261116",
+  "checkpoint": "models/evaluation/integrated_v3_20261116/checkpoint.pt",
+  "checkpoint_sha256": "19e1d6677890d84d316a66a06726b42334fabb379217fb4d5aa688997d96ea5b",
+  "cohort": "ShanghaiT2DM",
+  "architecture": "integrated-conditional-v3-gru",
+  "single_model": true,
+  "history_features": [
+    "glucose_mg_dl",
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "recorded_complete_meal_carb_0_1h_g",
+    "recorded_complete_meal_carb_1_3h_g",
+    "recorded_complete_meal_carb_3_6h_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete",
+    "insulin_source_available"
+  ],
+  "future_features": [
+    "hour_sin",
+    "hour_cos",
+    "reference_complete_meal_carb_g",
+    "meal_description_present",
+    "meal_conversion_unresolved",
+    "meal_explicit_unavailable",
+    "modeled_bolus_iob_units",
+    "modeled_bolus_annotation_present",
+    "excluded_insulin_annotation_8h",
+    "iob_session_warmup_incomplete",
+    "protein_g",
+    "fat_g",
+    "fiber_g",
+    "macros_known",
+    "met",
+    "activity_known",
+    "insulin_source_available"
+  ],
+  "test_metrics_by_domain": {
+    "ShanghaiT2DM": {
+      "15": {
+        "mae_mg_dl": 5.900226268168195,
+        "persistence_mae_mg_dl": 6.679349899291992
+      },
+      "30": {
+        "mae_mg_dl": 10.626041551457792,
+        "persistence_mae_mg_dl": 12.30058765411377
+      },
+      "45": {
+        "mae_mg_dl": 14.276158565338816,
+        "persistence_mae_mg_dl": 16.861186981201172
+      },
+      "60": {
+        "mae_mg_dl": 17.256333179951955,
+        "persistence_mae_mg_dl": 20.790693283081055
+      },
+      "75": {
+        "mae_mg_dl": 19.76033922080153,
+        "persistence_mae_mg_dl": 24.220827102661133
+      },
+      "90": {
+        "mae_mg_dl": 21.835337343031473,
+        "persistence_mae_mg_dl": 27.226411819458008
+      },
+      "105": {
+        "mae_mg_dl": 23.56063036519646,
+        "persistence_mae_mg_dl": 29.840303421020508
+      },
+      "120": {
+        "mae_mg_dl": 24.967667632069922,
+        "persistence_mae_mg_dl": 32.10017395019531
+      },
+      "135": {
+        "mae_mg_dl": 26.114944759771845,
+        "persistence_mae_mg_dl": 33.99516296386719
+      },
+      "150": {
+        "mae_mg_dl": 27.0073002714512,
+        "persistence_mae_mg_dl": 35.53324508666992
+      },
+      "165": {
+        "mae_mg_dl": 27.694900927015947,
+        "persistence_mae_mg_dl": 36.754642486572266
+      },
+      "180": {
+        "mae_mg_dl": 28.242248176098045,
+        "persistence_mae_mg_dl": 37.67292404174805
+      },
+      "195": {
+        "mae_mg_dl": 28.68394097423139,
+        "persistence_mae_mg_dl": 38.366966247558594
+      },
+      "210": {
+        "mae_mg_dl": 29.022130225779094,
+        "persistence_mae_mg_dl": 38.880680084228516
+      },
+      "225": {
+        "mae_mg_dl": 29.278901993739993,
+        "persistence_mae_mg_dl": 39.22006607055664
+      },
+      "240": {
+        "mae_mg_dl": 29.5043718097314,
+        "persistence_mae_mg_dl": 39.4499397277832
+      },
+      "255": {
+        "mae_mg_dl": 29.68221034506847,
+        "persistence_mae_mg_dl": 39.646785736083984
+      },
+      "270": {
+        "mae_mg_dl": 29.809113599100108,
+        "persistence_mae_mg_dl": 39.847808837890625
+      },
+      "285": {
+        "mae_mg_dl": 29.909321260246976,
+        "persistence_mae_mg_dl": 40.04694366455078
+      },
+      "300": {
+        "mae_mg_dl": 30.024331062140508,
+        "persistence_mae_mg_dl": 40.2744140625
+      },
+      "315": {
+        "mae_mg_dl": 30.1537531173114,
+        "persistence_mae_mg_dl": 40.51063537597656
+      },
+      "330": {
+        "mae_mg_dl": 30.262078785005492,
+        "persistence_mae_mg_dl": 40.747276306152344
+      },
+      "345": {
+        "mae_mg_dl": 30.377809872091074,
+        "persistence_mae_mg_dl": 40.99302673339844
+      },
+      "360": {
+        "mae_mg_dl": 30.523926100930534,
+        "persistence_mae_mg_dl": 41.331642150878906
+      }
+    },
+    "CGMacros_T2D": {
+      "15": {
+        "mae_mg_dl": 6.806501203729093,
+        "persistence_mae_mg_dl": 7.817208290100098
+      },
+      "30": {
+        "mae_mg_dl": 12.420124778863274,
+        "persistence_mae_mg_dl": 14.551945686340332
+      },
+      "45": {
+        "mae_mg_dl": 16.63883220607985,
+        "persistence_mae_mg_dl": 20.057479858398438
+      },
+      "60": {
+        "mae_mg_dl": 19.856219754199902,
+        "persistence_mae_mg_dl": 24.75223159790039
+      },
+      "75": {
+        "mae_mg_dl": 22.305705690293475,
+        "persistence_mae_mg_dl": 28.70010757446289
+      },
+      "90": {
+        "mae_mg_dl": 24.135332740468012,
+        "persistence_mae_mg_dl": 32.15708541870117
+      },
+      "105": {
+        "mae_mg_dl": 25.43847683347763,
+        "persistence_mae_mg_dl": 35.20885467529297
+      },
+      "120": {
+        "mae_mg_dl": 26.350252344675862,
+        "persistence_mae_mg_dl": 37.87040328979492
+      },
+      "135": {
+        "mae_mg_dl": 27.013572856710436,
+        "persistence_mae_mg_dl": 40.01999282836914
+      },
+      "150": {
+        "mae_mg_dl": 27.53566695932199,
+        "persistence_mae_mg_dl": 41.82649230957031
+      },
+      "165": {
+        "mae_mg_dl": 27.970883996822455,
+        "persistence_mae_mg_dl": 43.33809280395508
+      },
+      "180": {
+        "mae_mg_dl": 28.360079757673144,
+        "persistence_mae_mg_dl": 44.5687255859375
+      },
+      "195": {
+        "mae_mg_dl": 28.64980954886649,
+        "persistence_mae_mg_dl": 45.47625732421875
+      },
+      "210": {
+        "mae_mg_dl": 28.938642654789717,
+        "persistence_mae_mg_dl": 46.069976806640625
+      },
+      "225": {
+        "mae_mg_dl": 29.202610759039935,
+        "persistence_mae_mg_dl": 46.37093734741211
+      },
+      "240": {
+        "mae_mg_dl": 29.56940639317165,
+        "persistence_mae_mg_dl": 46.56979751586914
+      },
+      "255": {
+        "mae_mg_dl": 30.047109368054038,
+        "persistence_mae_mg_dl": 46.58979034423828
+      },
+      "270": {
+        "mae_mg_dl": 30.480236558449008,
+        "persistence_mae_mg_dl": 46.50160598754883
+      },
+      "285": {
+        "mae_mg_dl": 30.860079801982327,
+        "persistence_mae_mg_dl": 46.271331787109375
+      },
+      "300": {
+        "mae_mg_dl": 31.219016924445167,
+        "persistence_mae_mg_dl": 45.87076187133789
+      },
+      "315": {
+        "mae_mg_dl": 31.566261495626186,
+        "persistence_mae_mg_dl": 45.40342712402344
+      },
+      "330": {
+        "mae_mg_dl": 31.826736189045146,
+        "persistence_mae_mg_dl": 44.80364227294922
+      },
+      "345": {
+        "mae_mg_dl": 32.02467507664553,
+        "persistence_mae_mg_dl": 44.19243240356445
+      },
+      "360": {
+        "mae_mg_dl": 32.17883532221927,
+        "persistence_mae_mg_dl": 43.669761657714844
+      }
+    }
+  },
+  "activity_name_source": "2024 Adult Compendium of Physical Activities; reference MET presets, not observed sport labels",
+  "limitations": [
+    "CGMacros activity names unavailable: model learns MET intensity, not named sport effects.",
+    "Shanghai lacks activity/macros and CGMacros lacks administered insulin; no observed joint insulin/activity labels.",
+    "Retrospective recorded-future-event evaluation, not causal or clinical validation.",
+    "Shanghai split may repeat patients across whole calendar-separated sessions; see split manifest.",
+    "CGMacros T2D-group participant-disjoint; native-grid phase exclusions retained."
+  ]
+}

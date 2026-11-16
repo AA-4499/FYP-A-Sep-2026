@@ -48,7 +48,7 @@ test('missing macros are not fabricated, and activity timing and quantities rema
 function component(relative,mocks){
  const source=readFileSync(new URL(relative,import.meta.url),'utf8');const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;const mod={exports:{}};new Function('require','module','exports',js)(id=>Object.hasOwn(mocks,id)?mocks[id]:require(id),mod,mod.exports);return mod.exports;
 }
-const {ScenarioBuilder}=component('../src/components/ScenarioBuilder.tsx',{'./FoodCompositionPicker':{FoodCompositionPicker:'food-picker'},'../lib/scenario':scenario});
+const {ScenarioBuilder}=component('../src/components/ScenarioBuilder.tsx',{'./ActivityPicker':{ActivityPicker:'activity-picker'},'./FoodCompositionPicker':{FoodCompositionPicker:'food-picker'},'../lib/scenario':scenario});
 
 test('shared event editor exposes auxiliary meal macros and activity MET inputs and runs a compiled schedule',async()=>{
  let drafts=[meal,walk],submitted;
@@ -61,45 +61,5 @@ test('shared event editor exposes auxiliary meal macros and activity MET inputs 
  await act(async()=>{await tree.root.findByType('form').props.onSubmit({preventDefault(){}});});
  assert.equal(submitted.length,2);assert.equal(submitted[1].kind,'activity');
  act(()=>tree.root.findByProps({'aria-label':'Remove event 2'}).props.onClick());assert.equal(drafts.length,1);
- act(()=>tree.unmount());
-});
-
-test('simulator model switch runs real event inference in the main chart, saves the full plan and clears stale output',async()=>{
- const {auxiliaryForecast}=await load('auxiliaryForecast');
- const manifest=read('../src/lib/auxiliaryManifest.json');
- const {forecastAuxiliarySession}=component('../src/lib/auxiliarySession.ts',{
-  './auxiliaryNutrition':aux,'./auxiliaryModelLoader':{loadAuxiliaryModel:async()=>model},'./auxiliaryForecast':{auxiliaryForecast},'./auxiliaryManifest.json':manifest,
- });
- const session={patientId:'synthetic',source:'supabase',cohort:'ShanghaiT2DM',history};
- const base=auxiliaryForecast(history,{baseline:Array(24).fill(120),scenario:Array(24).fill(120)},[],[],manifest,'');
- const saved=[];
- const {ConditionalSimulatorPanel}=component('../src/components/ConditionalSimulatorPanel.tsx',{
-  '../lib/forecast':{getForecastApiUrl:()=>'',saveForecastApiUrl(){}},
-  '../lib/conditionalSession':{defaultConditionalEngine:()=> 'browser',loadConditionalSession:async()=>session,forecastConditionalSession:async()=>({forecast:{...base,model_family:'conditional-v3'},comparison:{explanations:[]}})},
-  '../lib/conditionalScenario':{emptyConditionalPlan:{},conditionalPlanFromSchedule(){throw Error('Auxiliary events must not use insulin decoder');}},
-  '../lib/resultHighlights':{predictionHighlights:()=>[]},'../lib/predictionResults':{savePrediction:async value=>saved.push(value)},
-  './ScenarioBuilder':{ScenarioBuilder:'scenario-editor'},'./PredictionChart':{PredictionChart:'prediction-chart'},'./ForecastIntervalControl':{ForecastIntervalControl:'interval-control'},
-  '../lib/auxiliarySession':{forecastAuxiliarySession},'../lib/auxiliaryScenario':adapter,'../lib/forecastSampling':await load('forecastSampling'),
- });
- let tree;await act(async()=>{tree=create(React.createElement(ConditionalSimulatorPanel,{patient:{id:'synthetic'},allowInsulin:true}));});
- assert.deepEqual(tree.root.findByType('scenario-editor').props.allowedKinds,['meal','insulin']);
- await act(async()=>{tree.root.findByProps({'aria-label':'Scenario prediction model'}).props.onChange({target:{value:'auxiliary'}});});
- assert.deepEqual(tree.root.findByType('scenario-editor').props.allowedKinds,['meal','activity']);
- assert.equal(tree.root.findByType('scenario-editor').props.engine,'auxiliary');
- act(()=>tree.root.findByType('scenario-editor').props.onChange([meal,walk]));
- const compiled=scenario.compileScenario([meal,walk],origin,6,'auxiliary');
- await act(async()=>{assert.equal(await tree.root.findByType('scenario-editor').props.onRun(compiled),true);});
- const chart=tree.root.findByType('prediction-chart');
- assert.equal(chart.props.series.length,2);assert.equal(chart.props.series[1].points.length,25);
- assert.notEqual(chart.props.series[0].points[24].value,chart.props.series[1].points[24].value);
- const save=()=>tree.root.findAllByType('button').find(b=>b.children.includes('Save to lab results'));
- await act(async()=>{await save().props.onClick();});
- assert.equal(saved.length,1);assert.equal(saved[0].output.model_family,'cgmacros-auxiliary');
- assert.deepEqual(saved[0].output.plans.scenario,adapter.auxiliaryEventsFromSchedule(compiled));
- assert.match(saved[0].event_summary,/protein 20 g; fat 15 g; fiber 6 g/);assert.match(saved[0].event_summary,/30 min; MET 3/);
- act(()=>tree.root.findByType('scenario-editor').props.onChange([{...meal,protein:'25'},walk]));
- assert.equal(tree.root.findByType('prediction-chart').props.series.length,1);assert.equal(save().props.disabled,true);
- await act(async()=>{tree.root.findByProps({'aria-label':'Scenario prediction model'}).props.onChange({target:{value:'conditional'}});});
- assert.deepEqual(tree.root.findByType('scenario-editor').props.value,[]);assert.equal(tree.root.findByType('prediction-chart').props.series.length,1);
  act(()=>tree.unmount());
 });

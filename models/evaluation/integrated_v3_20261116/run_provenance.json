@@ -1,0 +1,21 @@
+{
+  "arguments": {
+    "archive": ".model-data/diabetes_datasets.zip",
+    "nutrients": ".model-data/usda-sr-legacy.zip",
+    "cgmacros": "data/raw/CGMacros/research",
+    "checkpoint": "models/evaluation/conditional_6h_20261116/ShanghaiT2DM/gru_future_event_decoder/checkpoint.pt",
+    "output": "models/evaluation/integrated_v3_20261116",
+    "epochs": 35,
+    "patience": 7,
+    "seed": 20261116
+  },
+  "source_sha256": {
+    "shanghai_archive": "59b5f5c4053a32bb6b7827844a0191597dc82228fe88ce332a189fdfc659c4cb",
+    "nutrient_archive": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+    "cgmacros_bio": "801abf305ebfa6e52cf0da8fc1c52f7689b8cb05f973888fb8bc4ba362802bab"
+  },
+  "torch": "2.9.1+cpu",
+  "numpy": "2.2.6",
+  "pandas": "2.3.3",
+  "training_targets": "real Shanghai T2DM and CGMacros HbA1c-defined T2D-group glucose; no synthetic intervention labels"
+}

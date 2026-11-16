@@ -206,6 +206,144 @@
       }
     },
     "ShanghaiT2DM": {
+      "path": "/conditional-models/ShanghaiT2DMIntegrated.json",
+      "artifact_sha256": "4f6d10822e2af85e20c9c15d32407ff179543838e1814ce7c41ec7eca6dd50f2",
+      "checkpoint_sha256": "19e1d6677890d84d316a66a06726b42334fabb379217fb4d5aa688997d96ea5b",
+      "name": "Shanghai T2DM integrated conditional GRU v3",
+      "version": "conditional-v3-integrated-20261116",
+      "horizons_minutes": [
+        15,
+        30,
+        45,
+        60,
+        75,
+        90,
+        105,
+        120,
+        135,
+        150,
+        165,
+        180,
+        195,
+        210,
+        225,
+        240,
+        255,
+        270,
+        285,
+        300,
+        315,
+        330,
+        345,
+        360
+      ],
+      "evaluation_scope": "Single joint Shanghai T2DM / CGMacros T2D-group GRU; retrospective recorded-future-event evaluation. No joint insulin/activity or causal validation.",
+      "test_metrics": {
+        "15": {
+          "mae_mg_dl": 5.900226268168195,
+          "persistence_mae_mg_dl": 6.679349899291992
+        },
+        "30": {
+          "mae_mg_dl": 10.626041551457792,
+          "persistence_mae_mg_dl": 12.30058765411377
+        },
+        "45": {
+          "mae_mg_dl": 14.276158565338816,
+          "persistence_mae_mg_dl": 16.861186981201172
+        },
+        "60": {
+          "mae_mg_dl": 17.256333179951955,
+          "persistence_mae_mg_dl": 20.790693283081055
+        },
+        "75": {
+          "mae_mg_dl": 19.76033922080153,
+          "persistence_mae_mg_dl": 24.220827102661133
+        },
+        "90": {
+          "mae_mg_dl": 21.835337343031473,
+          "persistence_mae_mg_dl": 27.226411819458008
+        },
+        "105": {
+          "mae_mg_dl": 23.56063036519646,
+          "persistence_mae_mg_dl": 29.840303421020508
+        },
+        "120": {
+          "mae_mg_dl": 24.967667632069922,
+          "persistence_mae_mg_dl": 32.10017395019531
+        },
+        "135": {
+          "mae_mg_dl": 26.114944759771845,
+          "persistence_mae_mg_dl": 33.99516296386719
+        },
+        "150": {
+          "mae_mg_dl": 27.0073002714512,
+          "persistence_mae_mg_dl": 35.53324508666992
+        },
+        "165": {
+          "mae_mg_dl": 27.694900927015947,
+          "persistence_mae_mg_dl": 36.754642486572266
+        },
+        "180": {
+          "mae_mg_dl": 28.242248176098045,
+          "persistence_mae_mg_dl": 37.67292404174805
+        },
+        "195": {
+          "mae_mg_dl": 28.68394097423139,
+          "persistence_mae_mg_dl": 38.366966247558594
+        },
+        "210": {
+          "mae_mg_dl": 29.022130225779094,
+          "persistence_mae_mg_dl": 38.880680084228516
+        },
+        "225": {
+          "mae_mg_dl": 29.278901993739993,
+          "persistence_mae_mg_dl": 39.22006607055664
+        },
+        "240": {
+          "mae_mg_dl": 29.5043718097314,
+          "persistence_mae_mg_dl": 39.4499397277832
+        },
+        "255": {
+          "mae_mg_dl": 29.68221034506847,
+          "persistence_mae_mg_dl": 39.646785736083984
+        },
+        "270": {
+          "mae_mg_dl": 29.809113599100108,
+          "persistence_mae_mg_dl": 39.847808837890625
+        },
+        "285": {
+          "mae_mg_dl": 29.909321260246976,
+          "persistence_mae_mg_dl": 40.04694366455078
+        },
+        "300": {
+          "mae_mg_dl": 30.024331062140508,
+          "persistence_mae_mg_dl": 40.2744140625
+        },
+        "315": {
+          "mae_mg_dl": 30.1537531173114,
+          "persistence_mae_mg_dl": 40.51063537597656
+        },
+        "330": {
+          "mae_mg_dl": 30.262078785005492,
+          "persistence_mae_mg_dl": 40.747276306152344
+        },
+        "345": {
+          "mae_mg_dl": 30.377809872091074,
+          "persistence_mae_mg_dl": 40.99302673339844
+        },
+        "360": {
+          "mae_mg_dl": 30.523926100930534,
+          "persistence_mae_mg_dl": 41.331642150878906
+        }
+      }
+    }
+  },
+  "food_reference": {
+    "path": "/conditional-models/foods.json",
+    "artifact_sha256": "8151928310fd13edb1e6b2d7cf2c3d02a4c81c2b554f42952ff67fc150bc0ca9"
+  },
+  "legacy_models": {
+    "ShanghaiT2DM": {
       "path": "/conditional-models/ShanghaiT2DM.json",
       "artifact_sha256": "7a07f2bf41c80941e105f01a90c6445a1df6e2286921f6f875524ec33b49d9a8",
       "checkpoint_sha256": "4687aec0a72c08f93707a28c729c9c5a8bf1955ca0098cc694e31c197b1f7462",
@@ -409,9 +547,5 @@
         }
       }
     }
-  },
-  "food_reference": {
-    "path": "/conditional-models/foods.json",
-    "artifact_sha256": "8151928310fd13edb1e6b2d7cf2c3d02a4c81c2b554f42952ff67fc150bc0ca9"
   }
 }

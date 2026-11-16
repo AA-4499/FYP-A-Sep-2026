@@ -10,6 +10,7 @@ const require=createRequire(import.meta.url);
 const read=p=>JSON.parse(readFileSync(new URL(p,import.meta.url),'utf8'));
 async function load(name){const source=readFileSync(new URL(`../src/lib/${name}.ts`,import.meta.url),'utf8');const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.ESNext}}).outputText;return import(`data:text/javascript;base64,${Buffer.from(js).toString('base64')}`);}
 function component(relative,mocks){const source=readFileSync(new URL(relative,import.meta.url),'utf8');const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;const mod={exports:{}};new Function('require','module','exports',js)(id=>Object.hasOwn(mocks,id)?mocks[id]:require(id),mod,mod.exports);return mod.exports;}
+const {EventCatalogPicker}=component('../src/components/EventCatalogPicker.tsx',{});
 const features=await load('conditionalFeatures'),decoder=await load('conditionalDecoder'),compiler=await load('scenario'),adapter=await load('conditionalScenario');
 const asset='../public/conditional-models/ShanghaiT2DMIntegrated.json';
 const model=decoder.validateConditionalModel(read(asset)),fixture=read('./fixtures/integrated-v3-reference.json');
@@ -71,19 +72,20 @@ test('unsupported activity, tampered intensity, missing macros, overlap and coho
  assert.throws(()=>decoder.validateConditionalModel(corrupted),/Invalid decoder tensor/);
 });
 
-test('search, category filter, dropdown and automatic duration volume use sourced presets within training intensity coverage',()=>{
+test('search popup and automatic duration volume use sourced presets within training intensity coverage',()=>{
  const support=read('../src/lib/activitySupport.json');
  assert.equal(support.activity_type_labels_available,false);
  features.ACTIVITY_CATALOG.forEach(row=>{assert.ok(row.met>=support.min_met&&row.met<=support.max_met);assert.match(row.source,/^https:\/\/pacompendium.com\//);});
- const {ActivityPicker}=component('../src/components/ActivityPicker.tsx',{'../lib/conditionalFeatures':features});
+ const {ActivityPicker}=component('../src/components/ActivityPicker.tsx',{'../lib/conditionalFeatures':features,'./EventCatalogPicker':{EventCatalogPicker}});
  let chosen,tree;act(()=>{tree=create(React.createElement(ActivityPicker,{index:1,minutes:'30',disabled:false,onSelect:(...args)=>chosen=args}));});
  act(()=>tree.root.findByProps({'aria-label':'Event 1 activity search'}).props.onChange({target:{value:'brisk'}}));
- assert.equal(tree.root.findByProps({'aria-label':'Event 1 activity'}).findAllByType('option').length,2);
- act(()=>tree.root.findByProps({'aria-label':'Event 1 activity'}).props.onChange({target:{value:'17200'}}));assert.equal(chosen[2],4.8);
+ assert.equal(tree.root.findAllByProps({role:'option'}).length,1);
+ act(()=>tree.root.findByProps({role:'option'}).props.onClick());assert.equal(chosen[2],4.8);
  act(()=>tree.update(React.createElement(ActivityPicker,{index:1,activityId:'17200',minutes:'30',disabled:false,onSelect(){}})));
  assert.ok(JSON.stringify(tree.toJSON()).includes('144.0 MET-min'));
- act(()=>tree.root.findByProps({'aria-label':'Event 1 activity category'}).props.onChange({target:{value:'Cycling'}}));
- assert.ok(JSON.stringify(tree.toJSON()).includes('No matching activities'));
+ act(()=>tree.root.findByProps({'aria-label':'Event 1 activity search'}).props.onChange({target:{value:'cycling'}}));
+ assert.ok(tree.root.findAllByProps({role:'option'}).length>0);
+ assert.ok(tree.root.findAllByProps({role:'option'}).every(row=>row.findAllByType('span').flatMap(span=>span.children.filter(child=>typeof child==='string')).join(' ').toLowerCase().includes('cycling')));
  act(()=>tree.unmount());
 });
 
@@ -95,11 +97,11 @@ const worker={};
 function compare(baseline,scenario){let result;worker.postMessage=value=>{result=value;};worker.onmessage({data:{model,history,baseline,scenario,minutes:360}});if(result.error)throw Error(result.error);return result.result;}
 
 test('shared editor offers food, insulin and searchable physical activity in one plan',async()=>{
- const {ActivityPicker}=component('../src/components/ActivityPicker.tsx',{'../lib/conditionalFeatures':features});
- const {ScenarioBuilder}=component('../src/components/ScenarioBuilder.tsx',{'./ActivityPicker':{ActivityPicker},'./FoodCompositionPicker':{FoodCompositionPicker:'food-picker'},'../lib/scenario':compiler});
+ const {ActivityPicker}=component('../src/components/ActivityPicker.tsx',{'../lib/conditionalFeatures':features,'./EventCatalogPicker':{EventCatalogPicker}});
+ const {ScenarioBuilder}=component('../src/components/ScenarioBuilder.tsx',{'./InsulinPicker':{InsulinPicker:'insulin-picker'},'./ActivityPicker':{ActivityPicker},'./FoodCompositionPicker':{FoodCompositionPicker:'food-picker'},'../lib/scenario':compiler});
  let tree,submitted;act(()=>{tree=create(React.createElement(ScenarioBuilder,{value:[meal,bolus,walk],onChange(){},start:origin,hours:6,engine:'integrated',allowedKinds:['meal','insulin','activity'],onRun:c=>{submitted=adapter.conditionalPlanFromSchedule(c);}}));});
  assert.deepEqual(tree.root.findByProps({'aria-label':'Add scenario event'}).findAllByType('option').map(v=>v.props.value),['','meal','insulin','activity']);
- assert.equal(tree.root.findByProps({'aria-label':'Event 3 activity'}).props.value,'17190');
+ assert.equal(tree.root.findByType(ActivityPicker).props.activityId,'17190');
  await act(async()=>tree.root.findByType('form').props.onSubmit({preventDefault(){}}));assert.equal(submitted.events.length,3);
  act(()=>tree.unmount());
 });
@@ -118,8 +120,14 @@ test('single-model simulator runs the real worker, saves all events and clears e
  let tree;await act(async()=>{tree=create(React.createElement(ConditionalSimulatorPanel,{patient:{id:'synthetic'},allowInsulin:true}));});
  assert.equal(tree.root.findAllByProps({'aria-label':'Scenario prediction model'}).length,0);
  assert.deepEqual(tree.root.findByType('scenario-editor').props.allowedKinds,['meal','insulin','activity']);
+ const workspaceTab=name=>tree.root.findAllByProps({role:'tab'}).find(tab=>tab.children.some(child=>typeof child==='string'&&child.startsWith(name)));
+ act(()=>workspaceTab('What-if events').props.onClick());
+ assert.equal(tree.root.findAllByType('prediction-chart').length,0);
  act(()=>tree.root.findByType('scenario-editor').props.onChange([meal,bolus,walk]));
+ act(()=>workspaceTab('Prediction').props.onClick());assert.equal(tree.root.findByType('prediction-chart').props.series.length,1);
+ act(()=>workspaceTab('What-if events').props.onClick());assert.equal(tree.root.findByType('scenario-editor').props.value.length,3);
  await act(async()=>{assert.equal(await tree.root.findByType('scenario-editor').props.onRun(compiler.compileScenario([meal,bolus,walk],origin,6,'integrated')),true);});
+ assert.equal(workspaceTab('Prediction').props['aria-selected'],true);
  let chart=tree.root.findByType('prediction-chart');assert.equal(chart.props.series.length,2);assert.equal(chart.props.series[1].points.length,25);
  assert.notEqual(chart.props.series[1].points[24].value,chart.props.series[0].points[24].value);
  act(()=>tree.root.findByType('interval-control').props.onChange(30));assert.equal(tree.root.findByType('prediction-chart').props.series[1].points.length,13);

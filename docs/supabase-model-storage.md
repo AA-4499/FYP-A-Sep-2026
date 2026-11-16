@@ -81,9 +81,16 @@ and [Storage access control](https://supabase.com/docs/guides/storage/security/a
 ## Food composition lookup
 
 The What-if meal editor searches the existing `public.food_composition` table
-through authenticated `GET /api/food-composition?q=...`. The backend uses its
+using the signed-in user's existing RLS, with authenticated
+`GET /api/food-composition?q=...&offset=...` as a fallback. The backend uses its
 server credential; browser users do not receive it or require anonymous table
 access. Existing food-table RLS is retained.
+
+The current table has 1,677 rows and unit-bearing nutrient column names:
+`CHO (g)`, `dietaryFiber (g)`, `protein (g)` and `fat (g)`. Search uses those
+exact columns, pages 30 results, and returns matching counts. See
+[Digital Twin event catalog](digital-twin-event-catalog.md) for UI and live
+deployment verification limits.
 
 The owner confirmed **CHO is available carbohydrate per 100 g edible portion**.
 For an edible portion of `P` grams, physiology uses `P × CHO / 100`; Conditional

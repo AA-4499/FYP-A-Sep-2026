@@ -1,7 +1,8 @@
 import type {Cohort} from './conditionalDecoder';
+import type {FoodReference} from './foodComposition';
 export type Formulation='rapid'|'regular';
 export interface Bolus{time:number;units:number;formulation:Formulation}
-export interface PlannedEvent {kind:'meal'|'bolus'|'activity';minutesAhead:number;amount:number;formulation?:Formulation;protein?:number;fat?:number;fiber?:number;activityId?:string;met?:number}
+export interface PlannedEvent {kind:'meal'|'bolus'|'activity';minutesAhead:number;amount:number;formulation?:Formulation;protein?:number;fat?:number;fiber?:number;activityId?:string;met?:number;foodReference?:FoodReference}
 export interface Plan{carbs:number;mealAt:number;bolus:number;bolusAt:number;formulation:Formulation;events?:PlannedEvent[]}
 // Names are reference presets, not sport labels observed in CGMacros.
 export const ACTIVITY_CATALOG = [

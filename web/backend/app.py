@@ -542,7 +542,10 @@ def serve_spa(path: str):
 def food_composition():
     from services.food_composition_service import search_foods
     try:
-        return jsonify(search_foods(request.args.get('q', '')))
+        raw_offset=request.args.get('offset','0')
+        if not raw_offset.isdigit():
+            raise ValueError('Invalid food search page.')
+        return jsonify(search_foods(request.args.get('q', ''),int(raw_offset)))
     except ValueError as exc:
         return jsonify(error=str(exc)), 400
     except RuntimeError as exc:

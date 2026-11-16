@@ -14,7 +14,7 @@ export function conditionalPlanFromSchedule(compiled: ReturnType<typeof compileS
       const macros=[row.protein,row.fat,row.fiber];
       const supplied=macros.some(v=>typeof v==='string'&&v.trim()!=='');
       if(supplied&&macros.some(v=>typeof v!=='string'||!v.trim()))throw Error('Enter all three meal macros or leave all unknown.');
-      return {kind:'meal', minutesAhead:row.minute, amount:Number(row.carbohydrate),...(supplied?{protein:Number(row.protein),fat:Number(row.fat),fiber:Number(row.fiber)}:{})};
+      return {kind:'meal', minutesAhead:row.minute, amount:Number(row.carbohydrate),...(row.carbohydrateSource==='food-composition'?{foodReference:row.foodReference}:{}),...(supplied?{protein:Number(row.protein),fat:Number(row.fat),fiber:Number(row.fiber)}:{})};
     }
     if(row.kind==='activity')return {kind:'activity',minutesAhead:row.minute,amount:Number(row.amount),activityId:row.activityId,met:Number(row.met)};
     if (row.kind === 'insulin' && ['rapid','regular'].includes(row.insulinFormulation ?? ''))

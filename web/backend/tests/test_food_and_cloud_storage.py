@@ -21,7 +21,7 @@ class FoodCompositionTests(unittest.TestCase):
             self.assertEqual(200,client.get('/api/food-composition?q=rice',headers=token()).status_code)
 
     def test_actual_schema_available_cho_and_missing_fibre_are_preserved(self):
-        response=Mock();response.json.return_value=[{'id':1,'englishName':'Rice','foodName':'Rice','CHO':'25.9','dietaryFiber':'0.3'}, {'id':2,'englishName':'Unknown fibre','CHO':'10','dietaryFiber':'Tr'}, {'id':3,'CHO':'--'}]
+        response=Mock();response.headers={'content-range':'0-2/3'};response.json.return_value=[{'id':1,'englishName':'Rice','foodName':'Rice','CHO':'25.9','dietaryFiber':'0.3'}, {'id':2,'englishName':'Unknown fibre','CHO':'10','dietaryFiber':'Tr'}, {'id':3,'CHO':'--'}]
         with patch.object(foods,'supabase_config',return_value=('https://example.test','key')),patch.object(foods.requests,'get',return_value=response) as get:
             result=foods.search_foods('rice),id.gt.0')
             self.assertEqual(2,len(result['foods']))
@@ -30,12 +30,32 @@ class FoodCompositionTests(unittest.TestCase):
             self.assertIsNone(result['foods'][1]['fiber_per_100g'])
             self.assertNotIn(')',get.call_args.kwargs['params']['or'][1:-1])
             self.assertEqual(64,len(result['foods'][0]['reference_sha256']))
+            self.assertIn('CHO:"CHO (g)"',get.call_args.kwargs['params']['select'])
+            self.assertEqual(3,result['total'])
+            self.assertEqual('count=exact',get.call_args.kwargs['headers']['Prefer'])
 
     def test_unavailable_food_service_has_a_manual_entry_message(self):
         import requests
         with patch.object(foods,'supabase_config',return_value=('url','key')),patch.object(foods.requests,'get',side_effect=requests.ConnectionError()):
             with self.assertRaisesRegex(RuntimeError,'manual carbohydrate entry'):
                 foods.search_foods('rice')
+
+    def test_food_pagination_returns_a_full_page_and_the_actual_catalog_count(self):
+        response=Mock();response.headers={'content-range':'30-60/1677'}
+        response.json.return_value=[{'id':i,'englishName':f'Food {i}','CHO':'25.9','dietaryFiber':'.3','protein':'2.6','fat':'.3'} for i in range(31,62)]
+        with patch.object(foods,'supabase_config',return_value=('https://example.test','key')),patch.object(foods.requests,'get',return_value=response) as get:
+            result=foods.search_foods('',30)
+            self.assertEqual(30,len(result['foods']));self.assertTrue(result['has_more'])
+            self.assertEqual(1677,result['total']);self.assertEqual(30,result['offset'])
+            self.assertEqual('30',get.call_args.kwargs['params']['offset'])
+            self.assertEqual(2.6,result['foods'][0]['protein_per_100g'])
+
+    def test_invalid_food_offsets_are_rejected_before_querying_supabase(self):
+        client=dashboard.app.test_client()
+        with patch.dict(os.environ,{'SUPABASE_JWT_SECRET':SECRET}),patch.object(foods.requests,'get') as get:
+            for offset in ['bad','-1','10001']:
+                self.assertEqual(400,client.get('/api/food-composition?offset='+offset,headers=token()).status_code)
+            get.assert_not_called()
 
 
 class CloudModelStorageTests(unittest.TestCase):

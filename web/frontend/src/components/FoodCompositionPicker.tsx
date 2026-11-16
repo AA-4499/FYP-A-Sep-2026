@@ -1,27 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Utensils, Check, Sparkles, Edit3, Wheat, Cookie, Soup, Apple, Milk, Salad } from 'lucide-react';
-import { getSupabaseClient } from '../lib/supabase';
-import type { FoodReference } from '../lib/foodComposition';
-
-export interface QuickFoodItem {
-  id: string;
-  name: string;
-  chineseName: string;
-  icon: string;
-  defaultPortion: number; // grams
-  carbsPer100g: number;
-  presets: { label: string; grams: number }[];
-}
-
-function FoodIcon({ id, className }: { id: string; className?: string }) {
-  if (id === 'rice') return <Wheat className={className} />;
-  if (id === 'bread') return <Cookie className={className} />;
-  if (id === 'noodles') return <Soup className={className} />;
-  if (id === 'fruit') return <Apple className={className} />;
-  if (id === 'milk') return <Milk className={className} />;
-  return <Salad className={className} />;
-}
-
+import React,{useEffect,useState} from 'react';
+import {EventCatalogPicker} from './EventCatalogPicker';
+import {searchFoodCatalog,type FoodCatalogPage} from '../lib/foodCatalog';
+import {foodCarbohydrate} from '../lib/scenario';
+import type {FoodReference} from '../lib/foodComposition';
+export interface QuickFoodItem {id:string;name:string;chineseName:string;icon:string;defaultPortion:number;carbsPer100g:number;presets:{label:string;grams:number}[]}
 export const QUICK_FOODS: QuickFoodItem[] = [
   {
     id: 'rice',
@@ -103,465 +85,52 @@ export const QUICK_FOODS: QuickFoodItem[] = [
   },
 ];
 
-// Built-in offline dictionary of common items (carbs per 100g)
-const COMMON_FOOD_DICTIONARY: Record<string, { en: string; cn: string; carbsPer100g: number }> = {
-  rice: { en: 'Cooked white rice', cn: '白米饭', carbsPer100g: 28.17 },
-  bread: { en: 'White bread', cn: '白面包', carbsPer100g: 49.42 },
-  wholewheat_bread: { en: 'Whole wheat bread', cn: '全麦面包', carbsPer100g: 41.3 },
-  noodles: { en: 'Boiled noodles', cn: '煮面条', carbsPer100g: 25.0 },
-  pasta: { en: 'Cooked pasta', cn: '意大利面', carbsPer100g: 25.0 },
-  oatmeal: { en: 'Cooked oatmeal / porridge', cn: '燕麦粥', carbsPer100g: 12.0 },
-  egg: { en: 'Boiled egg', cn: '鸡蛋', carbsPer100g: 1.12 },
-  milk: { en: 'Whole milk', cn: '全脂牛奶', carbsPer100g: 4.8 },
-  apple: { en: 'Apple', cn: '苹果', carbsPer100g: 13.8 },
-  banana: { en: 'Banana', cn: '香蕉', carbsPer100g: 22.8 },
-  orange: { en: 'Orange', cn: '橙子', carbsPer100g: 11.8 },
-  watermelon: { en: 'Watermelon', cn: '西瓜', carbsPer100g: 7.5 },
-  potato: { en: 'Boiled potato', cn: '土豆 / 马铃薯', carbsPer100g: 20.0 },
-  sweet_potato: { en: 'Sweet potato', cn: '红薯 / 地瓜', carbsPer100g: 17.7 },
-  corn: { en: 'Sweet corn', cn: '甜玉米', carbsPer100g: 21.0 },
-  cucumber: { en: 'Cucumber', cn: '黄瓜', carbsPer100g: 3.6 },
-  tomato: { en: 'Tomato', cn: '西红柿 / 番茄', carbsPer100g: 3.9 },
-  cabbage: { en: 'Cabbage', cn: '卷心菜', carbsPer100g: 5.5 },
-  chicken: { en: 'Chicken breast (cooked)', cn: '鸡胸肉', carbsPer100g: 0.0 },
-  fish: { en: 'Fish / Salmon', cn: '鱼肉', carbsPer100g: 0.0 },
-  beef: { en: 'Beef steak / lean beef', cn: '牛肉', carbsPer100g: 0.0 },
-  tofu: { en: 'Tofu / bean curd', cn: '豆腐', carbsPer100g: 1.9 },
-  biscuit: { en: 'Plain biscuit / cracker', cn: '饼干', carbsPer100g: 65.0 },
-  pizza: { en: 'Pizza slice', cn: '披萨', carbsPer100g: 26.0 },
-  dumpling: { en: 'Dumplings / Jiaozi', cn: '水饺', carbsPer100g: 24.5 },
-  fried_rice: { en: 'Fried rice', cn: '炒饭', carbsPer100g: 31.5 },
-};
 
 export interface FoodCompositionPickerProps {
-  portion: string;
-  carbohydrate?: string;
-  description?: string;
-  engine?: 'physiology' | 'conditional';
-  disabled?: boolean;
-  onSelect?: (food: FoodReference) => void;
-  onSelectFood?: (
-    foodName: string,
-    portionGrams: number,
-    carbsGrams: number,
-    foodRef?: FoodReference
-  ) => void;
-  onUpdatePortion?: (portionGrams: number, carbsGrams: number) => void;
-  onUpdateCarbs?: (carbsGrams: number) => void;
+ portion:string;carbohydrate?:string;description?:string;foodReference?:FoodReference;engine?:'physiology'|'conditional';disabled?:boolean;
+ onSelect?:(food:FoodReference)=>void;
+ onSelectFood?:(name:string,grams:number,carbs:number,reference?:FoodReference)=>void;
+ onUpdatePortion?:(grams:number,carbs:number,reference?:FoodReference)=>void;
+ onUpdateCarbs?:(carbs:number)=>void;
+ onPortionDraft?:(value:string)=>void;
 }
-
-export function FoodCompositionPicker({
-  portion,
-  carbohydrate,
-  description = '',
-  disabled = false,
-  onSelectFood,
-  onSelect,
-  onUpdatePortion,
-  onUpdateCarbs,
-}: FoodCompositionPickerProps) {
-  const [selectedQuickId, setSelectedQuickId] = useState<string>(() => {
-    const match = QUICK_FOODS.find((f) =>
-      description.toLowerCase().includes(f.name.toLowerCase())
-    );
-    return match ? match.id : 'rice';
-  });
-
-  const [activeCarbsPer100g, setActiveCarbsPer100g] = useState<number>(() => {
-    const match = QUICK_FOODS.find((f) => f.id === selectedQuickId);
-    return match ? match.carbsPer100g : 28.2;
-  });
-
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [supabaseResults, setSupabaseResults] = useState<
-    Array<{ id: string; name: string; chineseName: string; carbsPer100g: number }>
-  >([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  // Current portion number
-  const portionNum = Number(portion) > 0 ? Number(portion) : 150;
-
-  // Active quick food definition
-  const currentQuickFood = useMemo(
-    () => QUICK_FOODS.find((f) => f.id === selectedQuickId) ?? null,
-    [selectedQuickId]
-  );
-
-  // Handle Quick Food Click
-  const handleQuickClick = (food: QuickFoodItem) => {
-    setSelectedQuickId(food.id);
-    setActiveCarbsPer100g(food.carbsPer100g);
-    setSearchOpen(false);
-
-    const calculatedCarbs = Number(
-      ((food.defaultPortion * food.carbsPer100g) / 100).toFixed(1)
-    );
-
-    if (onSelectFood) {
-      onSelectFood(food.name, food.defaultPortion, calculatedCarbs);
-    } else if (onUpdatePortion) {
-      onUpdatePortion(food.defaultPortion, calculatedCarbs);
-    }
-
-    if (onSelect) {
-      onSelect({
-        id: food.id,
-        name: food.name,
-        chinese_name: food.chineseName,
-        category: 'Quick Food',
-        available_per_100g: food.carbsPer100g,
-        fiber_per_100g: 0,
-        basis: 'available_carbohydrate_per_100g_edible_portion',
-        reference_sha256: 'a'.repeat(64),
-      });
-    }
-  };
-
-  // Handle Portion Preset Click
-  const handlePresetClick = (grams: number) => {
-    const calculatedCarbs = Number(((grams * activeCarbsPer100g) / 100).toFixed(1));
-    if (onUpdatePortion) {
-      onUpdatePortion(grams, calculatedCarbs);
-    }
-  };
-
-  // Handle Manual Portion Gram Change
-  const handlePortionInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    const calculatedCarbs =
-      val > 0 ? Number(((val * activeCarbsPer100g) / 100).toFixed(1)) : 0;
-    if (onUpdatePortion) {
-      onUpdatePortion(val, calculatedCarbs);
-    }
-  };
-
-  // Handle Manual Carbs Change
-  const handleCarbsInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value);
-    if (onUpdateCarbs) {
-      onUpdateCarbs(val);
-    }
-  };
-
-  // Client-side + Supabase Search
-  useEffect(() => {
-    if (!searchQuery.trim() || !searchOpen) {
-      setSupabaseResults([]);
-      return;
-    }
-
-    let isMounted = true;
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const queryLower = searchQuery.toLowerCase().trim();
-
-        // 1. Search local dictionary
-        const localMatches = Object.entries(COMMON_FOOD_DICTIONARY)
-          .filter(
-            ([key, item]) =>
-              key.includes(queryLower) ||
-              item.en.toLowerCase().includes(queryLower) ||
-              item.cn.includes(queryLower)
-          )
-          .map(([key, item]) => ({
-            id: `local_${key}`,
-            name: item.en,
-            chineseName: item.cn,
-            carbsPer100g: item.carbsPer100g,
-          }));
-
-        // 2. Query Supabase directly if client exists
-        let dbMatches: Array<{
-          id: string;
-          name: string;
-          chineseName: string;
-          carbsPer100g: number;
-        }> = [];
-
-        try {
-          const client = getSupabaseClient();
-          if (client) {
-            const { data, error } = await client
-              .from('food_composition')
-              .select('id, englishName, foodName, CHO')
-              .or(`englishName.ilike.%${queryLower}%,foodName.ilike.%${queryLower}%`)
-              .limit(15);
-
-            if (!error && Array.isArray(data)) {
-              dbMatches = data.map((row: any) => ({
-                id: String(row.id),
-                name: row.englishName || row.foodName || 'Food item',
-                chineseName: row.foodName || '',
-                carbsPer100g: Number(row.CHO) || 0,
-              }));
-            }
-          }
-        } catch {
-          // Graceful fallback to local matches
-        }
-
-        if (isMounted) {
-          // Deduplicate by name
-          const combined = [...localMatches, ...dbMatches];
-          const seen = new Set<string>();
-          const unique = combined.filter((item) => {
-            if (seen.has(item.name.toLowerCase())) return false;
-            seen.add(item.name.toLowerCase());
-            return true;
-          });
-          setSupabaseResults(unique.slice(0, 15));
-        }
-      } catch {
-        // Safe silent fallback
-      } finally {
-        if (isMounted) setIsSearching(false);
-      }
-    }, 250);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [searchQuery, searchOpen]);
-
-  // Select item from search
-  const handleSelectSearchResult = (item: {
-    id: string;
-    name: string;
-    chineseName: string;
-    carbsPer100g: number;
-  }) => {
-    setSelectedQuickId('custom');
-    setActiveCarbsPer100g(item.carbsPer100g);
-    setSearchOpen(false);
-    setSearchQuery('');
-
-    const calculatedCarbs = Number(
-      ((portionNum * item.carbsPer100g) / 100).toFixed(1)
-    );
-
-    if (onSelectFood) {
-      onSelectFood(item.name, portionNum, calculatedCarbs);
-    } else if (onUpdatePortion) {
-      onUpdatePortion(portionNum, calculatedCarbs);
-    }
-  };
-
-  return (
-    <div className="space-y-3.5 rounded-2xl border border-teal-100 bg-gradient-to-b from-teal-50/70 to-emerald-50/30 p-4 text-xs text-slate-800 shadow-sm">
-      {/* 1. Header & Quick Selection Grid */}
-      <div>
-        <div className="flex items-center justify-between pb-2">
-          <span className="flex items-center gap-1.5 font-bold text-teal-900">
-            <Utensils size={15} className="text-teal-600" />
-            Choose Food
-          </span>
-          <span className="text-[11px] font-medium text-slate-500">
-            Click to select or search
-          </span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {QUICK_FOODS.map((food) => {
-            const isSelected = selectedQuickId === food.id && !searchOpen;
-            return (
-              <button
-                key={food.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => handleQuickClick(food)}
-                className={`flex flex-col items-center justify-center rounded-xl border p-2.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 active:scale-95 disabled:opacity-50 ${
-                  isSelected
-                    ? 'border-teal-600 bg-teal-600 font-semibold text-white shadow-sm ring-2 ring-teal-200'
-                    : 'border-slate-200/80 bg-white text-slate-700 hover:border-teal-300 hover:bg-teal-50/50'
-                }`}
-              >
-                <span className="flex items-center justify-center h-6 w-6">
-                  <FoodIcon id={food.id} className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-teal-700'}`} />
-                </span>
-                <span className="mt-1 line-clamp-1 text-[11px] font-semibold">
-                  {food.name}
-                </span>
-                <span
-                  className={`text-[9px] ${
-                    isSelected ? 'text-teal-100' : 'text-slate-400'
-                  }`}
-                >
-                  ~{food.carbsPer100g}g / 100g
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Search or Custom Toggle Button */}
-        <div className="mt-2.5">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => setSearchOpen(!searchOpen)}
-            className={`flex w-full items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition ${
-              searchOpen
-                ? 'border-teal-500 bg-teal-100/70 text-teal-900'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:text-teal-700'
-            }`}
-          >
-            <Search size={13} />
-            {searchOpen ? 'Hide Food Search' : '🔍 Search other food or type custom'}
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Search / Custom Box (Expands when clicked) */}
-      {searchOpen && (
-        <div className="space-y-2.5 rounded-xl border border-teal-200/90 bg-white p-3 shadow-inner">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              disabled={disabled}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Type food name (e.g. apple, oats, rice, 苹果, 面条)..."
-              className="w-full rounded-xl border border-slate-300 bg-slate-50/50 px-3 py-2 pl-9 text-xs outline-none focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100"
-            />
-            <Search
-              size={14}
-              className="absolute left-3 top-2.5 text-slate-400"
-            />
-          </div>
-
-          {isSearching && (
-            <p className="text-center text-[11px] text-slate-400">Searching food records…</p>
-          )}
-
-          {/* Search Result Suggestions */}
-          {!isSearching && supabaseResults.length > 0 && (
-            <div className="max-h-40 space-y-1 overflow-y-auto pr-1">
-              {supabaseResults.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleSelectSearchResult(item)}
-                  className="flex w-full items-center justify-between rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-1.5 text-left text-xs transition hover:border-teal-300 hover:bg-teal-50"
-                >
-                  <div>
-                    <span className="font-semibold text-slate-800">{item.name}</span>
-                    {item.chineseName && (
-                      <span className="ml-1.5 text-[10px] text-slate-500">
-                        {item.chineseName}
-                      </span>
-                    )}
-                  </div>
-                  <span className="rounded bg-teal-100 px-1.5 py-0.5 text-[10px] font-bold text-teal-800">
-                    {item.carbsPer100g}g carbs / 100g
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Direct Custom Entry Fallback */}
-          <div className="flex items-center justify-between rounded-lg bg-teal-50/80 p-2 text-[11px] text-teal-900">
-            <span>
-              Food not listed? You can also directly type any custom food name & carbs below.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* 3. Portion Presets & Custom Portion Grams */}
-      <div className="rounded-xl border border-teal-100/80 bg-white/90 p-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-700">Portion Size:</span>
-            <span className="ml-2 text-xs font-semibold text-teal-700">
-              {portionNum} grams
-            </span>
-          </div>
-
-          {/* Quick Portion Chips */}
-          {currentQuickFood?.presets && (
-            <div className="flex flex-wrap gap-1.5">
-              {currentQuickFood.presets.map((preset) => {
-                const isActive = portionNum === preset.grams;
-                return (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => handlePresetClick(preset.grams)}
-                    className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
-                      isActive
-                        ? 'bg-teal-700 text-white shadow-sm'
-                        : 'bg-slate-100 text-slate-600 hover:bg-teal-100/70 hover:text-teal-800'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Custom Portions Slider / Gram Input */}
-        <div className="mt-2.5 flex items-center gap-3">
-          <input
-            type="range"
-            min={10}
-            max={500}
-            step={5}
-            value={portionNum}
-            disabled={disabled}
-            onChange={handlePortionInputChange}
-            className="h-1.5 flex-1 cursor-pointer accent-teal-600"
-          />
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min={1}
-              max={2000}
-              step={1}
-              value={portion}
-              disabled={disabled}
-              onChange={handlePortionInputChange}
-              className="w-16 rounded-lg border border-slate-300 px-2 py-1 text-center text-xs font-bold text-slate-800 outline-none focus:border-teal-500"
-            />
-            <span className="text-[11px] font-semibold text-slate-500">grams</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Resulting Carbohydrates Display & Direct Editable Field */}
-      <div className="flex items-center justify-between rounded-xl border border-teal-300/80 bg-teal-50 px-3.5 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <Sparkles size={15} className="text-teal-600" />
-          <div>
-            <span className="text-[11px] font-bold text-teal-900">
-              Estimated Total Carbohydrate:
-            </span>
-            <p className="text-[10px] text-teal-700">
-              Auto-calculated for {portionNum}g portion. Editable for custom adjustments.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <input
-            type="number"
-            min={0.1}
-            max={150}
-            step={0.1}
-            value={carbohydrate ?? ''}
-            disabled={disabled}
-            onChange={handleCarbsInputChange}
-            className="w-20 rounded-lg border border-teal-400 bg-white px-2 py-1.5 text-right text-sm font-extrabold text-teal-900 outline-none shadow-sm focus:ring-2 focus:ring-teal-200"
-          />
-          <span className="text-xs font-bold text-teal-800">g</span>
-        </div>
-      </div>
-    </div>
-  );
+export function FoodCompositionPicker({portion,carbohydrate,description='',foodReference,engine='conditional',disabled=false,onSelectFood,onSelect,onUpdatePortion,onUpdateCarbs,onPortionDraft}:FoodCompositionPickerProps) {
+ const [query,setQuery]=useState(''),[enabled,setEnabled]=useState(false),[offset,setOffset]=useState(0);
+ const [page,setPage]=useState<FoodCatalogPage|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState('');
+ const [retry,setRetry]=useState(0);
+ const quick=QUICK_FOODS.find(row=>row.name.toLowerCase()===description.toLowerCase());
+ const grams=Number(portion)>0?Number(portion):150;
+ useEffect(()=>{
+  if(!enabled)return;const abort=new AbortController();setLoading(true);setError('');
+  const timer=setTimeout(()=>{searchFoodCatalog(query,offset,abort.signal).then(next=>{
+   if(!abort.signal.aborted)setPage(previous=>({...next,foods:offset?[...(previous?.foods??[]),...next.foods]:next.foods}));
+  }).catch(failure=>{if(!abort.signal.aborted){setPage(null);setError(failure instanceof Error?failure.message:'Unable to search foods.');}}).finally(()=>{if(!abort.signal.aborted)setLoading(false);});},200);
+  return()=>{abort.abort();clearTimeout(timer);};
+ },[query,offset,enabled,retry]);
+ function select(id:string){
+  const common=QUICK_FOODS.find(row=>row.id===id);
+  if(common){onSelectFood?.(common.name,common.defaultPortion,Number((common.defaultPortion*common.carbsPer100g/100).toFixed(1)));return;}
+  const reference=page?.foods.find(row=>row.id===id);if(!reference)return;
+  const carbs=foodCarbohydrate(reference,grams,engine);if(carbs===null)return;
+  onSelectFood?.(reference.name,grams,carbs,reference);onSelect?.(reference);
+ }
+ function updatePortion(value:number){
+  if(!Number.isFinite(value)||value<1||value>2000)return;
+  const calculated=foodReference?foodCarbohydrate(foodReference,value,engine):Number((value*(quick?.carbsPer100g??(Number(carbohydrate)||0)/grams*100)/100).toFixed(1));
+  if(calculated!==null)onUpdatePortion?.(value,calculated,foodReference);
+ }
+ const numeric='mt-1.5 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs';
+ return <div className="min-w-0 space-y-3">
+  <EventCatalogPicker label="Choose food" searchLabel="Search food catalog" placeholder="Search foods in English or Chinese" selectedId={foodReference?.id??quick?.id} query={query} onQuery={value=>{setQuery(value);setOffset(0);setPage(null);setEnabled(true);}} onOpen={()=>setEnabled(true)}
+   quick={QUICK_FOODS.slice(0,3).map(row=>({id:row.id,name:row.name,detail:`${row.carbsPer100g} g carbs / 100 g`}))}
+   options={(page?.foods??[]).map(row=>({id:row.id,name:row.name,detail:`${row.chinese_name} / ${row.category} / ${foodCarbohydrate(row,100,engine)??'Unknown'} g ${engine==='conditional'?'total':'available'} carbs / 100 g`,disabled:foodCarbohydrate(row,grams,engine)===null}))}
+   disabled={disabled} loading={loading} error={error} onSelect={select} footer={page?.total!=null?`${page.total.toLocaleString()} ${query.trim()?'matching foods':'foods in Supabase'}`:'Supabase food catalog'} more={page?.has_more} onMore={()=>setOffset((page?.offset??0)+30)} onRetry={()=>{setOffset(0);setRetry(value=>value+1);}}/>
+  {foodReference&&<p className="text-xs leading-5 text-slate-600"><strong className="text-slate-800">{foodReference.name}</strong><span className="mt-1 block">Supabase food reference / per 100 g edible portion</span></p>}
+  <div className="grid grid-cols-2 gap-3">
+   <label className="text-[11px] text-slate-500">Portion (g)<input aria-label="Food portion grams" className={numeric} type="number" min={1} max={2000} step={1} required disabled={disabled} value={portion} onChange={e=>{const value=Number(e.target.value);if(!e.target.value||!Number.isFinite(value)||value<1||value>2000)onPortionDraft?.(e.target.value);else updatePortion(value);}}/></label>
+   <label className="text-[11px] text-slate-500">{engine==='conditional'?'Total carbohydrate':'Available carbohydrate'} (g)<input aria-label="Food carbohydrate grams" className={numeric} type="number" min={0} max={engine==='conditional'?150:200} step={0.1} required disabled={disabled} value={carbohydrate??''} onChange={e=>onUpdateCarbs?.(Number(e.target.value))}/></label>
+  </div>
+  {quick&&<div className="flex flex-wrap gap-2">{quick.presets.map(preset=><button type="button" key={preset.label} disabled={disabled} onClick={()=>updatePortion(preset.grams)} className={`rounded-lg px-3 py-1.5 text-[11px] ${grams===preset.grams?'bg-teal-700 text-white':'bg-slate-100 text-slate-600'}`}>{preset.label}</button>)}</div>}
+  <details className="text-[10px] leading-5 text-slate-500"><summary className="cursor-pointer">Food reference & manual entry</summary><p className="mt-2">Search reads the Supabase catalog through the authenticated food service. Quick choices are editable reference estimates. Enter a custom food name and carbohydrate if needed. Catalog CHO is available carbohydrate; v3 adds known fiber once. Foods with unknown fiber need a manual total. Protein, fat and fiber are filled only when all three are recorded.</p></details>
+ </div>;
 }

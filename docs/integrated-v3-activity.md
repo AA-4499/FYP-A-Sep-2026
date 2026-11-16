@@ -9,7 +9,8 @@ training targets were supplied by CGMacros.
 ## Event workflow
 
 1. In What-if simulator, add **Physical activity**.
-2. Search an activity and optionally filter Walking, Cycling or Conditioning.
+2. Use a common activity choice or search the shared popup across all supported
+   walking, cycling and conditioning intensity presets.
 3. Choose a reference intensity preset, then enter start time and 1–120 whole
    minutes. Activities must finish within six hours and cannot overlap.
 4. Run the simulation. Food, insulin and activity can share the same plan.

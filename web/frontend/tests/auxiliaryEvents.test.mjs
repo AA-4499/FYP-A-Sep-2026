@@ -48,7 +48,7 @@ test('missing macros are not fabricated, and activity timing and quantities rema
 function component(relative,mocks){
  const source=readFileSync(new URL(relative,import.meta.url),'utf8');const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;const mod={exports:{}};new Function('require','module','exports',js)(id=>Object.hasOwn(mocks,id)?mocks[id]:require(id),mod,mod.exports);return mod.exports;
 }
-const {ScenarioBuilder}=component('../src/components/ScenarioBuilder.tsx',{'./ActivityPicker':{ActivityPicker:'activity-picker'},'./FoodCompositionPicker':{FoodCompositionPicker:'food-picker'},'../lib/scenario':scenario});
+const {ScenarioBuilder}=component('../src/components/ScenarioBuilder.tsx',{'./InsulinPicker':{InsulinPicker:'insulin-picker'},'./ActivityPicker':{ActivityPicker:'activity-picker'},'./FoodCompositionPicker':{FoodCompositionPicker:'food-picker'},'../lib/scenario':scenario});
 
 test('shared event editor exposes auxiliary meal macros and activity MET inputs and runs a compiled schedule',async()=>{
  let drafts=[meal,walk],submitted;

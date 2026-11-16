@@ -5,6 +5,8 @@ export interface FoodReference {
   category: string;
   available_per_100g: number;
   fiber_per_100g: number | null;
+  protein_per_100g?: number | null;
+  fat_per_100g?: number | null;
   basis: 'available_carbohydrate_per_100g_edible_portion';
   reference_sha256: string;
 }

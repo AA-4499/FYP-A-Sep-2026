@@ -1,6 +1,8 @@
 import { ActivityPicker } from "./ActivityPicker";
+import { InsulinPicker } from "./InsulinPicker";
 import { FoodCompositionPicker } from "./FoodCompositionPicker";
 import { foodCarbohydrate } from "../lib/scenario";
+import type {FoodReference} from '../lib/foodComposition';
 import React, { useState } from "react";
 import { Plus, Trash2, CalendarClock, ChevronDown } from "lucide-react";
 import {
@@ -40,6 +42,12 @@ export function ScenarioBuilder({
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState("");
   const origin = start ? recordTime(start) : NaN;
+  const referenceMacros=(reference:FoodReference|undefined,grams:number)=>{
+    const values=[reference?.protein_per_100g,reference?.fat_per_100g,reference?.fiber_per_100g];
+    return ['auxiliary','integrated'].includes(engine)&&values.every(v=>typeof v==='number'&&Number.isFinite(v))
+      ? {protein:String(Number((values[0]!*grams/100).toFixed(1))),fat:String(Number((values[1]!*grams/100).toFixed(1))),fiber:String(Number((values[2]!*grams/100).toFixed(1)))}
+      : {protein:'',fat:'',fiber:''};
+  };
   const patch = (id: string, update: Partial<ScenarioDraft>) => {
     onChange(
       value.map((row) => {
@@ -152,7 +160,7 @@ export function ScenarioBuilder({
           <details
             key={row.id}
             open
-            className="group overflow-hidden rounded-2xl border border-slate-200/90 bg-white transition open:border-teal-200"
+            className="group min-w-0 rounded-2xl border border-slate-200/90 bg-white transition open:border-teal-200"
             data-testid="scenario-event"
           >
             <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3.5 text-xs font-semibold text-slate-700">
@@ -173,6 +181,7 @@ export function ScenarioBuilder({
               />
             </summary>
             <div className="space-y-3 border-t border-slate-100 p-3">
+              {row.kind==='insulin'&&engine!=='physiology'&&<InsulinPicker index={index+1} formulation={row.description?row.insulinFormulation:undefined} disabled={disabled} onSelect={(description,insulinFormulation)=>patch(row.id,{description,insulinFormulation})}/>}
               {!(engine==='integrated'&&row.kind==='activity')&&<label className="block text-[11px] text-slate-500">
                 {row.kind === "meal"
                   ? "What did you eat / drink?"
@@ -253,33 +262,36 @@ export function ScenarioBuilder({
                     portion={row.amount || "150"}
                     carbohydrate={row.carbohydrate || "42.3"}
                     description={row.description || "White Rice"}
+                    foodReference={row.foodReference}
+                    onPortionDraft={amount=>patch(row.id,{amount,carbohydrate:'',protein:'',fat:'',fiber:''})}
                     engine={engine === 'physiology' ? 'physiology' : 'conditional'}
                     disabled={disabled}
-                    onSelectFood={(foodName, portionGrams, carbsGrams) => {
+                    onSelectFood={(foodName, portionGrams, carbsGrams, reference) => {
                       patch(row.id, {
                         description: foodName,
                         amount: String(portionGrams),
                         carbohydrate: String(carbsGrams),
-                        carbohydrateSource: "manual",
-                        ...(['auxiliary','integrated'].includes(engine)?{protein:'',fat:'',fiber:''}:{}),
+                        carbohydrateSource: reference?'food-composition':'manual',foodReference:reference,
+                        ...referenceMacros(reference,portionGrams),
                       });
                     }}
-                    onUpdatePortion={(portionGrams, carbsGrams) => {
+                    onUpdatePortion={(portionGrams, carbsGrams, reference) => {
                       patch(row.id, {
                         amount: String(portionGrams),
                         carbohydrate: String(carbsGrams),
-                        carbohydrateSource: "manual",
-                        ...(['auxiliary','integrated'].includes(engine)?{protein:'',fat:'',fiber:''}:{}),
+                        carbohydrateSource: reference?'food-composition':'manual',foodReference:reference,
+                        ...referenceMacros(reference,portionGrams),
                       });
                     }}
                     onUpdateCarbs={(carbsGrams) => {
                       patch(row.id, {
                         carbohydrate: String(carbsGrams),
                         carbohydrateSource: "manual",
+                        foodReference:undefined,
                       });
                     }}
                   />
-                  {['auxiliary','integrated'].includes(engine) && <div className="grid gap-3 sm:grid-cols-3">{(['protein','fat','fiber'] as const).map(nutrient=><label key={nutrient} className="block text-[11px] text-slate-500">{nutrient === 'fiber' ? 'Fiber' : nutrient === 'fat' ? 'Fat' : 'Protein'} (g)<input aria-label={`Event ${index+1} ${nutrient}`} required={engine==='auxiliary'} type="number" min={0} max={nutrient==='fiber'?40:100} step={0.1} value={row[nutrient]??''} placeholder={engine==='auxiliary'?"Enter amount or 0":"Unknown"} className={input} onChange={e=>patch(row.id,{[nutrient]:e.target.value})}/></label>)}</div>}
+                  {['auxiliary','integrated'].includes(engine) && <details className="rounded-xl bg-slate-50 p-3" open={engine==='auxiliary'}><summary className="cursor-pointer text-xs font-semibold text-slate-600">Meal nutrients <span className="font-normal">(optional)</span></summary><div className="mt-3 grid gap-3 sm:grid-cols-3">{(['protein','fat','fiber'] as const).map(nutrient=><label key={nutrient} className="block text-[11px] text-slate-500">{nutrient === 'fiber' ? 'Fiber' : nutrient === 'fat' ? 'Fat' : 'Protein'} (g)<input aria-label={`Event ${index+1} ${nutrient}`} required={engine==='auxiliary'} type="number" min={0} max={nutrient==='fiber'?40:100} step={0.1} value={row[nutrient]??''} placeholder={engine==='auxiliary'?"Enter amount or 0":"Unknown"} className={input} onChange={e=>patch(row.id,{[nutrient]:e.target.value})}/></label>)}</div></details>}
                   {engine === 'physiology' && (
                     <label className="block text-[11px] text-slate-500">
                       Assumed absorption speed
@@ -337,7 +349,7 @@ export function ScenarioBuilder({
                 </p>
               )}
               {row.kind === "insulin" && (
-                engine !== 'physiology' ? <label className="block text-[11px] text-slate-500">Insulin action assumption<select aria-label={`Event ${index + 1} insulin formulation`} className={input} value={row.insulinFormulation ?? 'rapid'} onChange={event => patch(row.id, {insulinFormulation:event.target.value as 'rapid'|'regular'})}><option value="rapid">Rapid analogue (6h duration) / 75m peak</option><option value="regular">Regular (8h duration / 180m peak)</option></select><span className="mt-1 block text-[10px]">Estimated IOB is recalculated from dose, time and formulation. No dose is suggested.</span></label> : <p className="text-[10px] leading-relaxed text-slate-400">
+                engine !== 'physiology' ? <p className="text-[10px] leading-relaxed text-slate-500">Selected formulation: {row.insulinFormulation==='regular'?'Regular':'Rapid analogue'}. Estimated IOB is recalculated from dose and time.</p> : <p className="text-[10px] leading-relaxed text-slate-400">
                   Only a hypothetical rapid-acting injection is represented.
                   Basal insulin, pumps and non-insulin injections require
                   different models. No dose is suggested.

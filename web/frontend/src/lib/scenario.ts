@@ -15,6 +15,10 @@ export interface ScenarioDraft {
   absorption: string;
   intensity: "moderate" | "intense";
   insulinFormulation?: 'rapid' | 'regular';
+  protein?: string;
+  fat?: string;
+  fiber?: string;
+  met?: string;
 }
 // USDA SR28 NDB 20045: 28.17 g carbohydrate by difference and 0.4 g fibre / 100 g.
 // Subtracting fibre is an explicit approximate available-carbohydrate convention.
@@ -47,10 +51,10 @@ export function compileScenario(
   drafts: ScenarioDraft[],
   start: string,
   hours: number,
-  engine: 'physiology' | 'conditional' = 'physiology',
+  engine: 'physiology' | 'conditional' | 'auxiliary' = 'physiology',
 ) {
   const origin = recordTime(start);
-  if (!Number.isFinite(origin) || !(engine === 'conditional' ? [4,6].includes(hours) : engine === 'physiology' && [6, 12].includes(hours)))
+  if (!Number.isFinite(origin) || !(engine === 'auxiliary' ? hours===6 : engine === 'conditional' ? [4,6].includes(hours) : engine === 'physiology' && [6, 12].includes(hours)))
     throw new Error(
       engine === 'conditional' ? 'A valid record time and four-hour model window are required.' : "A valid record time and 6- or 12-hour horizon are required.",
     );
@@ -65,6 +69,8 @@ export function compileScenario(
         throw new Error(`${label}: select a supported event type.`);
       if (engine === 'conditional' && !['meal', 'insulin'].includes(draft.kind))
         throw new Error(`${label}: this trained model supports meal carbohydrate and rapid/regular bolus events only.`);
+      if (engine === 'auxiliary' && !['meal','activity'].includes(draft.kind))
+        throw new Error(`${label}: auxiliary prediction supports meal nutrition and activity only. Use the main model for insulin.`);
       if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(draft.at))
         throw new Error(`${label}: enter a date and clock time.`);
       const at = recordTime(draft.at);
@@ -72,7 +78,7 @@ export function compileScenario(
         throw new Error(`${label}: enter a valid calendar date and time.`);
       // Compare rounded minute boundaries, not fractional minutes in a recorded seed.
       const minute = (at - Math.floor(origin / 60000) * 60000) / 60000;
-      if (!Number.isInteger(minute) || minute < 1 || minute >= hours * 60)
+      if (!Number.isInteger(minute) || minute < 1 || (engine==='auxiliary' ? minute > hours*60 : minute >= hours * 60))
         throw new Error(
           `${label}: choose a time after the seed observation and inside the ${hours}-hour window.`,
         );
@@ -86,7 +92,20 @@ export function compileScenario(
         (!draft.amount.trim() || !Number.isFinite(amount) || amount <= 0)
       )
         throw new Error(`${label}: enter a positive amount.`);
-      if (draft.kind === "meal") {
+      if(engine==='auxiliary') {
+        if(draft.kind==='meal') {
+          const fields=[draft.carbohydrate,draft.protein,draft.fat,draft.fiber];
+          const [carbs,protein,fat,fiber]=fields.map(Number);
+          if(fields.some(v=>typeof v!=='string'||v.trim()==='')||![carbs,protein,fat,fiber].every(Number.isFinite)||carbs<0||carbs>150||protein<0||protein>100||fat<0||fat>100||fiber<0||fiber>40||fiber>carbs||amount>2000||carbs+protein+fat>amount+.1)
+            throw Error(`${label}: enter total carbohydrate, protein, fat and fiber in grams (including explicit zeros); totals must fit the food portion and fiber is part of carbohydrate.`);
+          if(draft.carbohydrateSource==='food-composition'&&carbs!==foodCarbohydrate(draft.foodReference,amount,'conditional'))throw Error(`${label}: the food reference no longer matches this portion. Re-select the food.`);
+          if(draft.carbohydrateSource==='usda-cooked-white-rice'&&carbs!==cookedRiceCarbohydrate(amount,'total'))throw Error(`${label}: the cooked-rice reference no longer matches this portion.`);
+        } else {
+          const met=Number(draft.met);
+          if(!draft.met?.trim()||!Number.isFinite(met)||met<1||met>8||minute%15!==0||!Number.isInteger(amount)||amount<15||amount>120||amount%15!==0||minute+amount>hours*60)
+            throw Error(`${label}: activity needs a 15-minute start/duration grid, duration 15–120 minutes and MET 1–8, finishing within six hours.`);
+        }
+      } else if (draft.kind === "meal") {
         const carbohydrate = Number(draft.carbohydrate);
         if (draft.carbohydrateSource === "food-composition" && carbohydrate !== foodCarbohydrate(draft.foodReference, amount, engine))
           throw new Error(`${label}: the food reference no longer matches this portion or model. Re-select the food or use manual entry.`);

@@ -15,6 +15,9 @@ export interface NutritionPlan {
   at: number; carbs: number; protein: number; fat: number; fiber: number;
   activityAt: number; activityMinutes: number; met: number;
 }
+export type AuxiliaryEvent =
+  | {kind:'meal';minutesAhead:number;carbs:number;protein:number;fat:number;fiber:number}
+  | {kind:'activity';minutesAhead:number;durationMinutes:number;met:number};
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 export function validateAuxiliary(model: AuxiliaryModel) {
   if (model.version !== 1 || model.architecture !== 'cgmacros-auxiliary-gru-v1' ||
@@ -56,6 +59,33 @@ export function nutritionSchedule(origin: number, plan: NutritionPlan, activityE
   });
 }
 
+/** Encode actual scheduled events, not independent sliders or artificial deltas. */
+export function auxiliaryEventSchedule(origin:number,events:AuxiliaryEvent[],activityEnabled:boolean):number[][] {
+  if(!finite(origin)||!Array.isArray(events)||events.length>12)throw Error('Use at most 12 auxiliary events.');
+  const bins=Array.from({length:24},(_,i)=>{
+    const date=new Date(origin+(i+1)*900000),hour=date.getUTCHours()+date.getUTCMinutes()/60;
+    return [Math.sin(2*Math.PI*hour/24),Math.cos(2*Math.PI*hour/24),0,0,0,0,0,0,0,0];
+  });
+  for(const event of events){
+    if(!event||!finite(event.minutesAhead)||event.minutesAhead<=0||event.minutesAhead>360)throw Error('Auxiliary events must occur after the origin and within six hours.');
+    if(event.kind==='meal'){
+      if(![event.carbs,event.protein,event.fat,event.fiber].every(finite)||event.carbs<0||event.carbs>150||event.protein<0||event.protein>100||event.fat<0||event.fat>100||event.fiber<0||event.fiber>40||event.fiber>event.carbs)throw Error('Enter complete meal macros within supported bounds; fiber is part of total carbohydrate.');
+      const bin=bins[Math.ceil(event.minutesAhead/15)-1];
+      [event.carbs,event.protein,event.fat,event.fiber].forEach((value,i)=>{bin[i+2]+=value;});
+      if(bin[2]>150||bin[3]>100||bin[4]>100||bin[5]>40)throw Error('Combined meals exceed the supported amount in one 15-minute bin.');
+      bin[6]=1;bin[7]=1;
+    }else if(event.kind==='activity'){
+      if(!activityEnabled)throw Error('This auxiliary checkpoint does not support activity.');
+      if(!finite(event.durationMinutes)||event.durationMinutes<15||event.durationMinutes>120||event.durationMinutes%15!==0||event.minutesAhead%15!==0||event.minutesAhead+event.durationMinutes>360||!finite(event.met)||event.met<1||event.met>8)throw Error('Activity needs a 15-minute start/duration grid, 15–120 minutes and MET 1–8, ending within six hours.');
+      for(let i=event.minutesAhead/15;i<(event.minutesAhead+event.durationMinutes)/15;i++){
+        if(bins[i][9])throw Error('Activity intervals cannot overlap; use one measured MET average for each interval.');
+        bins[i][8]=event.met;bins[i][9]=1;
+      }
+    }else throw Error('The auxiliary model supports meals and activity only; insulin cannot be silently combined.');
+  }
+  return bins;
+}
+
 const sigmoid=(x:number)=>1/(1+Math.exp(-x));
 function gelu(x:number) {const a=Math.abs(x)/Math.SQRT2,t=1/(1+.3275911*a);const erf=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-a*a);return .5*x*(1+(x<0?-erf:erf));}
 function affine(model:AuxiliaryModel,prefix:string,input:ArrayLike<number>) {
@@ -93,12 +123,23 @@ export function predictAuxiliary(model:AuxiliaryModel,history:number[][],staticR
 }
 
 export function compareNutrition(model:AuxiliaryModel,history:ConditionalHistory,cohort:string,baseline:NutritionPlan,scenario:NutritionPlan) {
+  validateAuxiliaryHistory(history,cohort);
+  const x=history.features.map(r=>r.slice(0,3));
+  const forecast=(plan:NutritionPlan)=>predictAuxiliary(model,x,history.staticContext,nutritionSchedule(history.origin,plan,model.mode==='macros_activity'));
+  return {baseline:forecast(baseline),scenario:forecast(scenario)};
+}
+
+function validateAuxiliaryHistory(history:ConditionalHistory,cohort:string) {
   if(cohort!=='ShanghaiT2DM') throw Error('The mixed-status CGMacros research model has no validated T1D transfer.');
   const age=history.staticContext[0],bmi=history.staticContext[1];
   if(!finite(age)||age<18||age>69||!finite(bmi)||bmi<20.69||bmi>49.09) throw Error('Auxiliary research requires recorded age 18–69 and BMI 20.69–49.09.');
   const sourceTime=(t:string)=>{const v=t.trim().replace(' ','T');return Date.parse(/Z$|[+-]\d\d:\d\d$/i.test(v)?v:v+'Z');};
   if(history.timestamps.length!==24 || history.timestamps.some((t,i)=>!finite(sourceTime(t))||(i>0&&sourceTime(t)-sourceTime(history.timestamps[i-1])!==900000)) || sourceTime(history.timestamps[23])!==history.origin) throw Error('Auxiliary history must be consecutive and match the forecast origin.');
+}
+
+export function compareAuxiliaryEvents(model:AuxiliaryModel,history:ConditionalHistory,cohort:string,baseline:AuxiliaryEvent[],scenario:AuxiliaryEvent[]) {
+  validateAuxiliaryHistory(history,cohort);
   const x=history.features.map(r=>r.slice(0,3));
-  const forecast=(plan:NutritionPlan)=>predictAuxiliary(model,x,history.staticContext,nutritionSchedule(history.origin,plan,model.mode==='macros_activity'));
+  const forecast=(events:AuxiliaryEvent[])=>predictAuxiliary(model,x,history.staticContext,auxiliaryEventSchedule(history.origin,events,model.mode==='macros_activity'));
   return {baseline:forecast(baseline),scenario:forecast(scenario)};
 }

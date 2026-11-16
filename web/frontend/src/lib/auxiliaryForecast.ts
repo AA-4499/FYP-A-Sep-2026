@@ -1,8 +1,8 @@
 import type { ConditionalHistory } from './conditionalFeatures';
 import type { GlucoseForecast } from './forecast';
-import type { NutritionPlan } from './auxiliaryNutrition';
+import type { NutritionPlan, AuxiliaryEvent } from './auxiliaryNutrition';
 
-export function auxiliaryForecast(history:ConditionalHistory,result:{baseline:number[];scenario:number[]},baseline:NutritionPlan,scenario:NutritionPlan,identity:{version:string;checkpoint_sha256:string;evaluation_scope:string},label:string):GlucoseForecast {
+export function auxiliaryForecast(history:ConditionalHistory,result:{baseline:number[];scenario:number[]},baseline:NutritionPlan|AuxiliaryEvent[],scenario:NutritionPlan|AuxiliaryEvent[],identity:{version:string;checkpoint_sha256:string;evaluation_scope:string},label:string):GlucoseForecast {
   if(result.baseline.length!==24||result.scenario.length!==24||[...result.baseline,...result.scenario].some(v=>!Number.isFinite(v)||v<=0))throw Error('Incomplete auxiliary six-hour forecast.');
   const origin=new Date(history.origin).toISOString();
   const points=(values:number[])=>[{timestamp:origin,value:history.features[23][0]},...values.map((value,i)=>({timestamp:new Date(history.origin+(i+1)*900000).toISOString(),value}))];

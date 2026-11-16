@@ -33,7 +33,7 @@ export function ScenarioBuilder({
   disabled?: boolean;
   onRun: (events: ReturnType<typeof compileScenario>) => boolean | void | Promise<boolean | void>;
   onReset: () => void;
-  engine?: 'physiology' | 'conditional';
+  engine?: 'physiology' | 'conditional' | 'auxiliary';
   allowedKinds?: ScenarioKind[];
 }) {
   const [error, setError] = useState("");
@@ -48,11 +48,11 @@ export function ScenarioBuilder({
           next.kind === "meal" &&
           next.carbohydrateSource === "usda-cooked-white-rice"
         ) {
-          const estimate = cookedRiceCarbohydrate(Number(next.amount), engine === 'conditional' ? 'total' : 'available');
+          const estimate = cookedRiceCarbohydrate(Number(next.amount), engine !== 'physiology' ? 'total' : 'available');
           next.carbohydrate = estimate === null ? "" : String(estimate);
         }
         if (next.kind === "meal" && next.carbohydrateSource === "food-composition") {
-          const estimate = foodCarbohydrate(next.foodReference, Number(next.amount), engine);
+          const estimate = foodCarbohydrate(next.foodReference, Number(next.amount), engine === 'auxiliary' ? 'conditional' : engine);
           next.carbohydrate = estimate === null ? "" : String(estimate);
         }
         return next;
@@ -86,7 +86,7 @@ export function ScenarioBuilder({
     >
       <div className="rounded-xl bg-slate-50 p-3 text-[11px] leading-relaxed text-slate-600">
         <p className="flex items-center gap-1.5 font-semibold">
-          <CalendarClock size={14} /> Record clock · {engine === 'conditional' ? 'source clock' : 'UTC'}
+          <CalendarClock size={14} /> Record clock · {engine !== 'physiology' ? 'source clock' : 'UTC'}
         </p>
         <p className="mt-1">
           {Number.isFinite(origin)
@@ -121,6 +121,7 @@ export function ScenarioBuilder({
                 absorption: "45",
                 intensity: "moderate",
                 insulinFormulation: 'rapid',
+                protein: '', fat: '', fiber: '', met: '',
               },
             ]);
             setError("");
@@ -141,7 +142,7 @@ export function ScenarioBuilder({
           </span>
           <p className="font-medium text-slate-600">Start with one event</p>
           <p className="mt-1 text-[11px]">
-            {engine === 'conditional' ? 'Add a meal or supported bolus to compare with the same recorded baseline.' : 'Add a meal, injection or activity to compare with the baseline.'}
+            {engine === 'auxiliary' ? 'Add meals with their macronutrients or physical activity to run the trained auxiliary model.' : engine === 'conditional' ? 'Add a meal or supported bolus to compare with the same recorded baseline.' : 'Add a meal, injection or activity to compare with the baseline.'}
           </p>
         </div>
       )}
@@ -161,7 +162,7 @@ export function ScenarioBuilder({
                 {engine === 'conditional' && row.kind === 'insulin' ? `${row.insulinFormulation === 'regular' ? 'Regular' : 'Rapid-acting'} insulin bolus` : eventNames[row.kind]}
                 <span className="mt-1 block text-[10px] font-normal text-slate-400">
                   {row.at
-                    ? row.at.replace("T", " ") + (engine === 'conditional' ? ' · source clock' : ' UTC')
+                    ? row.at.replace("T", " ") + (engine !== 'physiology' ? ' · source clock' : ' UTC')
                     : "Set the time and details"}
                 </span>
               </span>
@@ -198,7 +199,7 @@ export function ScenarioBuilder({
                 />
               </label>
               <label className="block text-[11px] text-slate-500">
-                Date and time · {engine === 'conditional' ? 'source clock' : 'UTC'}
+                Date and time · {engine !== 'physiology' ? 'source clock' : 'UTC'}
                 <input
                   aria-label={`Event ${index + 1} time`}
                   type="datetime-local"
@@ -208,7 +209,7 @@ export function ScenarioBuilder({
                   min={clockInput(Math.floor(origin / 60000) * 60000 + 60000)}
                   max={clockInput(
                     Math.floor(origin / 60000) * 60000 +
-                      (hours * 60 - 1) * 60000,
+                      (hours * 60 - (engine === 'auxiliary' ? 0 : 1)) * 60000,
                   )}
                   value={row.at}
                   onChange={(event) =>
@@ -226,8 +227,8 @@ export function ScenarioBuilder({
                   <input
                     aria-label={`Event ${index + 1} amount`}
                     type="number"
-                    min={row.kind === "activity" ? 1 : 0.1}
-                    step={row.kind === "activity" ? 1 : 0.1}
+                    min={row.kind === "activity" ? (engine === 'auxiliary' ? 15 : 1) : 0.1}
+                    step={row.kind === "activity" ? (engine === 'auxiliary' ? 15 : 1) : 0.1}
                     max={
                       row.kind === "insulin"
                         ? 20
@@ -250,7 +251,7 @@ export function ScenarioBuilder({
                     portion={row.amount || "150"}
                     carbohydrate={row.carbohydrate || "42.3"}
                     description={row.description || "White Rice"}
-                    engine={engine}
+                    engine={engine === 'auxiliary' ? 'conditional' : engine}
                     disabled={disabled}
                     onSelectFood={(foodName, portionGrams, carbsGrams) => {
                       patch(row.id, {
@@ -258,6 +259,7 @@ export function ScenarioBuilder({
                         amount: String(portionGrams),
                         carbohydrate: String(carbsGrams),
                         carbohydrateSource: "manual",
+                        ...(engine==='auxiliary'?{protein:'',fat:'',fiber:''}:{}),
                       });
                     }}
                     onUpdatePortion={(portionGrams, carbsGrams) => {
@@ -265,6 +267,7 @@ export function ScenarioBuilder({
                         amount: String(portionGrams),
                         carbohydrate: String(carbsGrams),
                         carbohydrateSource: "manual",
+                        ...(engine==='auxiliary'?{protein:'',fat:'',fiber:''}:{}),
                       });
                     }}
                     onUpdateCarbs={(carbsGrams) => {
@@ -274,6 +277,7 @@ export function ScenarioBuilder({
                       });
                     }}
                   />
+                  {engine === 'auxiliary' && <div className="grid gap-3 sm:grid-cols-3">{(['protein','fat','fiber'] as const).map(nutrient=><label key={nutrient} className="block text-[11px] text-slate-500">{nutrient === 'fiber' ? 'Fiber' : nutrient === 'fat' ? 'Fat' : 'Protein'} (g)<input aria-label={`Event ${index+1} ${nutrient}`} required type="number" min={0} max={nutrient==='fiber'?40:100} step={0.1} value={row[nutrient]??''} placeholder="Enter amount or 0" className={input} onChange={e=>patch(row.id,{[nutrient]:e.target.value})}/></label>)}</div>}
                   {engine === 'physiology' && (
                     <label className="block text-[11px] text-slate-500">
                       Assumed absorption speed
@@ -299,7 +303,8 @@ export function ScenarioBuilder({
                   )}
                 </>
               )}
-              {row.kind === "activity" && (
+              {row.kind === 'activity' && engine === 'auxiliary' && <label className="block text-[11px] text-slate-500">Activity intensity (MET)<input aria-label={`Event ${index+1} MET`} required type="number" min={1} max={8} step={0.1} className={input} value={row.met??''} placeholder="e.g. 3" onChange={e=>patch(row.id,{met:e.target.value})}/><span className="mt-1 block text-[10px]">Use a 15-minute start/duration grid. Overlapping activities are not supported.</span></label>}
+              {row.kind === "activity" && engine !== 'auxiliary' && (
                 <label className="block text-[11px] text-slate-500">
                   Assumed intensity
                   <select
@@ -369,7 +374,7 @@ export function ScenarioBuilder({
         </p>
       )}
       <p className="text-[10px] leading-relaxed text-slate-400">
-        {engine === 'conditional' ? 'Up to 12 events. Both curves use the saved v3 decoder and the same observed history. Unrecorded future intake/exposure is unknown. Exercise and other medicine effects are not trained inputs.' : 'Up to 12 events. Changes are drafts until you run the simulation. Meals, rapid insulin and activity use an unvalidated physiology model, not a treatment prediction.'}
+        {engine === 'auxiliary' ? 'Up to 12 meal/activity events. Each event enters the trained CGMacros decoder. Missing future activity remains unknown; insulin and other medicines are outside this model.' : engine === 'conditional' ? 'Up to 12 events. Both curves use the saved v3 decoder and the same observed history. Unrecorded future intake/exposure is unknown. Exercise and other medicine effects are not trained inputs.' : 'Up to 12 events. Changes are drafts until you run the simulation. Meals, rapid insulin and activity use an unvalidated physiology model, not a treatment prediction.'}
       </p>
       <button
         type="submit"

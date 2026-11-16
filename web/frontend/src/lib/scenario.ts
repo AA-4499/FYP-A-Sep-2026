@@ -3,6 +3,7 @@ import type { PhysiologyEvent } from "./physiology";
 
 export type ScenarioKind =
   "meal" | "insulin" | "medication" | "activity" | "stress" | "illness";
+export type ScenarioEngine='physiology'|'conditional'|'auxiliary'|'integrated';
 export interface ScenarioDraft {
   id: string;
   kind: ScenarioKind;
@@ -48,11 +49,21 @@ export function clockInput(value: number): string {
     ? new Date(value).toISOString().slice(0, 16)
     : "";
 }
+/** Input bounds mirror the decoder window, including the whole activity. */
+export function eventTimeBounds(start:string,hours:number,kind:ScenarioKind,duration:string,engine:ScenarioEngine) {
+  const origin=recordTime(start),minute=60000;
+  if(!Number.isFinite(origin)||!Number.isFinite(hours)||hours<=0)return {min:'',max:'',end:'',durationKnown:false};
+  const rounded=Math.floor(origin/minute)*minute,end=rounded+hours*60*minute;
+  const durationMinutes=Number(duration),durationKnown=kind==='activity'&&duration.trim()!==''&&Number.isInteger(durationMinutes)&&durationMinutes>0;
+  const first=engine==='auxiliary'&&kind==='activity'?15:1;
+  const last=durationKnown?hours*60-durationMinutes:hours*60-(['auxiliary','integrated'].includes(engine)&&kind!=='activity'?0:1);
+  return {min:clockInput(rounded+first*minute),max:clockInput(rounded+last*minute),end:clockInput(end),durationKnown};
+}
 export function compileScenario(
   drafts: ScenarioDraft[],
   start: string,
   hours: number,
-  engine: 'physiology' | 'conditional' | 'auxiliary' | 'integrated' = 'physiology',
+  engine: ScenarioEngine = 'physiology',
 ) {
   const origin = recordTime(start);
   if (!Number.isFinite(origin) || !(['auxiliary','integrated'].includes(engine) ? hours===6 : engine === 'conditional' ? [4,6].includes(hours) : engine === 'physiology' && [6, 12].includes(hours)))

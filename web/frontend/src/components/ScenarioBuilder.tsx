@@ -11,6 +11,7 @@ import {
   cookedRiceCarbohydrate,
   cookedRiceReferenceUrl,
   eventNames,
+  eventTimeBounds,
   recordTime,
   type ScenarioDraft,
   type ScenarioKind,
@@ -41,7 +42,14 @@ export function ScenarioBuilder({
 }) {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState("");
+  const [limitToChart,setLimitToChart]=useState<Record<string,boolean>>({});
   const origin = start ? recordTime(start) : NaN;
+  const boundsFor=(row:ScenarioDraft)=>eventTimeBounds(start||'',hours,row.kind,row.amount,engine);
+  const outsideChart=(row:ScenarioDraft)=>{
+    const bounds=boundsFor(row);
+    return !!row.at&&!!bounds.min&&(row.at<bounds.min||row.at>bounds.max);
+  };
+  const hasOutsideTime=value.some(outsideChart);
   const referenceMacros=(reference:FoodReference|undefined,grams:number)=>{
     const values=[reference?.protein_per_100g,reference?.fat_per_100g,reference?.fiber_per_100g];
     return ['auxiliary','integrated'].includes(engine)&&values.every(v=>typeof v==='number'&&Number.isFinite(v))
@@ -156,7 +164,10 @@ export function ScenarioBuilder({
         </div>
       )}
       <fieldset disabled={disabled} className="min-w-0 space-y-3">
-        {value.map((row, index) => (
+        {value.map((row, index) => {
+          const bounds=boundsFor(row),limited=limitToChart[row.id]!==false,outside=outsideChart(row);
+          const at=recordTime(row.at),ahead=Number.isFinite(at)?Math.round((at-Math.floor(origin/60000)*60000)/60000):null;
+          return (
           <details
             key={row.id}
             open
@@ -174,6 +185,7 @@ export function ScenarioBuilder({
                   {row.at
                     ? row.at.replace("T", " ") + (engine !== 'physiology' ? ' · source clock' : ' UTC')
                     : "Set the time and details"}
+                  {outside&&<span className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-900">Outside chart</span>}
                 </span>
               </span>
               <ChevronDown
@@ -210,25 +222,32 @@ export function ScenarioBuilder({
                 />
               </label>}
               {engine==='integrated'&&row.kind==='activity'&&<ActivityPicker index={index+1} activityId={row.activityId} minutes={row.amount} disabled={disabled} onSelect={(activityId,description,met)=>patch(row.id,{activityId,description,met:String(met)})}/>}
-              <label className="block text-[11px] text-slate-500">
-                Date and time · {engine !== 'physiology' ? 'source clock' : 'UTC'}
+              <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/60 p-3">
+               <div className="flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700"><CalendarClock size={14}/>Event time</span><label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-slate-600"><input type="checkbox" aria-label={`Event ${index+1} limit time to chart`} checked={limited} className="h-3.5 w-3.5 rounded border-slate-300 accent-teal-700" onChange={event=>setLimitToChart(previous=>({...previous,[row.id]:event.target.checked}))}/>Only times in forecast chart</label></div>
+               <label className="block text-[11px] text-slate-500">
+                {limited?'Chart time':'Custom date and time'} · {engine !== 'physiology' ? 'source clock' : 'UTC'}
                 <input
                   aria-label={`Event ${index + 1} time`}
                   type="datetime-local"
-                  className={input}
+                  className={`${input} ${outside?'!border-amber-300 !bg-amber-50/70':''}`}
                   required
                   step={60}
-                  min={clockInput(Math.floor(origin / 60000) * 60000 + 60000)}
-                  max={clockInput(
-                    Math.floor(origin / 60000) * 60000 +
-                      (hours * 60 - (['auxiliary','integrated'].includes(engine) ? 0 : 1)) * 60000,
-                  )}
+                  min={limited?bounds.min:undefined}
+                  max={limited?bounds.max:undefined}
+                  aria-invalid={outside||undefined}
+                  aria-describedby={`event-time-help-${row.id}`}
                   value={row.at}
                   onChange={(event) =>
                     patch(row.id, { at: event.target.value })
                   }
                 />
-              </label>
+               </label>
+               <div id={`event-time-help-${row.id}`} className="space-y-1 text-[10px] leading-5">
+                <p className="text-slate-500">{bounds.min?`Available start: ${bounds.min.replace('T',' ')} → ${bounds.max.replace('T',' ')}.`:'Waiting for the chart forecast range.'}{row.kind==='activity'&&bounds.durationKnown?` Includes the full ${row.amount}-minute activity.`:''}</p>
+                {!limited&&<p className="text-slate-500">Custom time is unrestricted while editing. Prediction still requires the event to fit this {hours}-hour chart.</p>}
+                {outside?<p role="alert" className="font-medium text-amber-800">Outside the forecast chart{row.kind==='activity'&&bounds.durationKnown?' or the activity would finish after it':''}. Choose a start within the range above before running.</p>:ahead!==null&&<p className="font-medium text-teal-700">In chart · +{ahead} min from forecast start{row.kind==='activity'&&bounds.durationKnown?` · ends ${clockInput(at+Number(row.amount)*60000).replace('T',' ')}`:''}.</p>}
+               </div>
+              </div>
               {["insulin", "medication", "activity"].includes(row.kind) && (
                 <label className="block text-[11px] text-slate-500">
                   {row.kind === "insulin"
@@ -370,7 +389,7 @@ export function ScenarioBuilder({
               </button>
             </div>
           </details>
-        ))}
+        );})}
       </fieldset>
       {error && (
         <p
@@ -393,7 +412,7 @@ export function ScenarioBuilder({
       </p>
       <button
         type="submit"
-        disabled={disabled || !Number.isFinite(origin) || !value.length}
+        disabled={disabled || !Number.isFinite(origin) || !value.length || hasOutsideTime}
         className="w-full rounded-xl bg-teal-700 px-4 py-3 text-xs font-semibold text-white hover:bg-teal-800 disabled:opacity-40"
       >
         Run what-if simulation

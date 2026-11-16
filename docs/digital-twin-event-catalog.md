@@ -14,6 +14,14 @@ Activity searches all supported presets, with no contradictory category filter.
 Insulin lists only the model's two supported bolus formulations, not an assumed
 catalog of all medicines or recommended doses.
 
+Each event's time picker defaults to **Only times in forecast chart**. Its
+native minimum/maximum dates use the recorded forecast origin, not today's
+date. Activity start limits also include the entire entered duration. The UI
+shows the allowed start range and the selected offset from the origin.
+Unchecking allows unrestricted custom time editing; an out-of-window event
+is highlighted and blocks running in both modes. Values are never silently
+clamped or dropped, and the decoder's trained horizon is unchanged.
+
 ## Actual Supabase food schema
 
 Read-only verification on 2026-11-16 found **1,677 rows** in

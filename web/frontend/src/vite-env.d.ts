@@ -1,5 +1,9 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  readonly VITE_HCAPTCHA_SITE_KEY?: string;
+}
+
 declare namespace JSX {
   interface IntrinsicElements {
     'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
